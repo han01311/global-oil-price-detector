@@ -1,0 +1,37 @@
+{
+  "project": "Petro-AX",
+  "phase": "news-classifier",
+  "title": "AI 뉴스 요인 분류기 & Market Memory",
+  "steps": [
+    {
+      "step": 1,
+      "name": "gemini-news-classifier",
+      "title": "Gemini 기반 뉴스 요인 분류기 구현",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "chromadb-market-memory",
+      "title": "ChromaDB Market Memory 구축",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "historical-backfill",
+      "title": "과거 뉴스-유가 매핑 데이터 적재",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "similarity-search-api",
+      "title": "유사 사례 검색 API 구현",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "classifier-integration-test",
+      "title": "분류기 통합 테스트",
+      "status": "pending"
+    }
+  ]
+}

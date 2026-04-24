@@ -1,0 +1,43 @@
+{
+  "project": "Petro-AX",
+  "phase": "forecast-engine",
+  "title": "하이브리드 유가 추정 엔진",
+  "steps": [
+    {
+      "step": 1,
+      "name": "feature-engineering",
+      "title": "Feature Engineering 파이프라인 구현",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "xgboost-baseline",
+      "title": "XGBoost 베이스라인 모델 학습",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "news-adjustment",
+      "title": "뉴스 기반 보정(Premium/Discount) 로직 구현",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "briefing-generator",
+      "title": "AI 유가 브리핑 자동 생성기 구현",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "forecast-api",
+      "title": "추정 엔진 API 엔드포인트 구현",
+      "status": "pending"
+    },
+    {
+      "step": 6,
+      "name": "engine-integration-test",
+      "title": "추정 엔진 통합 테스트",
+      "status": "pending"
+    }
+  ]
+}

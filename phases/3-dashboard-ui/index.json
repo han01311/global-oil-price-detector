@@ -1,0 +1,49 @@
+{
+  "project": "Petro-AX",
+  "phase": "dashboard-ui",
+  "title": "대시보드 UI 구축",
+  "steps": [
+    {
+      "step": 1,
+      "name": "frontend-deps-design-system",
+      "title": "프론트엔드 의존성 및 디자인 시스템 구축",
+      "status": "pending"
+    },
+    {
+      "step": 2,
+      "name": "dashboard-layout",
+      "title": "대시보드 레이아웃 & 헤더 구현",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "price-chart",
+      "title": "유가 추정 차트 컴포넌트 구현",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "news-explorer",
+      "title": "뉴스 익스플로러 & 요인 필터 구현",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "briefing-viewer",
+      "title": "AI 브리핑 뷰어 구현",
+      "status": "pending"
+    },
+    {
+      "step": 6,
+      "name": "factor-gauge",
+      "title": "요인 게이지 & 대시보드 통합",
+      "status": "pending"
+    },
+    {
+      "step": 7,
+      "name": "ui-polish-test",
+      "title": "UI 폴리싱 & E2E 테스트",
+      "status": "pending"
+    }
+  ]
+}

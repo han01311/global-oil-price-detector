@@ -1,0 +1,33 @@
+{
+  "project": "Petro-AX",
+  "phases": [
+    {
+      "dir": "0-data-foundation",
+      "name": "data-foundation",
+      "title": "데이터 수집 & 파이프라인 구축",
+      "status": "pending",
+      "description": "EIA, FRED, 뉴스 API 연동 및 데이터 수집/캐싱 파이프라인 구축"
+    },
+    {
+      "dir": "1-news-classifier",
+      "name": "news-classifier",
+      "title": "AI 뉴스 요인 분류기",
+      "status": "pending",
+      "description": "Gemini 기반 뉴스 분류 + ChromaDB 벡터 적재 (Market Memory)"
+    },
+    {
+      "dir": "2-forecast-engine",
+      "name": "forecast-engine",
+      "title": "하이브리드 유가 추정 엔진",
+      "status": "pending",
+      "description": "XGBoost baseline + 뉴스 보정으로 추정 유가 밴드 산출"
+    },
+    {
+      "dir": "3-dashboard-ui",
+      "name": "dashboard-ui",
+      "title": "대시보드 UI 구축",
+      "status": "pending",
+      "description": "유가 차트, 뉴스 익스플로러, AI 브리핑 뷰어 등 프론트엔드 구현"
+    }
+  ]
+}
