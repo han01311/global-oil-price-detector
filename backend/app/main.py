@@ -28,4 +28,15 @@ app.add_middleware(
 @app.get("/api/health")
 async def health_check():
     """헬스체크 엔드포인트"""
-    return {"status": "ok", "version": settings.VERSION}
+    required_keys = ["GEMINI_API_KEY", "EIA_API_KEY", "FRED_API_KEY"]
+    missing_keys = [key for key in required_keys if not getattr(settings, key)]
+    
+    config_status = "ok"
+    if missing_keys:
+        config_status = f"missing_required_keys: {', '.join(missing_keys)}"
+
+    return {
+        "status": "ok", 
+        "version": settings.VERSION,
+        "config_status": config_status
+    }

@@ -67,7 +67,7 @@ class StepExecutor:
     TZ = timezone(timedelta(hours=9))
 
     # Gemini 모델 설정
-    GEMINI_MODEL = "gemini-2.5-pro-preview-05-06"
+    GEMINI_MODEL = "gemini-2.5-pro"
     GEMINI_TEMPERATURE = 0.2
 
     def __init__(self, phase_dir_name: str, *, auto_push: bool = False):

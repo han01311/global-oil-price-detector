@@ -1,32 +1,53 @@
 """
 프로젝트 설정 관리
 """
-
-from pydantic_settings import BaseSettings
+import warnings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """애플리케이션 설정"""
 
     # 프로젝트 기본 정보
-    PROJECT_NAME: str = "New Project"
+    PROJECT_NAME: str = "Petro-AX"
     VERSION: str = "0.1.0"
     DEBUG: bool = True
+    APP_ENV: str = "development"
+    LOG_LEVEL: str = "INFO"
+    DATA_CACHE_DIR: str = "data"
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
-    # API 키
+    # 필수 API 키
     GEMINI_API_KEY: str = ""
+    EIA_API_KEY: str = ""
+    FRED_API_KEY: str = ""
+
+    # 선택 API 키
+    NEWS_API_KEY: str | None = None
+    GNEWS_API_KEY: str | None = None
 
     # 데이터베이스 (추후 설정)
     DATABASE_URL: str = ""
 
-    model_config = {
-        "env_file": ".env",
-        "env_file_encoding": "utf-8",
-        "case_sensitive": True,
-    }
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
+
+    def __init__(self, **values):
+        super().__init__(**values)
+        # 필수 키 확인
+        required_keys = ["GEMINI_API_KEY", "EIA_API_KEY", "FRED_API_KEY"]
+        missing_keys = [key for key in required_keys if not getattr(self, key)]
+        if missing_keys:
+            warnings.warn(
+                f"Missing required environment variables: {', '.join(missing_keys)}. "
+                "Some features may not work correctly."
+            )
 
 
 settings = Settings()
