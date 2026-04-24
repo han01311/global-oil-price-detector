@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
+from app.api import prices, news
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -24,6 +25,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(prices.router)
+app.include_router(news.router)
 
 @app.get("/api/health")
 async def health_check():
