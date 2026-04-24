@@ -14,8 +14,9 @@
       "dir": "1-news-classifier",
       "name": "news-classifier",
       "title": "AI 뉴스 요인 분류기",
-      "status": "pending",
-      "description": "Gemini 기반 뉴스 분류 + ChromaDB 벡터 적재 (Market Memory)"
+      "status": "completed",
+      "description": "Gemini 기반 뉴스 분류 + ChromaDB 벡터 적재 (Market Memory)",
+      "completed_at": "2026-04-24T23:02:25+0900"
     },
     {
       "dir": "2-forecast-engine",
