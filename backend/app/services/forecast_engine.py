@@ -1,8 +1,10 @@
 import argparse
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
+from collections import Counter
+from typing import List, Dict, Optional
 
 import joblib
 import numpy as np
@@ -16,8 +18,8 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')))
 
 from app.services.feature_engineering import FeatureEngineer
-# The following imports are for the training script part
 from app.services.data_collector import DataCollector
+from app.schemas.forecast import ForecastResult, FactorBreakdown
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -140,6 +142,178 @@ class ForecastEngine:
             "model_rmse_7d": self.training_report.get("rmse_7d"),
             "model_rmse_30d": self.training_report.get("rmse_30d"),
         }
+
+class NewsAdjuster:
+    """뉴스 기반 유가 보정 로직"""
+
+    async def calculate_adjustment(self, classified_articles: List[Dict],
+                                    similar_events: List[Dict]) -> Dict:
+        """뉴스 분석 결과를 기반으로 보정값 산출"""
+        relevant_articles = [a for a in classified_articles if a.get("is_relevant")]
+        
+        # 1. 현재 뉴스 기반 종합 감성
+        weighted_score = sum(
+            a["impact_score"] * a["confidence"]
+            for a in relevant_articles
+        )
+        article_count = len(relevant_articles)
+        avg_sentiment = weighted_score / max(article_count, 1)
+
+        # 2. 유사 과거 사례 기반 보정
+        similar_adjustment = self._calculate_similar_adjustment(similar_events)
+
+        # 3. 최종 보정값 = 감성 기반 + 유사 사례 기반 (가중 결합)
+        sentiment_adjustment = self._sentiment_to_pct(avg_sentiment)
+        news_adjustment = (
+            0.4 * sentiment_adjustment +
+            0.6 * similar_adjustment
+        )
+
+        # 4. 불확실성 (뉴스 분산이 크면 신뢰구간 넓힘)
+        uncertainty = self._calculate_uncertainty(relevant_articles)
+
+        return {
+            "news_adjustment_pct": news_adjustment,
+            "sentiment_component": avg_sentiment,
+            "similar_component": similar_adjustment,
+            "uncertainty_factor": uncertainty,
+            "article_count": article_count,
+            "dominant_category": self._get_dominant_category(relevant_articles),
+        }
+
+    def _sentiment_to_pct(self, score: float) -> float:
+        """감성 스코어(-5~+5)를 변동률(%)로 변환"""
+        if score == 0:
+            return 0.0
+        # 비선형 매핑: score ±1 → ±0.4%, ±3 → ±2.3%, ±5 → ±5%
+        return np.sign(score) * (abs(score) / 5) ** 1.5 * 0.05
+
+    def _calculate_similar_adjustment(self, events: List[Dict]) -> float:
+        """유사 사례의 유가 변동률 가중 평균"""
+        total_weight = 0
+        weighted_sum = 0
+        
+        for event in events:
+            similarity = event.get("similarity", 0)
+            # Use 7-day change as it's more stable than 1-day
+            change = event.get("wti_change_7d")
+            
+            if change is not None and similarity > 0.5: # Use a similarity threshold
+                change_decimal = change / 100.0
+                weighted_sum += change_decimal * similarity
+                total_weight += similarity
+                
+        return weighted_sum / total_weight if total_weight > 0 else 0.0
+
+    def _calculate_uncertainty(self, articles: List[Dict]) -> float:
+        """뉴스 의견 분산으로 불확실성 계산"""
+        relevant_scores = [a["impact_score"] for a in articles]
+        if len(relevant_scores) < 2:
+            return 0.005  # Base uncertainty for few articles
+        
+        std_dev = np.std(relevant_scores)
+        normalized_std = std_dev / 5.0  # Max score is 5
+        
+        # Map to a small percentage for the confidence band, e.g., 0% to 2%
+        uncertainty_pct = normalized_std * 0.02
+        return uncertainty_pct
+
+    def _get_dominant_category(self, articles: List[Dict]) -> Optional[str]:
+        """가장 영향력 있는 카테고리 식별"""
+        category_impacts = Counter()
+        for article in articles:
+            category = article.get("category")
+            impact = article.get("impact_score", 0)
+            if category:
+                category_impacts[category] += abs(impact)
+        
+        if not category_impacts:
+            return None
+        
+        return category_impacts.most_common(1)[0][0]
+
+    def _calculate_factor_breakdown(self, articles: List[Dict]) -> List[Dict]:
+        """카테고리별 기여도 계산"""
+        category_contributions = Counter()
+        category_counts = Counter()
+        total_weighted_score = sum(a["impact_score"] * a["confidence"] for a in articles if a.get("is_relevant"))
+
+        if total_weighted_score == 0:
+            return []
+
+        for article in articles:
+            if article.get("is_relevant"):
+                category = article.get("category")
+                weighted_score = article.get("impact_score", 0) * article.get("confidence", 1.0)
+                if category:
+                    category_contributions[category] += weighted_score
+                    category_counts[category] += 1
+        
+        breakdown = []
+        sentiment_total_pct = self._sentiment_to_pct(total_weighted_score / max(1, len(articles)))
+        
+        for category, total_score in category_contributions.items():
+            # Approximate contribution based on its share of the total score
+            contribution_pct = (total_score / total_weighted_score) * sentiment_total_pct * 0.4 # 0.4 sentiment weight
+            breakdown.append({
+                "category": category,
+                "contribution": contribution_pct,
+                "article_count": category_counts[category]
+            })
+        return breakdown
+
+
+class HybridForecaster:
+    """하이브리드 유가 추정기 (XGBoost + 뉴스 보정)"""
+
+    def __init__(self, engine: ForecastEngine, adjuster: NewsAdjuster):
+        self.engine = engine
+        self.adjuster = adjuster
+
+    async def forecast(self, current_price: float, current_features: pd.DataFrame,
+                       classified_articles: List[Dict], similar_events: List[Dict]) -> ForecastResult:
+        """최종 유가 추정 밴드 산출"""
+        # 1. XGBoost baseline
+        baseline = self.engine.predict(current_features)
+
+        # 2. News adjustment
+        adjustment = await self.adjuster.calculate_adjustment(classified_articles, similar_events)
+
+        # 3. Final calculation (7d)
+        final_change_7d = (1 + baseline["baseline_change_7d"]) * (1 + adjustment["news_adjustment_pct"]) - 1
+        estimated_price_7d = current_price * (1 + final_change_7d)
+
+        # 4. Confidence band (7d)
+        band_width_7d = baseline["model_rmse_7d"] + adjustment["uncertainty_factor"]
+
+        # 5. Final calculation (30d)
+        final_change_30d = (1 + baseline["baseline_change_30d"]) * (1 + adjustment["news_adjustment_pct"]) - 1
+        estimated_price_30d = current_price * (1 + final_change_30d)
+
+        # 6. Confidence band (30d)
+        band_width_30d = baseline["model_rmse_30d"] + adjustment["uncertainty_factor"]
+
+        # 7. Factor breakdown
+        factor_breakdown_data = self.adjuster._calculate_factor_breakdown(
+            [a for a in classified_articles if a.get("is_relevant")]
+        )
+
+        return ForecastResult(
+            current_price=current_price,
+            estimated_7d=estimated_price_7d,
+            estimated_7d_high=estimated_price_7d * (1 + band_width_7d),
+            estimated_7d_low=estimated_price_7d * (1 - band_width_7d),
+            estimated_30d=estimated_price_30d,
+            estimated_30d_high=estimated_price_30d * (1 + band_width_30d),
+            estimated_30d_low=estimated_price_30d * (1 - band_width_30d),
+            baseline_change_7d=baseline["baseline_change_7d"],
+            baseline_change_30d=baseline["baseline_change_30d"],
+            news_adjustment_pct=adjustment["news_adjustment_pct"],
+            confidence=max(0, 1 - (band_width_7d * 2)),
+            dominant_factor=adjustment["dominant_category"],
+            factor_breakdown=[FactorBreakdown(**fb) for fb in factor_breakdown_data],
+            generated_at=datetime.now(timezone.utc).isoformat(),
+        )
 
 async def run_training():
     """The main training pipeline script."""
