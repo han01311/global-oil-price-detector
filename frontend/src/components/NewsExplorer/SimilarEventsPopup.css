@@ -1,0 +1,126 @@
+.popup-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.popup-content {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  animation: slide-up 0.3s ease-out;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.popup-header h4 {
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.popup-body {
+  padding: 16px;
+  overflow-y: auto;
+}
+
+.popup-error {
+  color: var(--color-error);
+}
+
+.similar-events-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.similar-event-item {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 12px;
+}
+.similar-event-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.event-date {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.event-title {
+  font-weight: 500;
+  color: var(--color-text-body);
+  display: block;
+  margin-bottom: 8px;
+}
+.event-title:hover {
+  color: var(--color-bull);
+}
+
+.event-impact {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.event-impact .change-bull { color: var(--color-bull); }
+.event-impact .change-bear { color: var(--color-bear); }
+.event-impact .change-neutral { color: var(--color-neutral); }
+
+.event-similarity {
+  font-weight: 500;
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
