@@ -25,7 +25,10 @@
       "step": 3,
       "name": "fred-data-collector",
       "title": "FRED API 데이터 수집기 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T22:46:58+0900",
+      "summary": "FRED API 데이터 수집기, 관련 스키마 및 테스트를 구현했습니다.",
+      "completed_at": "2026-04-24T22:47:48+0900"
     },
     {
       "step": 4,
