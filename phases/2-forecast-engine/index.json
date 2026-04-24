@@ -25,7 +25,10 @@
       "step": 3,
       "name": "news-adjustment",
       "title": "뉴스 기반 보정(Premium/Discount) 로직 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:05:25+0900",
+      "summary": "뉴스 기반 보정 로직, 하이브리드 추정기, 관련 스키마 및 테스트를 구현했습니다.",
+      "completed_at": "2026-04-24T23:07:44+0900"
     },
     {
       "step": 4,
