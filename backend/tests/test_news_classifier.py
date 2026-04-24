@@ -22,25 +22,25 @@ def irrelevant_article_dict():
 def mock_gemini_response_success():
     mock_response = MagicMock()
     mock_response.text = json.dumps({ "is_relevant": True, "category": "supply", "sub_categories": ["geopolitics"], "impact_score": 3, "impact_summary": "OPEC+의 추가 감산 결정은 원유 공급 감소로 이어져 유가 상승 압력으로 작용할 것입니다.", "confidence": 0.95 })
-    return mock_response
+    return asyncio.sleep(0.01, result=mock_response)
 
 @pytest.fixture
 def mock_gemini_response_irrelevant():
     mock_response = MagicMock()
     mock_response.text = json.dumps({ "is_relevant": False, "category": "demand", "sub_categories": [], "impact_score": 0, "impact_summary": "이 기사는 유가와 직접적인 관련이 없습니다.", "confidence": 0.98 })
-    return mock_response
+    return asyncio.sleep(0.01, result=mock_response)
 
 @pytest.fixture
 def mock_gemini_response_invalid_json():
     mock_response = MagicMock()
     mock_response.text = '{"is_relevant": true, ...'
-    return mock_response
+    return asyncio.sleep(0.01, result=mock_response)
 
 @pytest.fixture
 def mock_gemini_response_invalid_data():
     mock_response = MagicMock()
     mock_response.text = json.dumps({ "is_relevant": True, "category": "supply", "sub_categories": [], "impact_score": 10, "impact_summary": "Summary", "confidence": 0.9 })
-    return mock_response
+    return asyncio.sleep(0.01, result=mock_response)
 
 # Main fixture for the classifier, with genai patched
 @pytest.fixture
@@ -84,7 +84,7 @@ def test_build_prompt(classifier, sample_article_dict):
 @pytest.mark.asyncio
 async def test_classify_article_success(classifier, sample_article_dict, mock_gemini_response_success):
     """Test successful classification of a single article."""
-    classifier.model.generate_content_async = AsyncMock(return_value=mock_gemini_response_success)
+    classifier.model.generate_content_async = AsyncMock(return_value=await mock_gemini_response_success)
     
     result = await classifier.classify_article(sample_article_dict)
     
@@ -98,7 +98,7 @@ async def test_classify_article_success(classifier, sample_article_dict, mock_ge
 @pytest.mark.asyncio
 async def test_classify_article_irrelevant(classifier, irrelevant_article_dict, mock_gemini_response_irrelevant):
     """Test classification of an irrelevant article."""
-    classifier.model.generate_content_async = AsyncMock(return_value=mock_gemini_response_irrelevant)
+    classifier.model.generate_content_async = AsyncMock(return_value=await mock_gemini_response_irrelevant)
     
     result = await classifier.classify_article(irrelevant_article_dict)
     
@@ -108,14 +108,14 @@ async def test_classify_article_irrelevant(classifier, irrelevant_article_dict, 
 @pytest.mark.asyncio
 async def test_classify_article_invalid_json(classifier, sample_article_dict, mock_gemini_response_invalid_json):
     """Test fallback for invalid JSON response."""
-    classifier.model.generate_content_async = AsyncMock(return_value=mock_gemini_response_invalid_json)
+    classifier.model.generate_content_async = AsyncMock(return_value=await mock_gemini_response_invalid_json)
     result = await classifier.classify_article(sample_article_dict)
     assert result is None
 
 @pytest.mark.asyncio
 async def test_classify_article_validation_error(classifier, sample_article_dict, mock_gemini_response_invalid_data):
     """Test fallback for Pydantic validation error."""
-    classifier.model.generate_content_async = AsyncMock(return_value=mock_gemini_response_invalid_data)
+    classifier.model.generate_content_async = AsyncMock(return_value=await mock_gemini_response_invalid_data)
     result = await classifier.classify_article(sample_article_dict)
     assert result is None
 
