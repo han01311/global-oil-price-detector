@@ -43,7 +43,10 @@
       "step": 5,
       "name": "classifier-integration-test",
       "title": "분류기 통합 테스트",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:01:10+0900",
+      "summary": "뉴스 분류 파이프라인에 대한 통합 테스트를 작성하고 모든 테스트 통과를 확인했습니다.",
+      "completed_at": "2026-04-24T23:02:25+0900"
     }
   ],
   "created_at": "2026-04-24T22:52:23+0900"
