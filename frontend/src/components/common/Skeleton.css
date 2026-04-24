@@ -1,0 +1,13 @@
+@keyframes skeleton-loading {
+  0% {
+    background-color: var(--color-border);
+  }
+  100% {
+    background-color: var(--color-card-hover);
+  }
+}
+
+.skeleton {
+  border-radius: 4px;
+  animation: skeleton-loading 1s linear infinite alternate;
+}

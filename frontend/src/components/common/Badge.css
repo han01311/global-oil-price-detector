@@ -1,0 +1,39 @@
+.badge {
+  display: inline-block;
+  border-radius: 2px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+
+.badge-geopolitics {
+  background-color: rgba(239, 68, 68, 0.15);
+  color: var(--color-cat-geopolitics);
+}
+.badge-supply {
+  background-color: rgba(249, 115, 22, 0.15);
+  color: var(--color-cat-supply);
+}
+.badge-demand {
+  background-color: rgba(59, 130, 246, 0.15);
+  color: var(--color-cat-demand);
+}
+.badge-macro {
+  background-color: rgba(139, 92, 246, 0.15);
+  color: var(--color-cat-macro);
+}
+.badge-climate {
+  background-color: rgba(16, 185, 129, 0.15);
+  color: var(--color-cat-climate);
+}
+.badge-speculation {
+  background-color: rgba(236, 72, 153, 0.15);
+  color: var(--color-cat-speculation);
+}
+.badge-default {
+  background-color: rgba(82, 82, 82, 0.15);
+  color: var(--color-neutral);
+}

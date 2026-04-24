@@ -1,0 +1,28 @@
+.price-display {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.price-value {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.price-change {
+  font-weight: 500;
+}
+
+.price-bull { color: var(--color-bull); }
+.price-bear { color: var(--color-bear); }
+.price-neutral { color: var(--color-text-secondary); }
+
+/* Sizes */
+.price-display-small .price-value { font-size: 16px; }
+.price-display-small .price-change { font-size: 12px; }
+
+.price-display-medium .price-value { font-size: 24px; }
+.price-display-medium .price-change { font-size: 14px; }
+
+.price-display-large .price-value { font-size: 32px; }
+.price-display-large .price-change { font-size: 16px; }

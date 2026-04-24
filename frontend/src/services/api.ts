@@ -1,3 +1,8 @@
+import { PriceHistory } from "../types/price";
+import { ClassifiedArticle, FactorSummary, SimilarEvent } from "../types/news";
+import { ForecastResult, Briefing } from "../types/forecast";
+import { OilPrice } from "../types/price";
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /**
@@ -18,7 +23,8 @@ export async function apiFetch<T>(
   });
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+    throw new Error(`API Error: ${response.status} ${errorData.detail || response.statusText}`);
   }
 
   return response.json();
@@ -29,4 +35,36 @@ export async function apiFetch<T>(
  */
 export async function checkHealth(): Promise<{ status: string; version: string }> {
   return apiFetch("/api/health");
+}
+
+// --- Price APIs ---
+export async function fetchPriceHistory(startDate: string, endDate: string): Promise<PriceHistory> {
+  return apiFetch(`/api/prices/history?start_date=${startDate}&end_date=${endDate}`);
+}
+
+export async function fetchLatestPrice(): Promise<OilPrice> {
+  return apiFetch("/api/prices/latest");
+}
+
+// --- News APIs ---
+export async function fetchAndClassifyNews(): Promise<ClassifiedArticle[]> {
+  // This endpoint fetches latest news and classifies them on the fly
+  return apiFetch(`/api/news/classify?fetch_latest=true`, { method: 'POST' });
+}
+
+export async function fetchSimilarEvents(query: string): Promise<SimilarEvent[]> {
+  return apiFetch(`/api/news/similar?query=${encodeURIComponent(query)}`);
+}
+
+export async function fetchFactorSummary(): Promise<FactorSummary> {
+  return apiFetch("/api/news/factors/summary");
+}
+
+// --- Forecast & Briefing APIs ---
+export async function fetchForecastEstimate(): Promise<ForecastResult> {
+  return apiFetch("/api/forecast/estimate");
+}
+
+export async function fetchTodayBriefing(): Promise<Briefing> {
+  return apiFetch("/api/briefing/today");
 }
