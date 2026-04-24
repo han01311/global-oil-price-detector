@@ -68,3 +68,7 @@ export async function fetchForecastEstimate(): Promise<ForecastResult> {
 export async function fetchTodayBriefing(): Promise<Briefing> {
   return apiFetch("/api/briefing/today");
 }
+
+export async function fetchBriefingHistory(days: number): Promise<Briefing[]> {
+  return apiFetch(`/api/briefing/history?days=${days}`);
+}
