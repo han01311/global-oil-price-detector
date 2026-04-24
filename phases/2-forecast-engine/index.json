@@ -34,7 +34,10 @@
       "step": 4,
       "name": "briefing-generator",
       "title": "AI 유가 브리핑 자동 생성기 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:07:44+0900",
+      "summary": "AI 유가 브리핑 생성기, 관련 스키마 및 테스트를 구현했습니다.",
+      "completed_at": "2026-04-24T23:09:00+0900"
     },
     {
       "step": 5,
