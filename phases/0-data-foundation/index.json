@@ -34,7 +34,10 @@
       "step": 4,
       "name": "news-data-collector",
       "title": "뉴스 API 데이터 수집기 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T22:47:48+0900",
+      "summary": "NewsAPI 및 GDELT 뉴스 수집기, 관련 스키마 및 테스트를 구현했습니다.",
+      "completed_at": "2026-04-24T22:49:12+0900"
     },
     {
       "step": 5,
