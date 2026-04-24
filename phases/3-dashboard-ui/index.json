@@ -7,7 +7,10 @@
       "step": 1,
       "name": "frontend-deps-design-system",
       "title": "프론트엔드 의존성 및 디자인 시스템 구축",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:13:10+0900",
+      "summary": "프론트엔드 의존성 설치, CSS 디자인 시스템 및 공통 컴포넌트/타입/API 서비스를 구현했습니다.",
+      "completed_at": "2026-04-24T23:14:53+0900"
     },
     {
       "step": 2,
@@ -45,5 +48,6 @@
       "title": "UI 폴리싱 & E2E 테스트",
       "status": "pending"
     }
-  ]
+  ],
+  "created_at": "2026-04-24T23:13:10+0900"
 }
