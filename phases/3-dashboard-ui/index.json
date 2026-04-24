@@ -25,7 +25,10 @@
       "step": 3,
       "name": "price-chart",
       "title": "유가 추정 차트 컴포넌트 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:15:52+0900",
+      "summary": "유가 추정 차트 컴포넌트 구현 및 데이터 연동 완료",
+      "completed_at": "2026-04-24T23:17:12+0900"
     },
     {
       "step": 4,
