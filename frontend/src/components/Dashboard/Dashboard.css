@@ -1,0 +1,30 @@
+.dashboard-container {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "header header"
+    "chart sidebar"
+    "news news";
+  gap: 24px;
+  min-height: calc(100vh - 48px); /* Full height minus root padding */
+}
+
+.dashboard-chart {
+  grid-area: chart;
+}
+
+.dashboard-sidebar {
+  grid-area: sidebar;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-news {
+  grid-area: news;
+}
+
+.price-chart-card {
+  height: 100%;
+}

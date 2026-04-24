@@ -1,0 +1,54 @@
+.dashboard-header-main {
+  grid-area: header;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.header-logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.02em;
+}
+
+.header-prices {
+  display: flex;
+  gap: 32px;
+}
+
+.header-price-item {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.price-label {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+}
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.last-updated {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-icon {
+  width: 20px;
+  height: 20px;
+  /* Placeholder for a settings icon (e.g., SVG) */
+  border: 1.5px solid var(--color-text-muted);
+  border-radius: 50%;
+}
