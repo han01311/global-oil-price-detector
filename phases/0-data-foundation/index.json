@@ -1,0 +1,47 @@
+{
+  "project": "Petro-AX",
+  "phase": "data-foundation",
+  "title": "데이터 수집 & 파이프라인 구축",
+  "steps": [
+    {
+      "step": 1,
+      "name": "backend-deps-config",
+      "title": "백엔드 의존성 설치 및 환경 설정",
+      "status": "error",
+      "started_at": "2026-04-24T22:42:33+0900",
+      "error_message": "[3회 시도 후 실패] Step did not update status",
+      "failed_at": "2026-04-24T22:42:34+0900"
+    },
+    {
+      "step": 2,
+      "name": "eia-data-collector",
+      "title": "EIA API 데이터 수집기 구현",
+      "status": "pending"
+    },
+    {
+      "step": 3,
+      "name": "fred-data-collector",
+      "title": "FRED API 데이터 수집기 구현",
+      "status": "pending"
+    },
+    {
+      "step": 4,
+      "name": "news-data-collector",
+      "title": "뉴스 API 데이터 수집기 구현",
+      "status": "pending"
+    },
+    {
+      "step": 5,
+      "name": "price-api-routes",
+      "title": "유가 데이터 API 엔드포인트 구현",
+      "status": "pending"
+    },
+    {
+      "step": 6,
+      "name": "data-pipeline-test",
+      "title": "데이터 파이프라인 통합 테스트",
+      "status": "pending"
+    }
+  ],
+  "created_at": "2026-04-24T22:42:33+0900"
+}
