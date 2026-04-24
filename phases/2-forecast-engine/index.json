@@ -7,7 +7,10 @@
       "step": 1,
       "name": "feature-engineering",
       "title": "Feature Engineering 파이프라인 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:02:51+0900",
+      "summary": "시계열 피처 엔지니어링 파이프라인 및 관련 테스트를 구현했습니다.",
+      "completed_at": "2026-04-24T23:04:01+0900"
     },
     {
       "step": 2,
@@ -39,5 +42,6 @@
       "title": "추정 엔진 통합 테스트",
       "status": "pending"
     }
-  ]
+  ],
+  "created_at": "2026-04-24T23:02:51+0900"
 }
