@@ -16,7 +16,10 @@
       "step": 2,
       "name": "xgboost-baseline",
       "title": "XGBoost 베이스라인 모델 학습",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:04:01+0900",
+      "summary": "XGBoost 추정 엔진 및 학습 스크립트, 관련 테스트를 구현했습니다.",
+      "completed_at": "2026-04-24T23:05:25+0900"
     },
     {
       "step": 3,
