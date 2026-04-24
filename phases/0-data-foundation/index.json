@@ -43,7 +43,10 @@
       "step": 5,
       "name": "price-api-routes",
       "title": "유가 데이터 API 엔드포인트 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T22:49:12+0900",
+      "summary": "유가 및 뉴스 데이터 API 엔드포인트와 관련 테스트를 구현했습니다.",
+      "completed_at": "2026-04-24T22:50:15+0900"
     },
     {
       "step": 6,
