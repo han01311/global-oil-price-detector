@@ -1,7 +1,7 @@
 """
 Pydantic 스키마 for News Data
 """
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class NewsArticle(BaseModel):
@@ -22,3 +22,15 @@ class NewsCollection(BaseModel):
     query_keywords: list[str]
     collected_at: str
     total_count: int
+
+
+class ClassifiedArticle(BaseModel):
+    """분류가 완료된 뉴스 기사"""
+    article: NewsArticle
+    is_relevant: bool
+    category: str
+    sub_categories: list[str] = []
+    impact_score: int = Field(..., ge=-5, le=5)
+    impact_summary: str
+    confidence: float = Field(..., ge=0.0, le=1.0)
+    classified_at: str               # ISO 8601
