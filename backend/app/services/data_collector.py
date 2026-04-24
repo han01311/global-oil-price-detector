@@ -1,76 +1,74 @@
-"""
-외부 API로부터 데이터를 수집하는 모듈
-- EIA (유가, 재고, 생산량)
-- FRED (거시경제 지표)
-- NewsAPI / GDELT (뉴스)
-"""
 import asyncio
-import hashlib
 import json
+import logging
+import os
+from datetime import datetime, date, timedelta
+from typing import List, Dict, Any
+from hashlib import sha256
+
 import httpx
 import pandas as pd
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
-
 from app.core.config import settings
 from app.schemas.price import PriceHistory, OilPrice, MacroHistory, MacroIndicator
 
-# --- Base Collector ---
+logging.basicConfig(level=settings.LOG_LEVEL)
+logger = logging.getLogger(__name__)
 
 class BaseCollector:
-    """데이터 수집기 기본 클래스"""
-    BASE_URL = ""
+    """외부 API 호출을 위한 기본 클래스"""
+    cache_dir = os.path.join(settings.DATA_CACHE_DIR, "raw")
 
-    def __init__(self, source: str):
-        self.source = source
-        self.cache_dir = Path(settings.DATA_CACHE_DIR) / "raw" / self.source
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+    def __init__(self, api_key: str | None, base_url: str):
+        if not api_key:
+            # Allow collectors that don't need a key (like GDELT)
+            pass
+        self.api_key = api_key
+        self.base_url = base_url
+        os.makedirs(self.cache_dir, exist_ok=True)
 
-    async def _fetch_data(self, url: str, params: dict | None = None) -> dict:
-        """HTTP GET 요청을 보내고 JSON 응답을 반환"""
-        async with httpx.AsyncClient() as client:
-            response = await client.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
-
-    async def _fetch_with_cache(self, cache_key: str, url: str, params: dict | None = None) -> dict:
-        """캐시를 확인하고, 없으면 API를 호출하여 결과를 캐시에 저장"""
+    def _get_cache_path(self, name: str) -> str:
         today = datetime.now().strftime('%Y-%m-%d')
-        cache_file = self.cache_dir / f"{today}_{cache_key}.json"
+        return os.path.join(self.cache_dir, f"{today}_{name}.json")
 
-        if cache_file.exists():
-            with open(cache_file, 'r', encoding='utf-8') as f:
+    async def _fetch_api(self, endpoint: str, params: dict, cache_name: str) -> dict:
+        cache_path = self._get_cache_path(cache_name)
+        if os.path.exists(cache_path):
+            with open(cache_path, 'r') as f:
                 return json.load(f)
 
-        data = await self._fetch_data(url, params)
-        with open(cache_file, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-        return data
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(f"{self.base_url}{endpoint}", params=params)
+                response.raise_for_status()
+                data = response.json()
 
-# --- EIA Collector ---
+                with open(cache_path, 'w') as f:
+                    json.dump(data, f)
+                return data
+            except httpx.HTTPStatusError as e:
+                logger.error(f"HTTP error fetching {e.request.url}: {e.response.status_code}")
+                raise
+            except Exception as e:
+                logger.error(f"Error fetching {self.base_url}{endpoint}: {e}")
+                raise
 
 class EIACollector(BaseCollector):
-    """EIA API v2 데이터 수집기"""
-    BASE_URL = "https://api.eia.gov/v2"
-    SERIES = {
+    SERIES_IDS = {
         "wti": "PET.RWTC.D",
         "brent": "PET.RBRTE.D",
-        "inventory": "PET.WCESTUS1.W", # Crude Oil Stocks, Excluding SPR
-        "production": "PET.WCRFPUS2.W" # US Field Production of Crude Oil
+        "inventory": "PET.WCESTUS1.W",
+        "production": "PET.WCRFPUS2.W",
     }
 
-    def __init__(self, api_key: str | None = None):
-        super().__init__("eia")
-        self.api_key = api_key or settings.EIA_API_KEY
-        if not self.api_key:
-            raise ValueError("EIA_API_KEY is required for EIACollector")
+    def __init__(self, api_key: str | None = settings.EIA_API_KEY):
+        if not api_key:
+            raise ValueError("EIA_API_KEY is required for EIACollector.")
+        super().__init__(api_key, "https://api.eia.gov/v2")
 
-    async def _get_series(self, series_id: str, start: str, end: str) -> list[dict]:
-        """EIA API에서 특정 시리즈 데이터를 가져옴"""
-        url = f"{self.BASE_URL}/{series_id}/data/"
+    async def _get_series_data(self, series_id: str, start: str, end: str) -> List[Dict]:
         params = {
             "api_key": self.api_key,
-            "frequency": "daily",
+            "frequency": "daily" if ".D" in series_id else "weekly",
             "data[0]": "value",
             "facets[seriesId][]": series_id,
             "start": start,
@@ -78,63 +76,35 @@ class EIACollector(BaseCollector):
             "sort[0][column]": "period",
             "sort[0][direction]": "asc",
             "offset": 0,
-            "length": 5000
+            "length": 5000,
         }
-        data = await self._fetch_with_cache(series_id, url, params=params)
+        data = await self._fetch_api("/petroleum/pri/spt/data/", params, series_id)
         return data.get("response", {}).get("data", [])
 
     async def get_crude_prices(self, start_date: str, end_date: str) -> pd.DataFrame:
-        """WTI와 Brent 유가 데이터를 가져와 병합"""
         wti_data, brent_data = await asyncio.gather(
-            self._get_series(self.SERIES["wti"], start_date, end_date),
-            self._get_series(self.SERIES["brent"], start_date, end_date)
+            self._get_series_data(self.SERIES_IDS["wti"], start_date, end_date),
+            self._get_series_data(self.SERIES_IDS["brent"], start_date, end_date)
         )
-        
         wti_df = pd.DataFrame(wti_data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'wti'}) if wti_data else pd.DataFrame(columns=['date', 'wti'])
         brent_df = pd.DataFrame(brent_data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'brent'}) if brent_data else pd.DataFrame(columns=['date', 'brent'])
         
         if wti_df.empty and brent_df.empty:
-            return pd.DataFrame(columns=['date', 'wti', 'brent'])
-        if wti_df.empty:
-            return brent_df
-        if brent_df.empty:
-            return wti_df
+             return pd.DataFrame(columns=['date', 'wti', 'brent'])
 
-        price_df = pd.merge(wti_df, brent_df, on='date', how='outer').sort_values('date').reset_index(drop=True)
-        return price_df
-
-    async def get_crude_inventory(self, start_date: str, end_date: str) -> pd.DataFrame:
-        data = await self._get_series(self.SERIES["inventory"], start_date, end_date)
-        if not data:
-            return pd.DataFrame(columns=['date', 'inventory_mbbl'])
-        df = pd.DataFrame(data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'inventory_mbbl'})
+        df = pd.merge(wti_df, brent_df, on='date', how='outer')
+        df[['wti', 'brent']] = df[['wti', 'brent']].astype(float)
         return df
-
-    async def get_production(self, start_date: str, end_date: str) -> pd.DataFrame:
-        data = await self._get_series(self.SERIES["production"], start_date, end_date)
-        if not data:
-            return pd.DataFrame(columns=['date', 'production_mbbl_d'])
-        df = pd.DataFrame(data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'production_mbbl_d'})
-        return df
-
-# --- FRED Collector ---
 
 class FREDCollector(BaseCollector):
-    """FRED API 데이터 수집기"""
-    BASE_URL = "https://api.stlouisfed.org/fred/series/observations"
     MACRO_SERIES = {
         "fed_rate": "FEDFUNDS",
         "dollar_index": "DTWEXBGS",
-        "cpi": "CPIAUCSL",
-        "industrial_prod": "INDPRO",
-        "yield_spread": "T10Y2Y" # 10-Year Treasury Constant Maturity Minus 2-Year
     }
-
-    def __init__(self, api_key: str | None = None):
-        super().__init__("fred")
-        self.api_key = api_key or settings.FRED_API_KEY
-        if not self.api_key:
-            raise ValueError("FRED_API_KEY is required for FREDCollector")
+    def __init__(self, api_key: str | None = settings.FRED_API_KEY):
+        if not api_key:
+            raise ValueError("FRED_API_KEY is required for FREDCollector.")
+        super().__init__(api_key, "https://api.stlouisfed.org/fred")
 
     async def get_series(self, series_id: str, col_name: str, start_date: str, end_date: str) -> pd.DataFrame:
         params = {
@@ -144,191 +114,174 @@ class FREDCollector(BaseCollector):
             "observation_start": start_date,
             "observation_end": end_date,
         }
-        data = await self._fetch_with_cache(series_id, self.BASE_URL, params=params)
-        observations = data.get("observations", [])
-        
-        if not observations:
+        data = await self._fetch_api("/series/observations", params, series_id)
+        obs = data.get("observations", [])
+        if not obs:
             return pd.DataFrame(columns=['date', col_name])
-            
-        df = pd.DataFrame(observations)[['date', 'value']]
-        df = df[df['value'] != "."] # Filter out non-data points
+        df = pd.DataFrame(obs)[['date', 'value']]
+        df = df[df['value'] != "."]
         df = df.rename(columns={'value': col_name})
-        df[col_name] = pd.to_numeric(df[col_name])
+        df[col_name] = df[col_name].astype(float)
         return df
 
     async def get_macro_indicators(self, start_date: str, end_date: str) -> pd.DataFrame:
         tasks = [self.get_series(series_id, name, start_date, end_date) for name, series_id in self.MACRO_SERIES.items()]
         results = await asyncio.gather(*tasks)
         
-        date_range = pd.date_range(start=start_date, end=end_date, freq='D').to_frame(name='date', index=False)
-        date_range['date'] = date_range['date'].dt.strftime('%Y-%m-%d')
+        merged_df = pd.DataFrame(pd.date_range(start=start_date, end=end_date), columns=['date'])
+        merged_df['date'] = merged_df['date'].dt.strftime('%Y-%m-%d')
 
-        merged_df = date_range
         for df in results:
             if not df.empty:
                 merged_df = pd.merge(merged_df, df, on='date', how='left')
         
-        merged_df = merged_df.ffill().dropna(subset=list(self.MACRO_SERIES.keys()), how='all').reset_index(drop=True)
+        merged_df = merged_df.ffill().dropna()
         return merged_df
 
-# --- News Collector ---
+class NewsCollector:
+    KEYWORDS = ["crude oil", "WTI", "Brent", "OPEC", "shale oil", "oil demand", "oil supply", "oil reserves", "geopolitics oil"]
+    cache_dir = os.path.join(settings.DATA_CACHE_DIR, "raw")
 
-class NewsCollector(BaseCollector):
-    """뉴스 데이터 수집기 (NewsAPI, GDELT)"""
-    NEWSAPI_URL = "https://newsapi.org/v2/everything"
-    GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
-    KEYWORDS = [
-        '"crude oil"', 'OPEC', 'shale', '"oil prices"', '"energy market"',
-        '"oil demand"', '"oil supply"', '"oil reserves"', 'geopolitics AND oil'
-    ]
+    def __init__(self, news_api_key: str | None = settings.NEWS_API_KEY):
+        self.news_api_key = news_api_key
+        os.makedirs(self.cache_dir, exist_ok=True)
 
-    def __init__(self):
-        super().__init__("news")
+    def _get_cache_path(self, name: str) -> str:
+        today = datetime.now().strftime('%Y-%m-%d')
+        return os.path.join(self.cache_dir, f"{today}_{name}.json")
 
-    def _normalize_newsapi_article(self, article: dict) -> dict:
-        return {
-            "id": hashlib.sha256(article['url'].encode()).hexdigest(),
-            "title": article.get('title'),
-            "description": article.get('description'),
-            "source": article.get('source', {}).get('name'),
-            "url": article.get('url'),
-            "published_at": article.get('publishedAt'),
-            "content_snippet": article.get('content'),
-            "data_source": "newsapi"
-        }
-
-    def _normalize_gdelt_article(self, article: dict) -> dict:
-        return {
-            "id": hashlib.sha256(article['url'].encode()).hexdigest(),
-            "title": article.get('title'),
-            "description": None,
-            "source": article.get('domain'),
-            "url": article.get('url'),
-            "published_at": datetime.strptime(article['seendate'], '%Y%m%d%H%M%S').isoformat() + 'Z',
-            "content_snippet": None,
-            "data_source": "gdelt"
-        }
-
-    async def get_latest_news(self) -> list[dict]:
-        """NewsAPI에서 최신 뉴스 가져오기"""
-        if not settings.NEWS_API_KEY:
+    async def get_latest_news(self) -> List[Dict[str, Any]]:
+        if not self.news_api_key:
             return []
         
-        query = " OR ".join(self.KEYWORDS)
+        cache_path = self._get_cache_path("newsapi")
+        if os.path.exists(cache_path):
+            with open(cache_path, 'r') as f:
+                return json.load(f).get("articles", [])
+
+        query = " OR ".join([f'"{k}"' for k in self.KEYWORDS])
         params = {
-            "q": query,
-            "apiKey": settings.NEWS_API_KEY,
-            "language": "en",
-            "sortBy": "publishedAt",
-            "pageSize": 100
+            "q": query, "language": "en", "sortBy": "publishedAt", "apiKey": self.news_api_key, "pageSize": 50
         }
-        data = await self._fetch_with_cache("newsapi", self.NEWSAPI_URL, params=params)
-        return [self._normalize_newsapi_article(a) for a in data.get('articles', [])]
+        async with httpx.AsyncClient() as client:
+            response = await client.get("https://newsapi.org/v2/everything", params=params)
+            response.raise_for_status()
+            data = response.json()
+            with open(cache_path, 'w') as f:
+                json.dump(data, f)
+            return data.get("articles", [])
 
-    async def get_gdelt_events(self, start_date: str, end_date: str) -> list[dict]:
-        """GDELT에서 이벤트/뉴스 가져오기"""
-        query = " OR ".join(self.KEYWORDS)
-        start_dt = datetime.strptime(start_date, "%Y-%m-%d").strftime("%Y%m%d%H%M%S")
-        end_dt = (datetime.strptime(end_date, "%Y-%m-%d") + timedelta(days=1)).strftime("%Y%m%d%H%M%S")
-
+    async def get_gdelt_events(self, start_date: str, end_date: str) -> List[Dict[str, Any]]:
+        cache_path = self._get_cache_path(f"gdelt_{start_date}_{end_date}")
+        if os.path.exists(cache_path):
+            with open(cache_path, 'r') as f:
+                return json.load(f).get("articles", [])
+        
+        query = " OR ".join([f'"{k}"' for k in self.KEYWORDS])
+        start = datetime.fromisoformat(start_date).strftime('%Y%m%d000000')
+        end = datetime.fromisoformat(end_date).strftime('%Y%m%d235959')
         params = {
-            "query": query,
-            "mode": "ArtList",
-            "format": "json",
-            "startdatetime": start_dt,
-            "enddatetime": end_dt,
-            "maxrecords": 250,
-            "sort": "DateDesc"
+            "query": query, "mode": "artlist", "format": "json", "maxrecords": 50,
+            "startdatetime": start, "enddatetime": end
         }
-        data = await self._fetch_with_cache(f"gdelt_{start_date}_{end_date}", self.GDELT_URL, params=params)
-        return [self._normalize_gdelt_article(a) for a in data.get('articles', [])]
-
-    async def collect_all_news(self) -> list[dict]:
-        """모든 뉴스 소스에서 데이터를 수집하고 중복 제거"""
-        today = datetime.now().strftime('%Y-%m-%d')
-        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-        
-        newsapi_task = self.get_latest_news()
-        gdelt_task = self.get_gdelt_events(yesterday, today)
-        
-        all_articles_nested = await asyncio.gather(newsapi_task, gdelt_task)
-        all_articles = [item for sublist in all_articles_nested for item in sublist]
-        
-        seen_urls = set()
-        unique_articles = []
-        for article in all_articles:
-            if article['url'] not in seen_urls:
-                unique_articles.append(article)
-                seen_urls.add(article['url'])
-        
-        return unique_articles
-
-# --- Main Data Collector ---
+        async with httpx.AsyncClient() as client:
+            response = await client.get("https://api.gdeltproject.org/api/v2/doc/doc", params=params)
+            response.raise_for_status()
+            data = response.json()
+            with open(cache_path, 'w') as f:
+                json.dump(data, f)
+            return data.get("articles", [])
 
 class DataCollector:
-    """모든 데이터 소스로부터 데이터를 수집하는 메인 클래스"""
     def __init__(self):
-        try:
-            self.eia = EIACollector()
-        except ValueError:
-            self.eia = None
-        
-        try:
-            self.fred = FREDCollector()
-        except ValueError:
-            self.fred = None
-            
+        self.eia = EIACollector() if settings.EIA_API_KEY else None
+        self.fred = FREDCollector() if settings.FRED_API_KEY else None
         self.news = NewsCollector()
 
     async def collect_prices(self, start_date: str, end_date: str) -> PriceHistory:
         if not self.eia:
-            return PriceHistory(prices=[], source="eia", last_updated=datetime.now(timezone.utc).isoformat())
-        
+            return PriceHistory(prices=[], source="eia", last_updated=datetime.now().isoformat())
         df = await self.eia.get_crude_prices(start_date, end_date)
-        prices = [OilPrice(**row) for row in df.to_dict('records')]
-        return PriceHistory(
-            prices=prices,
-            source="eia",
-            last_updated=datetime.now(timezone.utc).isoformat()
-        )
+        prices = [OilPrice(**row) for _, row in df.iterrows()]
+        return PriceHistory(prices=prices, source="eia", last_updated=datetime.now().isoformat())
 
     async def collect_macro_data(self, start_date: str, end_date: str) -> MacroHistory:
         if not self.fred:
-            return MacroHistory(indicators=[], source="fred", last_updated=datetime.now(timezone.utc).isoformat())
-
+            return MacroHistory(indicators=[], source="fred", last_updated=datetime.now().isoformat())
         df = await self.fred.get_macro_indicators(start_date, end_date)
-        indicators = [MacroIndicator(**row) for row in df.to_dict('records')]
-        return MacroHistory(
-            indicators=indicators,
-            source="fred",
-            last_updated=datetime.now(timezone.utc).isoformat()
+        indicators = [MacroIndicator(**row) for _, row in df.iterrows()]
+        return MacroHistory(indicators=indicators, source="fred", last_updated=datetime.now().isoformat())
+
+    def _normalize_article(self, article: Dict, source: str) -> Dict:
+        if source == "newsapi":
+            content = article.get('content') or article.get('description') or ''
+            return {
+                "id": sha256(article['url'].encode()).hexdigest(),
+                "title": article['title'], "description": article.get('description'),
+                "source": article.get('source', {}).get('name'), "url": article['url'],
+                "published_at": article['publishedAt'], "content_snippet": content[:200] if content else None,
+                "data_source": "newsapi"
+            }
+        elif source == "gdelt":
+            pub_date = datetime.strptime(article['seendate'], '%Y%m%d%H%M%S').isoformat() + "Z"
+            return {
+                "id": sha256(article['url'].encode()).hexdigest(),
+                "title": article['title'], "description": None,
+                "source": article.get('domain'), "url": article['url'],
+                "published_at": pub_date, "content_snippet": None,
+                "data_source": "gdelt"
+            }
+        return {}
+
+    async def collect_news(self) -> List[Dict[str, Any]]:
+        today = date.today().isoformat()
+        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        
+        newsapi_task = self.news.get_latest_news()
+        gdelt_task = self.news.get_gdelt_events(yesterday, today)
+        
+        newsapi_articles, gdelt_articles = await asyncio.gather(newsapi_task, gdelt_task)
+        
+        all_articles = []
+        seen_urls = set()
+
+        for article in (newsapi_articles or []):
+            if article.get('url') and article['url'] not in seen_urls:
+                all_articles.append(self._normalize_article(article, "newsapi"))
+                seen_urls.add(article['url'])
+        
+        for article in (gdelt_articles or []):
+            if article.get('url') and article['url'] not in seen_urls:
+                all_articles.append(self._normalize_article(article, "gdelt"))
+                seen_urls.add(article['url'])
+        
+        return all_articles
+
+    async def collect_all(self, start_date: str, end_date: str) -> Dict:
+        prices, macro, news = await asyncio.gather(
+            self.collect_prices(start_date, end_date),
+            self.collect_macro_data(start_date, end_date),
+            self.collect_news()
         )
+        return {"prices": prices, "macro": macro, "news": news}
 
-    async def collect_news(self) -> list[dict]:
-        return await self.news.collect_all_news()
+    async def collect_latest_prices(self) -> PriceHistory | None:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=10)
+        return await self.collect_prices(start_date.isoformat(), end_date.isoformat())
 
-    async def collect_all(self, start_date: str, end_date: str) -> dict:
-        """모든 데이터 소스로부터 병렬로 데이터를 수집"""
-        tasks = {
-            "prices": self.collect_prices(start_date, end_date),
-            "macro": self.collect_macro_data(start_date, end_date),
-            "news": self.collect_news()
-        }
+    async def collect_prices_df_for_features(self) -> pd.DataFrame:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=100)
+        price_history = await self.collect_prices(start_date.isoformat(), end_date.isoformat())
+        if not price_history or not price_history.prices:
+            return pd.DataFrame()
+        return pd.DataFrame([p.model_dump() for p in price_history.prices])
 
-        results = await asyncio.gather(*tasks.values(), return_exceptions=True)
-        
-        output = {}
-        for i, key in enumerate(tasks.keys()):
-            result = results[i]
-            if isinstance(result, Exception):
-                print(f"Error collecting data for '{key}': {result}")
-                if key == "prices":
-                    output[key] = PriceHistory(prices=[], source="eia", last_updated="")
-                elif key == "macro":
-                    output[key] = MacroHistory(indicators=[], source="fred", last_updated="")
-                elif key == "news":
-                    output[key] = []
-            else:
-                output[key] = result
-        
-        return output
+    async def collect_macro_df_for_features(self) -> pd.DataFrame:
+        end_date = date.today()
+        start_date = end_date - timedelta(days=100)
+        macro_history = await self.collect_macro_data(start_date.isoformat(), end_date.isoformat())
+        if not macro_history or not macro_history.indicators:
+            return pd.DataFrame()
+        return pd.DataFrame([i.model_dump() for i in macro_history.indicators])

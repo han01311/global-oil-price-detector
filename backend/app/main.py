@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.api import prices, news
+from app.api import prices, news, forecast, briefing
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -27,6 +27,8 @@ app.add_middleware(
 
 app.include_router(prices.router)
 app.include_router(news.router)
+app.include_router(forecast.router)
+app.include_router(briefing.router)
 
 @app.get("/api/health")
 async def health_check():
