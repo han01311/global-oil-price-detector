@@ -7,7 +7,10 @@
       "step": 1,
       "name": "gemini-news-classifier",
       "title": "Gemini 기반 뉴스 요인 분류기 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T22:52:23+0900",
+      "summary": "Gemini 기반 뉴스 분류기 서비스, 스키마, 테스트를 구현했습니다.",
+      "completed_at": "2026-04-24T22:55:26+0900"
     },
     {
       "step": 2,
@@ -33,5 +36,6 @@
       "title": "분류기 통합 테스트",
       "status": "pending"
     }
-  ]
+  ],
+  "created_at": "2026-04-24T22:52:23+0900"
 }
