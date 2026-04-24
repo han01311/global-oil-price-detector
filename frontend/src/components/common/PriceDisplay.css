@@ -7,10 +7,12 @@
 .price-value {
   color: var(--color-text-primary);
   font-weight: 600;
+  transition: color 0.2s ease-in-out;
 }
 
 .price-change {
   font-weight: 500;
+  transition: color 0.2s ease-in-out;
 }
 
 .price-bull { color: var(--color-bull); }

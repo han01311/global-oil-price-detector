@@ -67,8 +67,14 @@ export const NewsExplorer: React.FC = () => {
     }
     return (
       <div className="news-grid">
-        {filteredAndSortedArticles.map(article => (
-          <NewsCard key={article.article.id} article={article} />
+        {filteredAndSortedArticles.map((article, index) => (
+          <div 
+            key={article.article.id} 
+            className="news-card-container" 
+            style={{ animationDelay: `${index * 0.05}s` }}
+          >
+            <NewsCard article={article} />
+          </div>
         ))}
       </div>
     );
