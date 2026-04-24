@@ -25,7 +25,10 @@
       "step": 3,
       "name": "historical-backfill",
       "title": "과거 뉴스-유가 매핑 데이터 적재",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T22:57:14+0900",
+      "summary": "과거 유가-뉴스 매핑 데이터 적재를 위한 HistoricalLoader 서비스 및 테스트를 구현했습니다.",
+      "completed_at": "2026-04-24T22:59:31+0900"
     },
     {
       "step": 4,
