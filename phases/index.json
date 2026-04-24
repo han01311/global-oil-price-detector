@@ -5,9 +5,10 @@
       "dir": "0-data-foundation",
       "name": "data-foundation",
       "title": "데이터 수집 & 파이프라인 구축",
-      "status": "error",
+      "status": "completed",
       "description": "EIA, FRED, 뉴스 API 연동 및 데이터 수집/캐싱 파이프라인 구축",
-      "failed_at": "2026-04-24T22:42:34+0900"
+      "failed_at": "2026-04-24T22:42:34+0900",
+      "completed_at": "2026-04-24T22:52:10+0900"
     },
     {
       "dir": "1-news-classifier",
