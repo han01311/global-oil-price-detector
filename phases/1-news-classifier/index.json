@@ -16,7 +16,10 @@
       "step": 2,
       "name": "chromadb-market-memory",
       "title": "ChromaDB Market Memory 구축",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T22:55:26+0900",
+      "summary": "ChromaDB 기반 Market Memory 서비스 및 유가 변동률 계산 유틸리티를 구현하고 테스트를 완료했습니다.",
+      "completed_at": "2026-04-24T22:57:14+0900"
     },
     {
       "step": 3,
