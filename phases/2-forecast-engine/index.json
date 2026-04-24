@@ -43,7 +43,10 @@
       "step": 5,
       "name": "forecast-api",
       "title": "추정 엔진 API 엔드포인트 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:09:00+0900",
+      "summary": "추정 엔진 및 AI 브리핑 API 엔드포인트를 구현하고 관련 테스트를 작성했습니다.",
+      "completed_at": "2026-04-24T23:11:36+0900"
     },
     {
       "step": 6,
