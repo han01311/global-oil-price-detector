@@ -22,8 +22,9 @@
       "dir": "2-forecast-engine",
       "name": "forecast-engine",
       "title": "하이브리드 유가 추정 엔진",
-      "status": "pending",
-      "description": "XGBoost baseline + 뉴스 보정으로 추정 유가 밴드 산출"
+      "status": "completed",
+      "description": "XGBoost baseline + 뉴스 보정으로 추정 유가 밴드 산출",
+      "completed_at": "2026-04-24T23:12:50+0900"
     },
     {
       "dir": "3-dashboard-ui",
