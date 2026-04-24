@@ -16,3 +16,20 @@ class PriceHistory(BaseModel):
     prices: list[OilPrice]
     source: str = "eia"
     last_updated: str
+
+
+class MacroIndicator(BaseModel):
+    """단일 시점의 거시경제 지표"""
+    date: str
+    fed_rate: float | None = None
+    dollar_index: float | None = None
+    cpi: float | None = None
+    industrial_prod: float | None = None
+    yield_spread: float | None = None
+
+
+class MacroHistory(BaseModel):
+    """기간별 거시경제 지표 히스토리"""
+    indicators: list[MacroIndicator]
+    source: str = "fred"
+    last_updated: str
