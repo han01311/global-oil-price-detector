@@ -2,16 +2,21 @@
 외부 API로부터 데이터를 수집하는 서비스
 EIA (U.S. Energy Information Administration) 데이터 수집기
 FRED (Federal Reserve Economic Data) 데이터 수집기
+News API / GDELT 뉴스 데이터 수집기
 """
 import asyncio
 import json
-from datetime import datetime
+import hashlib
+import logging
+from datetime import datetime, timedelta
 from pathlib import Path
 from functools import reduce
 
 import httpx
 import pandas as pd
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 class EIACollector:
@@ -204,12 +209,144 @@ class FREDCollector:
         return merged_df
 
 
+class NewsCollector:
+    """뉴스 데이터 수집기"""
+
+    NEWSAPI_URL = "https://newsapi.org/v2/everything"
+    GDELT_URL = "https://api.gdeltproject.org/api/v2/doc/doc"
+
+    # 유가 관련 키워드 (영문)
+    OIL_KEYWORDS = [
+        "crude oil", "oil prices", "WTI", "Brent",
+        "OPEC", "oil production", "oil demand",
+        "petroleum", "oil supply", "energy crisis",
+        "oil sanctions", "shale oil", "oil reserves",
+    ]
+
+    def __init__(self):
+        self.cache_dir = Path(settings.DATA_CACHE_DIR) / "raw" / "news"
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+
+    async def get_latest_news(self, max_articles: int = 50) -> list[dict]:
+        """NewsAPI에서 최신 유가 관련 기사 수집"""
+        if not settings.NEWS_API_KEY:
+            logger.warning("NEWS_API_KEY is not set. Skipping NewsAPI fetch.")
+            return []
+
+        today = datetime.now().strftime('%Y-%m-%d')
+        cache_file = self.cache_dir / f"{today}_newsapi.json"
+
+        if cache_file.exists():
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+
+        query = " OR ".join(f'"{k}"' for k in self.OIL_KEYWORDS)
+        params = {
+            "q": query,
+            "apiKey": settings.NEWS_API_KEY,
+            "sortBy": "publishedAt",
+            "language": "en",
+            "pageSize": max_articles,
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(self.NEWSAPI_URL, params=params)
+                response.raise_for_status()
+                data = response.json()
+            except httpx.HTTPStatusError as e:
+                logger.error(f"NewsAPI request failed: {e}")
+                return []
+
+        articles = []
+        for article in data.get("articles", []):
+            if not article.get('url'):
+                continue
+            articles.append({
+                "id": hashlib.sha256(article['url'].encode()).hexdigest(),
+                "title": article.get('title', ''),
+                "description": article.get('description'),
+                "source": article.get('source', {}).get('name'),
+                "url": article['url'],
+                "published_at": article.get('publishedAt', ''),
+                "content_snippet": article.get('content'),
+                "data_source": "newsapi",
+            })
+
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(articles, f)
+
+        return articles
+
+    async def get_gdelt_events(self, start_date: str, end_date: str) -> list[dict]:
+        """GDELT에서 에너지 관련 이벤트 수집"""
+        today = datetime.now().strftime('%Y-%m-%d')
+        cache_file = self.cache_dir / f"{today}_gdelt.json"
+
+        if cache_file.exists():
+            with open(cache_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+
+        # GDELT date format is YYYYMMDDHHMMSS
+        start_dt = f"{start_date.replace('-', '')}000000"
+        end_dt = f"{end_date.replace('-', '')}235959"
+
+        query = "(oil OR crude OR OPEC OR petroleum) (sourcelang:eng)"
+        params = {
+            "query": query,
+            "mode": "ArtList",
+            "format": "json",
+            "startdatetime": start_dt,
+            "enddatetime": end_dt,
+            "maxrecords": 100,  # GDELT has a limit
+        }
+
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(self.GDELT_URL, params=params)
+                response.raise_for_status()
+                data = response.json()
+            except (httpx.HTTPStatusError, json.JSONDecodeError) as e:
+                logger.error(f"GDELT request failed: {e}")
+                return []
+
+        articles = []
+        for article in data.get("articles", []):
+            if not article.get('url'):
+                continue
+
+            # GDELT seendate format: 20231101143000
+            published_str = article.get('seendate', '')
+            try:
+                published_dt = datetime.strptime(published_str, '%Y%m%d%H%M%S')
+                published_iso = published_dt.isoformat() + "Z"
+            except ValueError:
+                published_iso = ''
+
+            articles.append({
+                "id": hashlib.sha256(article['url'].encode()).hexdigest(),
+                "title": article.get('title', ''),
+                "description": article.get('socialimage'),  # GDELT doesn't provide a good description
+                "source": article.get('domain'),
+                "url": article['url'],
+                "published_at": published_iso,
+                "content_snippet": None,  # Not available
+                "data_source": "gdelt",
+            })
+
+        with open(cache_file, 'w', encoding='utf-8') as f:
+            json.dump(articles, f)
+
+        return articles
+
+
 class DataCollector:
     """모든 데이터 소스를 통합하는 파사드"""
 
     def __init__(self):
         self.eia = EIACollector()
         self.fred = FREDCollector()
+        self.news = NewsCollector()
 
     async def collect_all(self, start_date: str, end_date: str) -> dict[str, pd.DataFrame]:
         """모든 소스에서 데이터를 병렬 수집"""
@@ -231,3 +368,24 @@ class DataCollector:
             "eia_production": results[2],
             "fred_macro": results[3],
         }
+
+    async def collect_news(self, max_articles: int = 50) -> list[dict]:
+        """뉴스 수집 (NewsAPI + GDELT 병합, 중복 제거)"""
+        today = datetime.now()
+        start_date = (today - timedelta(days=1)).strftime('%Y-%m-%d')
+        end_date = today.strftime('%Y-%m-%d')
+
+        newsapi_task = self.news.get_latest_news(max_articles)
+        gdelt_task = self.news.get_gdelt_events(start_date, end_date)
+
+        newsapi_articles, gdelt_articles = await asyncio.gather(newsapi_task, gdelt_task)
+
+        all_articles = newsapi_articles + gdelt_articles
+
+        # URL 기준으로 중복 제거
+        unique_articles = {}
+        for article in all_articles:
+            if article['url'] not in unique_articles:
+                unique_articles[article['url']] = article
+
+        return list(unique_articles.values())
