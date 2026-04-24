@@ -43,7 +43,10 @@
       "step": 5,
       "name": "briefing-viewer",
       "title": "AI 브리핑 뷰어 구현",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:18:47+0900",
+      "summary": "AI 브리핑 뷰어, 데이터 훅, 히스토리 탐색 기능을 구현했습니다.",
+      "completed_at": "2026-04-24T23:19:54+0900"
     },
     {
       "step": 6,
