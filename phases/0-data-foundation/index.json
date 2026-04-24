@@ -7,10 +7,10 @@
       "step": 1,
       "name": "backend-deps-config",
       "title": "백엔드 의존성 설치 및 환경 설정",
-      "status": "error",
-      "started_at": "2026-04-24T22:42:33+0900",
-      "error_message": "[3회 시도 후 실패] Step did not update status",
-      "failed_at": "2026-04-24T22:42:34+0900"
+      "status": "completed",
+      "started_at": "2026-04-24T22:44:15+0900",
+      "summary": "백엔드 의존성 설치, 환경변수 설정 및 데이터 디렉토리 구조를 생성했습니다.",
+      "completed_at": "2026-04-24T22:45:07+0900"
     },
     {
       "step": 2,
