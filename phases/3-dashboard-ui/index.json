@@ -52,7 +52,10 @@
       "step": 6,
       "name": "factor-gauge",
       "title": "요인 게이지 & 대시보드 통합",
-      "status": "pending"
+      "status": "completed",
+      "started_at": "2026-04-24T23:19:54+0900",
+      "summary": "요인 게이지 컴포넌트를 구현하고, 컨텍스트를 통해 차트-뉴스 간 상호작용 및 반응형 레이아웃을 적용했습니다.",
+      "completed_at": "2026-04-24T23:22:13+0900"
     },
     {
       "step": 7,
