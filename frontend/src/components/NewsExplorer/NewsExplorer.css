@@ -50,6 +50,36 @@
   font-variant-numeric: tabular-nums;
 }
 
+.sort-and-filter {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.date-filter-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background-color: var(--color-card-hover);
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.date-filter-indicator button {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+}
+.date-filter-indicator button:hover {
+  color: var(--color-text-primary);
+}
+
 .sort-toggle {
   display: flex;
   gap: 4px;

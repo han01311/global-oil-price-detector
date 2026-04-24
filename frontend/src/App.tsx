@@ -1,11 +1,14 @@
 import './App.css'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { Dashboard } from './components/Dashboard/Dashboard'
+import { DashboardProvider } from './context/DashboardContext'
 
 function App() {
   return (
     <ErrorBoundary>
-      <Dashboard />
+      <DashboardProvider>
+        <Dashboard />
+      </DashboardProvider>
     </ErrorBoundary>
   )
 }

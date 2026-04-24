@@ -1,9 +1,10 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Card } from '../common/Card';
 import { useNewsData } from '../../hooks/useNewsData';
 import { NewsCard } from './NewsCard';
 import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';
+import { useDashboardContext } from '../../context/DashboardContext';
 import './NewsExplorer.css';
 
 type SortOrder = 'time' | 'impact';
@@ -13,8 +14,16 @@ const CATEGORIES: Category[] = ['All', 'geopolitics', 'supply', 'demand', 'macro
 
 export const NewsExplorer: React.FC = () => {
   const { articles, loading, error } = useNewsData();
+  const { selectedDate, setSelectedDate, setHighlightedCategory } = useDashboardContext();
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [sortOrder, setSortOrder] = useState<SortOrder>('time');
+
+  // If a date is selected from the chart, reset the category filter
+  useEffect(() => {
+    if (selectedDate) {
+      setActiveCategory('All');
+    }
+  }, [selectedDate]);
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: articles.length };
@@ -26,7 +35,10 @@ export const NewsExplorer: React.FC = () => {
 
   const filteredAndSortedArticles = useMemo(() => {
     let filtered = articles;
-    if (activeCategory !== 'All') {
+
+    if (selectedDate) {
+      filtered = articles.filter(a => a.article.published_at.startsWith(selectedDate));
+    } else if (activeCategory !== 'All') {
       filtered = articles.filter(a => a.category === activeCategory);
     }
 
@@ -37,7 +49,7 @@ export const NewsExplorer: React.FC = () => {
       // Default to time
       return new Date(b.article.published_at).getTime() - new Date(a.article.published_at).getTime();
     });
-  }, [articles, activeCategory, sortOrder]);
+  }, [articles, activeCategory, sortOrder, selectedDate]);
 
   const renderContent = () => {
     if (loading) {
@@ -51,7 +63,7 @@ export const NewsExplorer: React.FC = () => {
       return <p style={{ color: 'var(--color-error)' }}>Error loading news: {error.message}</p>;
     }
     if (filteredAndSortedArticles.length === 0) {
-      return <p>No relevant news found for this category.</p>;
+      return <p>{selectedDate ? `No news found for ${selectedDate}.` : 'No relevant news found for this category.'}</p>;
     }
     return (
       <div className="news-grid">
@@ -62,6 +74,11 @@ export const NewsExplorer: React.FC = () => {
     );
   };
 
+  const handleCategoryClick = (cat: Category) => {
+    setSelectedDate(null); // Clear date filter when a category is clicked
+    setActiveCategory(cat);
+  }
+
   return (
     <Card title="News Explorer" className="news-explorer-card">
       <div className="news-explorer-controls">
@@ -69,17 +86,27 @@ export const NewsExplorer: React.FC = () => {
           {CATEGORIES.map(cat => (
             <button
               key={cat}
-              className={`category-tab ${activeCategory === cat ? 'active' : ''}`}
-              onClick={() => setActiveCategory(cat)}
+              className={`category-tab ${activeCategory === cat && !selectedDate ? 'active' : ''}`}
+              onClick={() => handleCategoryClick(cat)}
+              onMouseEnter={() => setHighlightedCategory(cat === 'All' ? null : cat as any)}
+              onMouseLeave={() => setHighlightedCategory(null)}
             >
               <Badge category={cat === 'All' ? 'default' : cat} />
               <span className="category-count">{categoryCounts[cat] || 0}</span>
             </button>
           ))}
         </div>
-        <div className="sort-toggle">
-          <button onClick={() => setSortOrder('time')} className={sortOrder === 'time' ? 'active' : ''}>Time</button>
-          <button onClick={() => setSortOrder('impact')} className={sortOrder === 'impact' ? 'active' : ''}>Impact</button>
+        <div className="sort-and-filter">
+          {selectedDate && (
+            <div className="date-filter-indicator">
+              <span>Filtered by: {selectedDate}</span>
+              <button onClick={() => setSelectedDate(null)}>&times;</button>
+            </div>
+          )}
+          <div className="sort-toggle">
+            <button onClick={() => setSortOrder('time')} className={sortOrder === 'time' ? 'active' : ''}>Time</button>
+            <button onClick={() => setSortOrder('impact')} className={sortOrder === 'impact' ? 'active' : ''}>Impact</button>
+          </div>
         </div>
       </div>
       {renderContent()}

@@ -28,3 +28,16 @@
 .price-chart-card {
   height: 100%;
 }
+
+/* Responsive layout for smaller screens */
+@media (max-width: 1024px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas:
+      "header"
+      "chart"
+      "sidebar"
+      "news";
+  }
+}

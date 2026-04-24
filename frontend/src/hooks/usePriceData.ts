@@ -13,6 +13,7 @@ export interface ChartDataPoint {
   brent: number | null;
   forecastLine?: number;
   forecastBand?: [number, number];
+  article?: ClassifiedArticle; // For tooltip
 }
 
 export interface NewsMarker {
@@ -137,7 +138,15 @@ export function usePriceData(period: Period): PriceData {
         };
       });
 
-    return { chartData: processedChartData, newsMarkers: processedNewsMarkers };
+    // Add news articles to the main chart data for tooltip purposes
+    const chartDataMap = new Map<number, ChartDataPoint>(processedChartData.map(d => [d.timestamp, d]));
+    processedNewsMarkers.forEach(marker => {
+      if (chartDataMap.has(marker.timestamp)) {
+        chartDataMap.get(marker.timestamp)!.article = marker.article;
+      }
+    });
+
+    return { chartData: Array.from(chartDataMap.values()), newsMarkers: processedNewsMarkers };
   }, [history, forecast, news]);
 
   return { chartData, newsMarkers, forecast, loading, error };

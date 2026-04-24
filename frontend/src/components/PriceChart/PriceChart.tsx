@@ -9,11 +9,13 @@ import {
   CartesianGrid,
   Tooltip,
   ReferenceDot,
+  DotProps,
 } from 'recharts';
 import { Card } from '../common/Card';
 import { Skeleton } from '../common/Skeleton';
-import { usePriceData, Period, getCategoryColor } from '../../hooks/usePriceData';
+import { usePriceData, Period, getCategoryColor, NewsMarker } from '../../hooks/usePriceData';
 import { Badge } from '../common/Badge';
+import { useDashboardContext } from '../../context/DashboardContext';
 import './PriceChart.css';
 
 const periods: Period[] = ['1M', '3M', '6M', '1Y', 'ALL'];
@@ -21,19 +23,18 @@ const periods: Period[] = ['1M', '3M', '6M', '1Y', 'ALL'];
 const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    const newsDot = payload.find(p => p.dataKey === 'value' && p.payload.article);
-
+    
     return (
       <div className="chart-tooltip-content">
         <p className="tooltip-label">{new Date(label).toLocaleDateString()}</p>
         {data.wti && <p className="tooltip-item" style={{ color: 'var(--color-bull)' }}>WTI: ${data.wti.toFixed(2)}</p>}
         {data.brent && <p className="tooltip-item" style={{ color: 'var(--color-bear)' }}>Brent: ${data.brent.toFixed(2)}</p>}
         {data.forecastLine && <p className="tooltip-item">Forecast: ${data.forecastLine.toFixed(2)}</p>}
-        {newsDot && (
+        {data.article && (
           <div className="tooltip-news-item">
-            <Badge category={newsDot.payload.article.category as any} />
-            <span>{newsDot.payload.article.article.title}</span>
-            <p>Impact: {newsDot.payload.article.impact_score}</p>
+            <Badge category={data.article.category as any} />
+            <span>{data.article.article.title}</span>
+            <p>Impact: {data.article.impact_score}</p>
           </div>
         )}
       </div>
@@ -42,9 +43,53 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
   return null;
 };
 
+interface CustomDotProps extends DotProps {
+  payload?: NewsMarker;
+  onClick?: (payload: NewsMarker) => void;
+  isHighlighted: boolean;
+  isDimmed: boolean;
+}
+
+const CustomNewsDot: React.FC<CustomDotProps> = (props) => {
+  const { cx, cy, payload, onClick, isHighlighted, isDimmed } = props;
+
+  if (!payload) return null;
+
+  const handleClick = () => {
+    if (onClick && payload) {
+      onClick(payload);
+    }
+  };
+
+  return (
+    <g>
+      <circle
+        cx={cx}
+        cy={cy}
+        r={isHighlighted ? 8 : 5}
+        fill={getCategoryColor(payload.article.category)}
+        stroke="var(--color-bg)"
+        strokeWidth={2}
+        onClick={handleClick}
+        style={{
+          cursor: 'pointer',
+          opacity: isDimmed ? 0.3 : 1,
+          transition: 'r 0.2s ease, opacity 0.2s ease',
+        }}
+      />
+    </g>
+  );
+};
+
 export const PriceChart: React.FC = () => {
   const [activePeriod, setActivePeriod] = useState<Period>('6M');
   const { chartData, newsMarkers, forecast, loading, error } = usePriceData(activePeriod);
+  const { setSelectedDate, highlightedCategory } = useDashboardContext();
+
+  const handleMarkerClick = (marker: NewsMarker) => {
+    const dateStr = new Date(marker.timestamp).toISOString().split('T')[0];
+    setSelectedDate(dateStr);
+  };
 
   const isUpwardTrend = forecast ? forecast.estimated_7d > forecast.current_price : true;
   const forecastColorId = isUpwardTrend ? 'forecast-bull' : 'forecast-bear';
@@ -103,10 +148,15 @@ export const PriceChart: React.FC = () => {
               key={index} 
               x={marker.timestamp} 
               y={marker.value} 
-              r={5} 
-              fill={getCategoryColor(marker.article.category)}
-              stroke="var(--color-bg)"
-              strokeWidth={1}
+              ifOverflow="extendDomain"
+              shape={
+                <CustomNewsDot 
+                  payload={marker} 
+                  onClick={handleMarkerClick}
+                  isHighlighted={highlightedCategory === marker.article.category}
+                  isDimmed={!!highlightedCategory && highlightedCategory !== marker.article.category}
+                />
+              }
             />
           ))}
         </ComposedChart>
