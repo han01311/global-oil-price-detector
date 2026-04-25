@@ -19,8 +19,11 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
 
-    # 필수 API 키
-    GEMINI_API_KEY: str = ""
+    # 로컬 LLM 설정
+    LOCAL_LLM_URL: str = "http://localhost:11434"
+
+    # 옵셔널 API 키 (Fallback)
+    GEMINI_API_KEY: str | None = None
     EIA_API_KEY: str = ""
     FRED_API_KEY: str = ""
 
@@ -41,7 +44,7 @@ class Settings(BaseSettings):
     def __init__(self, **values):
         super().__init__(**values)
         # 필수 키 확인
-        required_keys = ["GEMINI_API_KEY", "EIA_API_KEY", "FRED_API_KEY"]
+        required_keys = ["EIA_API_KEY", "FRED_API_KEY"]
         missing_keys = [key for key in required_keys if not getattr(self, key)]
         if missing_keys:
             warnings.warn(

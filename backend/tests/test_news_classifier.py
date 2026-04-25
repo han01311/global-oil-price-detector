@@ -2,6 +2,7 @@ import pytest
 import asyncio
 from unittest.mock import patch, AsyncMock, MagicMock, ANY
 import json
+import httpx
 
 from pydantic import ValidationError
 
@@ -17,58 +18,48 @@ def sample_article_dict():
 def irrelevant_article_dict():
     return { "id": "test-id-2", "title": "Tesla Stock Surges on New EV Model", "description": "Shares of the electric vehicle maker jumped 10%.", "source": "Bloomberg", "url": "http://example.com/tesla-stock", "published_at": "2024-01-01T13:00:00Z", "content_snippet": "Tesla's new model has excited investors...", "data_source": "newsapi" }
 
-# Fixtures for mock Gemini responses
+# Fixtures for mock httpx responses
 @pytest.fixture
-def mock_gemini_response_success():
-    mock_response = MagicMock()
-    mock_response.text = json.dumps({ "is_relevant": True, "category": "supply", "sub_categories": ["geopolitics"], "impact_score": 3, "impact_summary": "OPEC+의 추가 감산 결정은 원유 공급 감소로 이어져 유가 상승 압력으로 작용할 것입니다.", "confidence": 0.95 })
-    return asyncio.sleep(0.01, result=mock_response)
+def mock_httpx_response_success():
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    inner_json = json.dumps({ "is_relevant": True, "category": "supply", "sub_categories": ["geopolitics"], "impact_score": 3, "impact_summary": "OPEC+의 추가 감산 결정은 원유 공급 감소로 이어져 유가 상승 압력으로 작용할 것입니다.", "confidence": 0.95 })
+    mock_resp.json.return_value = {"response": inner_json}
+    return mock_resp
 
 @pytest.fixture
-def mock_gemini_response_irrelevant():
-    mock_response = MagicMock()
-    mock_response.text = json.dumps({ "is_relevant": False, "category": "demand", "sub_categories": [], "impact_score": 0, "impact_summary": "이 기사는 유가와 직접적인 관련이 없습니다.", "confidence": 0.98 })
-    return asyncio.sleep(0.01, result=mock_response)
+def mock_httpx_response_irrelevant():
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    inner_json = json.dumps({ "is_relevant": False, "category": "demand", "sub_categories": [], "impact_score": 0, "impact_summary": "이 기사는 유가와 직접적인 관련이 없습니다.", "confidence": 0.98 })
+    mock_resp.json.return_value = {"response": inner_json}
+    return mock_resp
 
 @pytest.fixture
-def mock_gemini_response_invalid_json():
-    mock_response = MagicMock()
-    mock_response.text = '{"is_relevant": true, ...'
-    return asyncio.sleep(0.01, result=mock_response)
+def mock_httpx_response_invalid_json():
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.json.return_value = {"response": '{"is_relevant": true, ...'}
+    return mock_resp
 
 @pytest.fixture
-def mock_gemini_response_invalid_data():
-    mock_response = MagicMock()
-    mock_response.text = json.dumps({ "is_relevant": True, "category": "supply", "sub_categories": [], "impact_score": 10, "impact_summary": "Summary", "confidence": 0.9 })
-    return asyncio.sleep(0.01, result=mock_response)
+def mock_httpx_response_invalid_data():
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    inner_json = json.dumps({ "is_relevant": True, "category": "supply", "sub_categories": [], "impact_score": 10, "impact_summary": "Summary", "confidence": 0.9 })
+    mock_resp.json.return_value = {"response": inner_json}
+    return mock_resp
 
-# Main fixture for the classifier, with genai patched
 @pytest.fixture
-def classifier(monkeypatch):
-    monkeypatch.setattr("google.generativeai.configure", MagicMock())
-    monkeypatch.setattr("google.generativeai.GenerativeModel", MagicMock())
-    return NewsClassifier(api_key="DUMMY_API_KEY")
+def classifier():
+    return NewsClassifier(ollama_url="http://test_ollama:11434")
 
 # --- Tests ---
 
-def test_init_with_key(monkeypatch):
-    """Test that the classifier initializes correctly with an API key."""
-    mock_configure = MagicMock()
-    mock_model = MagicMock()
-    monkeypatch.setattr("google.generativeai.configure", mock_configure)
-    monkeypatch.setattr("google.generativeai.GenerativeModel", mock_model)
-    
-    classifier = NewsClassifier(api_key="TEST_KEY")
-    
-    mock_configure.assert_called_once_with(api_key="TEST_KEY")
-    mock_model.assert_called_with('gemini-1.5-flash', generation_config=ANY)
-    assert classifier.model is not None
-
-def test_init_no_key(monkeypatch):
-    """Test that the classifier handles a missing API key gracefully."""
-    monkeypatch.setattr("app.core.config.settings.GEMINI_API_KEY", None)
-    classifier = NewsClassifier()
-    assert classifier.model is None
+def test_init_with_ollama_url():
+    """Test that the classifier initializes correctly with an ollama url."""
+    classifier = NewsClassifier(ollama_url="http://CUSTOM_OLLAMA:11434/")
+    assert classifier.ollama_url == "http://CUSTOM_OLLAMA:11434"
 
 def test_build_prompt(classifier, sample_article_dict):
     """Test if the prompt is constructed correctly."""
@@ -82,13 +73,14 @@ def test_build_prompt(classifier, sample_article_dict):
     assert content in prompt
 
 @pytest.mark.asyncio
-async def test_classify_article_success(classifier, sample_article_dict, mock_gemini_response_success):
+@patch('httpx.AsyncClient.post')
+async def test_classify_article_success(mock_post, classifier, sample_article_dict, mock_httpx_response_success):
     """Test successful classification of a single article."""
-    classifier.model.generate_content_async = AsyncMock(return_value=await mock_gemini_response_success)
+    mock_post.return_value = mock_httpx_response_success
     
     result = await classifier.classify_article(sample_article_dict)
     
-    classifier.model.generate_content_async.assert_awaited_once()
+    mock_post.assert_awaited_once()
     assert isinstance(result, ClassifiedArticle)
     assert result.is_relevant is True
     assert result.category == "supply"
@@ -96,9 +88,10 @@ async def test_classify_article_success(classifier, sample_article_dict, mock_ge
     assert result.article.id == sample_article_dict["id"]
 
 @pytest.mark.asyncio
-async def test_classify_article_irrelevant(classifier, irrelevant_article_dict, mock_gemini_response_irrelevant):
+@patch('httpx.AsyncClient.post')
+async def test_classify_article_irrelevant(mock_post, classifier, irrelevant_article_dict, mock_httpx_response_irrelevant):
     """Test classification of an irrelevant article."""
-    classifier.model.generate_content_async = AsyncMock(return_value=await mock_gemini_response_irrelevant)
+    mock_post.return_value = mock_httpx_response_irrelevant
     
     result = await classifier.classify_article(irrelevant_article_dict)
     
@@ -106,16 +99,25 @@ async def test_classify_article_irrelevant(classifier, irrelevant_article_dict, 
     assert result.is_relevant is False
 
 @pytest.mark.asyncio
-async def test_classify_article_invalid_json(classifier, sample_article_dict, mock_gemini_response_invalid_json):
+@patch('httpx.AsyncClient.post')
+async def test_classify_article_invalid_json(mock_post, classifier, sample_article_dict, mock_httpx_response_invalid_json):
     """Test fallback for invalid JSON response."""
-    classifier.model.generate_content_async = AsyncMock(return_value=await mock_gemini_response_invalid_json)
+    mock_post.return_value = mock_httpx_response_invalid_json
     result = await classifier.classify_article(sample_article_dict)
     assert result is None
 
 @pytest.mark.asyncio
-async def test_classify_article_validation_error(classifier, sample_article_dict, mock_gemini_response_invalid_data):
+@patch('httpx.AsyncClient.post')
+async def test_classify_article_validation_error(mock_post, classifier, sample_article_dict, mock_httpx_response_invalid_data):
     """Test fallback for Pydantic validation error."""
-    classifier.model.generate_content_async = AsyncMock(return_value=await mock_gemini_response_invalid_data)
+    mock_post.return_value = mock_httpx_response_invalid_data
+    result = await classifier.classify_article(sample_article_dict)
+    assert result is None
+
+@pytest.mark.asyncio
+@patch('httpx.AsyncClient.post')
+async def test_classify_article_http_error(mock_post, classifier, sample_article_dict):
+    mock_post.side_effect = httpx.HTTPError("Network down")
     result = await classifier.classify_article(sample_article_dict)
     assert result is None
 

@@ -37,7 +37,7 @@ global-oil-price-detector/
 │   │   │   └── forecast.py      # 추정 결과 스키마
 │   │   ├── services/            # 비즈니스 로직 + AI 서비스
 │   │   │   ├── data_collector.py    # 외부 API 데이터 수집기
-│   │   │   ├── news_classifier.py   # Gemini 뉴스 요인 분류기
+│   │   │   ├── news_classifier.py   # Gemma 4 뉴스 요인 분류기
 │   │   │   ├── forecast_engine.py   # XGBoost 추정 엔진
 │   │   │   ├── market_memory.py     # ChromaDB 벡터 검색
 │   │   │   └── briefing_generator.py # AI 브리핑 생성기
@@ -82,8 +82,8 @@ global-oil-price-detector/
 └────────┼───────────┼────────────┼──────────────┼──────┘
          │           │            │              │
     ┌────▼───┐  ┌────▼────┐  ┌───▼───┐   ┌─────▼─────┐
-    │External│  │ Gemini  │  │XGBoost│   │ ChromaDB  │
-    │APIs    │  │ API     │  │Model  │   │ (Vector)  │
+    │External│  │ Ollama  │  │XGBoost│   │ ChromaDB  │
+    │APIs    │  │(Gemma 4)│  │Model  │   │ (Vector)  │
     │EIA,FRED│  │         │  │       │   │           │
     └────────┘  └─────────┘  └───────┘   └───────────┘
 ```
@@ -102,7 +102,7 @@ global-oil-price-detector/
 ### 2. 데이터 무결성 검증 (Data Validation) 파이프라인
 머신러닝과 LLM에 오염된 데이터가 주입되어 크래시되는 현상을 막기 위해 강력한 검증 단계를 거칩니다.
 - **Pydantic 스키마 검증**: 모든 들어오고 나가는 데이터는 Pydantic 스키마(`schemas/*.py`) 레이어를 통과합니다. 누락된 키, Null 값, 비정상적인 유가(예: 음수 가격) 등이 탐지되면 즉각 예외(`ValidationError`)를 던져 잘못된 모델 학습을 차단합니다.
-- **LLM 응답 검증 (JSON Parsing Fallback)**: Gemini API가 할루시네이션으로 인해 깨진 JSON을 내뱉을 경우, 백엔드 로직 선에서 정규식 혹은 재시도를 통해 보정합니다. 회복 불가능할 시 해당 뉴스는 `[Unknown Category]`로 안전하게 드롭(Drop)시킵니다.
+- **LLM 응답 검증 (JSON Parsing Fallback)**: Gemma 4 API가 할루시네이션으로 인해 깨진 JSON을 내뱉을 경우, 백엔드 로직 선에서 정규식 혹은 재시도를 통해 보정합니다. 회복 불가능할 시 해당 뉴스는 `[Unknown Category]`로 안전하게 드롭(Drop)시킵니다.
 
 ### 3. 글로벌 에러 전파 원칙 (Error Propagation Flow)
 - **백엔드**: 비즈니스 로직(Service Layer)에서 발생한 에러는 구체적 원인 파악을 위해 고유 에러 코드와 함께 패키징되어 FastAPI의 글로벌 예외 핸들러(`Exception Middleware`)에서 포착됩니다. 클라이언트에게는 보안에 민감한 스택 트리거를 은폐하고 표준화된 `{ "code": "E1001", "message": "...", "retryable": true }` 형태의 HTTP 500 / 503 에러로 변환해 전달합니다.
@@ -114,7 +114,7 @@ global-oil-price-detector/
 ## 패턴
 - **프론트엔드**: 컴포넌트 기반 아키텍처. 재사용 컴포넌트는 `common/`에 분리
 - **백엔드**: 레이어드 아키텍처 (API Route → Service → External)
-- **AI 통합**: 모든 Gemini API 호출은 `backend/app/services/`에서만 수행
+- **AI 통합**: 모든 Ollama(Gemma 4) 호출은 `backend/app/services/`에서만 수행
 - **데이터 캐싱**: 외부 API 응답은 `backend/data/raw/`에 일별 캐시 (rate limit 대응)
 - **벡터 DB**: ChromaDB (로컬 임베딩, 서버리스). 뉴스 + 유가변동 매핑 데이터 적재
 
@@ -123,14 +123,14 @@ global-oil-price-detector/
 ```
 [수집] EIA/FRED/News API → data_collector → data/raw/ (JSON 캐시)
                                           ↓
-[분류] raw news → news_classifier (Gemini) → 6대 요인 + Impact Score (JSON)
+[분류] raw news → news_classifier (Gemma 4) → 6대 요인 + Impact Score (JSON)
                                             ↓
 [적재] 분류된 뉴스 + 당시 유가 변동률 → market_memory → ChromaDB
                                                         ↓
 [예측] data/processed → forecast_engine (XGBoost) → Baseline
        ChromaDB 유사 사례 → News Adjustment% → Final Band
                                                 ↓
-[브리핑] Final Band + 유사 사례 → briefing_generator (Gemini) → 리포트
+[브리핑] Final Band + 유사 사례 → briefing_generator (Gemma 4) → 리포트
                                                                ↓
 [표시] React Dashboard ← REST API ← FastAPI Route (에러 포맷팅 거쳐 서빙)
 ```
@@ -147,7 +147,6 @@ global-oil-price-detector/
 | 패키지 | 용도 |
 |--------|------|
 | `fastapi`, `uvicorn` | 웹 프레임워크 |
-| `google-generativeai` | Gemini API |
 | `xgboost`, `scikit-learn` | ML 모델 |
 | `chromadb` | 벡터 DB |
 | `pandas`, `numpy` | 데이터 처리 |

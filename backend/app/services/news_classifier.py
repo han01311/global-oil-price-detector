@@ -2,8 +2,8 @@ import asyncio
 import json
 import logging
 from datetime import datetime, timezone
+import httpx
 
-import google.generativeai as genai
 from pydantic import ValidationError
 
 from app.core.config import settings
@@ -14,25 +14,14 @@ logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
 class NewsClassifier:
-    """Gemini 기반 뉴스 요인 분류기"""
+    """Ollama (Gemma 4) 기반 뉴스 요인 분류기"""
 
     CATEGORIES = ["geopolitics", "supply", "demand", "macro", "climate", "speculation"]
     CONCURRENCY_LIMIT = 5
 
-    def __init__(self, api_key: str | None = None):
-        self.api_key = api_key or settings.GEMINI_API_KEY
-        if not self.api_key:
-            logger.warning("GEMINI_API_KEY is not set. NewsClassifier will not be available.")
-            self.model = None
-            return
-
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel(
-            'gemini-1.5-flash',
-            generation_config=genai.GenerationConfig(
-                response_mime_type="application/json"
-            )
-        )
+    def __init__(self, ollama_url: str | None = None):
+        self.ollama_url = (ollama_url or settings.LOCAL_LLM_URL).rstrip("/")
+        self.model_name = "gemma"
         self.semaphore = asyncio.Semaphore(self.CONCURRENCY_LIMIT)
 
     def _build_classification_prompt(self, article_content: str) -> str:
@@ -89,10 +78,6 @@ JSON Output Format:
 
     async def classify_article(self, article: dict) -> ClassifiedArticle | None:
         """단일 기사를 분류하고 영향도를 평가한다"""
-        if not self.model:
-            logger.warning("Gemini model not initialized. Skipping classification.")
-            return None
-
         async with self.semaphore:
             try:
                 article_model = NewsArticle(**article)
@@ -104,8 +89,19 @@ JSON Output Format:
             prompt = self._build_classification_prompt(content_to_analyze)
 
             try:
-                response = await self.model.generate_content_async(prompt)
-                response_json = json.loads(response.text)
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{self.ollama_url}/api/generate",
+                        json={
+                            "model": self.model_name,
+                            "prompt": prompt,
+                            "format": "json",
+                            "stream": False
+                        },
+                        timeout=30.0
+                    )
+                    response.raise_for_status()
+                    response_json = json.loads(response.json()["response"])
 
                 result_data = {
                     "article": article_model,
@@ -116,8 +112,12 @@ JSON Output Format:
                 classified_article = ClassifiedArticle(**result_data)
                 return classified_article
 
+            except httpx.HTTPError as e:
+                logger.error(f"Ollama API request failed for article '{article_model.title}': {e}")
+                return None
             except (json.JSONDecodeError, ValidationError) as e:
-                logger.error(f"Failed to parse or validate Gemini response for article '{article_model.title}': {e}\nResponse text: {response.text if 'response' in locals() else 'N/A'}")
+                resp_text = response.text if 'response' in locals() else 'N/A'
+                logger.error(f"Failed to parse or validate Gemma 4 response for article '{article_model.title}': {e}\nResponse text: {resp_text}")
                 return None
             except Exception as e:
                 logger.error(f"An unexpected error occurred during classification for article '{article_model.title}': {e}")
@@ -125,7 +125,7 @@ JSON Output Format:
 
     async def classify_batch(self, articles: list[dict]) -> list[ClassifiedArticle]:
         """여러 기사를 배치로 분류 (rate limit 고려)"""
-        if not articles or not self.model:
+        if not articles:
             return []
 
         tasks = [self.classify_article(article) for article in articles]

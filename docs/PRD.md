@@ -18,13 +18,13 @@
 
 #### F1-b. 정성적 보정 (News Premium/Discount)
 - 벡터 DB(ChromaDB)에 적재된 뉴스 요인 분석 결과(지정학, 공급 리스크 등)를 기반으로
-- 현재 이슈가 유가에 미칠 상승/하락 압력(%)을 Gemini가 계산
+- 현재 이슈가 유가에 미칠 상승/하락 압력(%)을 Gemma 4가 계산
 - **최종 추정 유가 밴드(Range)** 산출: `Baseline ± News Adjustment`
 - 신뢰구간(Confidence Band)을 시각적으로 표시
 
 ### F2. AI 스마트 필터 및 다차원 요인 분류기
 
-- 글로벌 뉴스 중 유가 영향 기사만 자동 선별 (Gemini 기반 relevance scoring)
+- 글로벌 뉴스 중 유가 영향 기사만 자동 선별 (Gemma 4 기반 relevance scoring)
 - 근본 원인을 6대 카테고리로 분류:
   - `geopolitics` (지정학: 전쟁, 제재, 외교)
   - `supply` (공급: OPEC 감산, 셰일, 시추)
@@ -45,7 +45,7 @@
 
 - 추정 엔진 산출 수치 + 벡터 DB 유사 과거 사례를 종합
 - "왜 이런 가격을 추정했는지" 설명하는 **일일 전망 리포트** 자동 생성
-- Gemini가 작성하되, 구조화된 포맷(요약 → 핵심 요인 → 리스크 시나리오)으로 출력
+- Gemma 4가 작성하되, 구조화된 포맷(요약 → 핵심 요인 → 리스크 시나리오)으로 출력
 
 ---
 
@@ -78,9 +78,9 @@ B2B 분석가들이 사용하는 대시보드는 정보 밀도가 높으면서�
 ### 2. AI 분석/추론 엣지 케이스 (LLM & ML Issues)
 | 상황 (Edge Case) | 원인 및 영향 | 대응 방안 (Error Handling / Mitigation) |
 |-----------------|------------|-----------------------------------|
-| **블랙스완 (Black Swan)** | 팬데믹 급 전쟁, 세계 경제 마비 등 과거 데이터에 존재하지 않았던 극한의 변동성 발생 유발 | - XGBoost 추정 신뢰도 범위(Band) 혹은 Gemini 리스크 산출 스코어가 한계치(`+5 / -5` 초과)를 넘어간 경우, 사용자에게 UI 알림 뱃지로 `Extreme Volatility Warning (블랙스완 주의)` 제공 |
-| **Gemini API 응답 지연/Time-out** | Google AI Studio 트래픽 폭주 등에 따른 브리핑 생성 응답 타임아웃 | - API 호출 시 타임아웃 15초(최대 30초) 제한 설정 (무한 로딩 방지)<br>- 타임아웃 발생 시 브리핑 생성 부분만 '일시적 지연 상태' 혹은 부분 에러 상태(Skeleton 상태 후 버튼형 메시지로 전환) 제공 |
-| **Gemini 환각(Hallucination)/포맷 에러** | 뉴스 요인 분류 및 브리핑 생성 시 JSON 응답이 깨지거나 지정 카테고리 외 응답 도출 | - 백엔드(FastAPI)에서 Pydantic 스키마 Validation 진행<br>- 파싱 에러 발생 시 재시도 진행 후 실패 시 해당 뉴스를 `unknown` 분류 처리. 프론트엔드 크래시 방어 |
+| **블랙스완 (Black Swan)** | 팬데믹 급 전쟁, 세계 경제 마비 등 과거 데이터에 존재하지 않았던 극한의 변동성 발생 유발 | - XGBoost 추정 신뢰도 범위(Band) 혹은 Gemma 4 리스크 산출 스코어가 한계치(`+5 / -5` 초과)를 넘어간 경우, 사용자에게 UI 알림 뱃지로 `Extreme Volatility Warning (블랙스완 주의)` 제공 |
+| **Gemma 4 응답 지연/Time-out** | Google AI Studio 트래픽 폭주 등에 따른 브리핑 생성 응답 타임아웃 | - API 호출 시 타임아웃 15초(최대 30초) 제한 설정 (무한 로딩 방지)<br>- 타임아웃 발생 시 브리핑 생성 부분만 '일시적 지연 상태' 혹은 부분 에러 상태(Skeleton 상태 후 버튼형 메시지로 전환) 제공 |
+| **Gemma 4 환각(Hallucination)/포맷 에러** | 뉴스 요인 분류 및 브리핑 생성 시 JSON 응답이 깨지거나 지정 카테고리 외 응답 도출 | - 백엔드(FastAPI)에서 Pydantic 스키마 Validation 진행<br>- 파싱 에러 발생 시 재시도 진행 후 실패 시 해당 뉴스를 `unknown` 분류 처리. 프론트엔드 크래시 방어 |
 
 ### 3. 클라이언트/대시보드 에러 핸들링 (사용자 관점 UI/UX)
 - **Global Error (전체 애플리케이션 치명적 장애)**: 백엔드 노드와 아예 통신이 끊어졌을 때, 빈 하얀 화면이 뜨지 않도록 최상단 `ErrorBoundary`를 통해 "서버 점검/네트워크 오류 화면" 구성. 새로고침 버튼 제공.
@@ -113,10 +113,10 @@ B2B 분석가들이 사용하는 대시보드는 정보 밀도가 높으면서�
 
 | 데이터 | 산출 방식 |
 |--------|-----------|
-| 뉴스 요인 분류 JSON | Gemini API로 기사 분석 → 6대 카테고리 + Impact Score |
+| 뉴스 요인 분류 JSON | Gemma 4 기반 기사 분석 → 6대 카테고리 + Impact Score |
 | 과거 사례 벡터 | 뉴스 임베딩 + 당시 유가 변동률 → ChromaDB 적재 |
 | 유사도 매핑 | 최신 뉴스 벡터 vs 과거 사례 벡터 cosine similarity |
-| 추정 유가 밴드 | XGBoost baseline ± Gemini news adjustment |
+| 추정 유가 밴드 | XGBoost baseline ± Gemma 4 news adjustment |
 
 ---
 
@@ -130,7 +130,7 @@ B2B 분석가들이 사용하는 대시보드는 정보 밀도가 높으면서�
   → Baseline Forecast (7일/30일)
 
 [Phase 2: News Adjustment]
-  NewsAPI/GDELT → Gemini 요인 분류 → Impact Score 산출
+  NewsAPI/GDELT → Gemma 4 요인 분류 → Impact Score 산출
   → ChromaDB에서 유사 과거 사례 검색
   → 과거 사례의 실제 유가 변동률 참조
   → News Premium/Discount (%) 산출

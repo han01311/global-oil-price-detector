@@ -3,8 +3,8 @@ import logging
 import os
 from datetime import datetime, timezone
 from typing import List, Dict, Any
+import httpx
 
-import google.generativeai as genai
 from pydantic import ValidationError
 
 from app.core.config import settings
@@ -14,24 +14,13 @@ logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
 class BriefingGenerator:
-    """AI 유가 브리핑 자동 생성기"""
+    """AI 유가 브리핑 자동 생성기 (Ollama)"""
 
     CACHE_DIR = "backend/data/processed/briefings"
 
-    def __init__(self, api_key: str | None = None):
-        self.api_key = api_key or settings.GEMINI_API_KEY
-        if not self.api_key:
-            logger.warning("GEMINI_API_KEY is not set. BriefingGenerator will not be available.")
-            self.model = None
-            return
-
-        genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel(
-            'gemini-1.5-flash',
-            generation_config=genai.GenerationConfig(
-                response_mime_type="application/json"
-            )
-        )
+    def __init__(self, ollama_url: str | None = None):
+        self.ollama_url = (ollama_url or settings.LOCAL_LLM_URL).rstrip("/")
+        self.model_name = "gemma"
         os.makedirs(self.CACHE_DIR, exist_ok=True)
 
     def _get_cache_path(self) -> str:
@@ -67,9 +56,6 @@ class BriefingGenerator:
             logger.info("Loaded briefing from cache.")
             return cached_briefing
 
-        if not self.model:
-            raise ConnectionError("BriefingGenerator is not available due to missing API key.")
-
         prompt = self._build_briefing_prompt(
             forecast=forecast,
             articles=classified_articles,
@@ -77,8 +63,19 @@ class BriefingGenerator:
         )
 
         try:
-            response = await self.model.generate_content_async(prompt)
-            response_data = json.loads(response.text)
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.ollama_url}/api/generate",
+                    json={
+                        "model": self.model_name,
+                        "prompt": prompt,
+                        "format": "json",
+                        "stream": False
+                    },
+                    timeout=45.0
+                )
+                response.raise_for_status()
+                response_data = json.loads(response.json()["response"])
 
             briefing = Briefing(
                 date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
@@ -89,8 +86,12 @@ class BriefingGenerator:
             self._save_to_cache(briefing)
             return briefing
 
+        except httpx.HTTPError as e:
+            logger.error(f"Ollama API request failed for briefing: {e}")
+            raise ValueError("Failed to generate a valid briefing passing API.") from e
         except (json.JSONDecodeError, ValidationError) as e:
-            logger.error(f"Failed to parse or validate Gemini response for briefing: {e}\nResponse text: {response.text if 'response' in locals() else 'N/A'}")
+            resp_text = response.text if 'response' in locals() else 'N/A'
+            logger.error(f"Failed to parse or validate Gemma 4 response for briefing: {e}\nResponse text: {resp_text}")
             raise ValueError("Failed to generate a valid briefing from AI model.") from e
         except Exception as e:
             logger.error(f"An unexpected error occurred during briefing generation: {e}")
