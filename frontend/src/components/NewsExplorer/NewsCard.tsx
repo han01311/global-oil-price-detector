@@ -94,8 +94,11 @@ export const NewsCard: React.FC<NewsCardProps> = ({ article, activeCrudeType }) 
             globalSummary={article.impact_summary}
           />
         </div>
-        <a href={article.article.url} target="_blank" rel="noopener noreferrer" className="news-card-title">
-          {article.article.title}
+        <a href={article.article.url} target="_blank" rel="noopener noreferrer" className="news-card-title-container">
+          <h3 className="news-card-title">{article.translated_title || article.article.title}</h3>
+          {article.translated_title && (
+            <span className="news-card-original-title">{article.article.title}</span>
+          )}
         </a>
         <div className="news-card-meta">
           <span>{article.article.source}</span>

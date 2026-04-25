@@ -52,6 +52,7 @@ class MarketMemory:
                 "date": article_info.published_at.split('T')[0],
                 "source": article_info.source or "Unknown",
                 "url": article_info.url,
+                "translated_title": article_model.translated_title or "",
             }
 
             # Store per-crude impact scores

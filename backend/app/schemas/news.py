@@ -41,6 +41,7 @@ class ClassifiedArticle(BaseModel):
     impact_summary: str
     confidence: float = Field(..., ge=0.0, le=1.0)
     classified_at: str               # ISO 8601
+    translated_title: str | None = None  # 한글 번역 제목
     # 유종별 독립 영향도 (하위호환: 빈 dict면 기존 단일 impact_score 사용)
     impact_by_crude: dict[str, CrudeImpact] = {}
 

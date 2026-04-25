@@ -79,9 +79,10 @@ Use this guide for crude-specific sensitivity:
 {crude_sensitivity_guide}
 
 6.  Set the overall `impact_score` to the maximum absolute score among the three crude types.
-7.  Write a concise, one-sentence `impact_summary` in Korean explaining the overall situation.
+7.  Write a highly insightful `impact_summary` in Korean (1-2 sentences). Do not just summarize the article. Instead, specifically analyze HOW and WHY the events described in the article will affect global oil prices or market dynamics, providing professional market insights.
 8.  Provide a `confidence` score (0.0 to 1.0) for your overall classification.
-9.  You MUST respond ONLY with a valid JSON object in the specified format. Do not include any other text, explanations, or markdown formatting.
+9.  Translate the original article title into natural Korean and provide it as `translated_title`.
+10. You MUST respond ONLY with a valid JSON object in the specified format. Do not include any other text, explanations, or markdown formatting.
 
 Article Content to Analyze:
 ---
@@ -100,7 +101,8 @@ JSON Output Format:
   }},
   "impact_score": integer (-5 to 5),
   "impact_summary": "string (in Korean)",
-  "confidence": float (0.0 to 1.0)
+  "confidence": float (0.0 to 1.0),
+  "translated_title": "string (in Korean)"
 }}
 """
 
@@ -236,7 +238,8 @@ JSON Output Format:
                         impact_summary=doc.split('\nSummary: ')[-1] if '\nSummary: ' in doc else '',
                         confidence=meta.get('confidence', 0.8),
                         classified_at=datetime.now(timezone.utc).isoformat(),
-                        impact_by_crude=impact_by_crude
+                        impact_by_crude=impact_by_crude,
+                        translated_title=meta.get('translated_title')
                     )
                     skipped_results.append(reconstructed)
                     continue

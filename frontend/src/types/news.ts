@@ -24,6 +24,7 @@ export interface ClassifiedArticle {
   impact_summary: string;
   confidence: number; // 0.0 to 1.0
   classified_at: string; // ISO 8601
+  translated_title?: string; // Korean translated title
   impact_by_crude: Record<string, CrudeImpact>; // {"dubai": ..., "brent": ..., "wti": ...}
 }
 
