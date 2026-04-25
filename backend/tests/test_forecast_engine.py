@@ -69,6 +69,7 @@ def test_predict_loads_models_and_returns_predictions(forecast_engine, sample_fe
     report = {
         "rmse_7d": metrics['rmse_7d'],
         "rmse_30d": metrics['rmse_30d'],
+        "feature_columns": metrics['feature_columns'],
         "top_features": metrics['feature_importance']
     }
     with open(forecast_engine.REPORT_PATH, 'w') as f:
@@ -93,7 +94,7 @@ def test_prediction_value_range(forecast_engine, sample_features_df):
     """Test that prediction values are within a reasonable range."""
     # Arrange
     metrics = forecast_engine.train(sample_features_df)
-    report = {"rmse_7d": metrics['rmse_7d'], "rmse_30d": metrics['rmse_30d'], "top_features": metrics['feature_importance']}
+    report = {"rmse_7d": metrics['rmse_7d'], "rmse_30d": metrics['rmse_30d'], "feature_columns": metrics['feature_columns'], "top_features": metrics['feature_importance']}
     with open(forecast_engine.REPORT_PATH, 'w') as f:
         json.dump(report, f)
         

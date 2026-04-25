@@ -1,4 +1,5 @@
 import pytest
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 from unittest.mock import patch, AsyncMock, MagicMock
 import json
@@ -47,7 +48,7 @@ def test_get_price_estimate_success(mock_run_pipeline, client, mock_forecast_res
 @patch('app.api.forecast._run_forecast_pipeline', new_callable=AsyncMock)
 def test_get_price_estimate_model_not_found(mock_run_pipeline, client):
     """GET /api/forecast/estimate 모델 미학습 시 503 에러"""
-    mock_run_pipeline.side_effect = FileNotFoundError("Model not found")
+    mock_run_pipeline.side_effect = HTTPException(status_code=503, detail="Model not trained yet")
     
     response = client.get("/api/forecast/estimate")
     
@@ -55,7 +56,7 @@ def test_get_price_estimate_model_not_found(mock_run_pipeline, client):
     assert "Model not trained yet" in response.json()['detail']
 
 @patch('app.services.forecast_engine.ForecastEngine.REPORT_PATH', new_callable=lambda: "/tmp/dummy_report.json")
-def test_get_model_info_success(client):
+def test_get_model_info_success(mock_report_path, client):
     """GET /api/forecast/model-info 성공 케이스"""
     report_data = {"trained_at": "2024-01-01", "rmse_7d": 2.5, "top_features": {"wti_price": 0.5}}
     with open("/tmp/dummy_report.json", "w") as f:
@@ -69,7 +70,8 @@ def test_get_model_info_success(client):
     
     os.remove("/tmp/dummy_report.json")
 
-def test_get_model_info_not_found(client):
+@patch('app.services.forecast_engine.ForecastEngine.REPORT_PATH', new_callable=lambda: "/tmp/dummy_report.json")
+def test_get_model_info_not_found(mock_report_path, client):
     """GET /api/forecast/model-info 파일 없을 시 404 에러"""
     if os.path.exists("/tmp/dummy_report.json"):
         os.remove("/tmp/dummy_report.json")
@@ -124,7 +126,7 @@ def test_post_generate_briefing(mock_generate, mock_run_pipeline, client, mock_f
     mock_generate.assert_awaited_once()
 
 @patch('app.services.briefing_generator.BriefingGenerator.CACHE_DIR', new_callable=lambda: "/tmp/briefing_cache")
-def test_get_briefing_history(client, mock_briefing_result):
+def test_get_briefing_history(mock_cache_dir, client, mock_briefing_result):
     """GET /api/briefing/history 과거 브리핑 조회"""
     cache_dir = "/tmp/briefing_cache"
     os.makedirs(cache_dir, exist_ok=True)

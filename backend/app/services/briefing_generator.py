@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from datetime import datetime, timezone
 from typing import List, Dict, Any
 import httpx
@@ -62,40 +63,60 @@ class BriefingGenerator:
             similar_events=similar_events,
         )
 
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{self.ollama_url}/api/generate",
-                    json={
-                        "model": self.model_name,
-                        "prompt": prompt,
-                        "format": "json",
-                        "stream": False
-                    },
-                    timeout=45.0
+        max_retries = 1
+        for attempt in range(max_retries + 1):
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post(
+                        f"{self.ollama_url}/api/generate",
+                        json={
+                            "model": self.model_name,
+                            "prompt": prompt,
+                            "format": "json",
+                            "stream": False
+                        },
+                        timeout=30.0
+                    )
+                    response.raise_for_status()
+                    
+                    resp_text = response.json().get("response", "")
+                    try:
+                        response_data = json.loads(resp_text)
+                    except json.JSONDecodeError:
+                        logger.warning("Failed direct JSON parsing, attempting Regex extraction...")
+                        match = re.search(r'\{.*\}', resp_text, re.DOTALL)
+                        if match:
+                            response_data = json.loads(match.group(0))
+                        else:
+                            raise ValueError("No JSON object could be extracted from response.")
+
+                briefing = Briefing(
+                    date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    generated_at=datetime.now(timezone.utc).isoformat(),
+                    **response_data
                 )
-                response.raise_for_status()
-                response_data = json.loads(response.json()["response"])
+                
+                self._save_to_cache(briefing)
+                return briefing
 
-            briefing = Briefing(
-                date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-                generated_at=datetime.now(timezone.utc).isoformat(),
-                **response_data
-            )
-            
-            self._save_to_cache(briefing)
-            return briefing
+            except (httpx.HTTPError, ValueError, json.JSONDecodeError, ValidationError) as e:
+                logger.error(f"Attempt {attempt + 1}: Failed to generate briefing. Error: {e}")
+                if attempt == max_retries:
+                    logger.warning("All attempts failed. Returning fallback briefing.")
+                    return self._get_fallback_briefing(forecast)
 
-        except httpx.HTTPError as e:
-            logger.error(f"Ollama API request failed for briefing: {e}")
-            raise ValueError("Failed to generate a valid briefing passing API.") from e
-        except (json.JSONDecodeError, ValidationError) as e:
-            resp_text = response.text if 'response' in locals() else 'N/A'
-            logger.error(f"Failed to parse or validate Gemma 4 response for briefing: {e}\nResponse text: {resp_text}")
-            raise ValueError("Failed to generate a valid briefing from AI model.") from e
-        except Exception as e:
-            logger.error(f"An unexpected error occurred during briefing generation: {e}")
-            raise
+    def _get_fallback_briefing(self, forecast: ForecastResult) -> Briefing:
+        from app.schemas.forecast import BriefingKeyFactor, RiskScenario, SimilarCase
+        return Briefing(
+            date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            generated_at=datetime.now(timezone.utc).isoformat(),
+            summary="일시적인 AI 분석 지연으로 인해 요약 브리핑을 불러오지 못했습니다.",
+            key_factors=[BriefingKeyFactor(category="unknown", description="현재 구체적인 요인을 분석할 수 없습니다.", impact="neutral", score=0)],
+            risk_scenarios=[RiskScenario(scenario="수집/분석 지연", probability="low", price_impact="N/A")],
+            similar_cases=[],
+            price_outlook="기본 추정 모델에 따라 당분간 밴드 내 변동성을 보일 것으로 예상됩니다.",
+            confidence_note="AI 모델 응답 지연으로 정성적 보정 신뢰도가 임시로 낮아졌습니다."
+        )
 
     def _build_briefing_prompt(self, forecast: ForecastResult,
                                articles: List[Dict[str, Any]],

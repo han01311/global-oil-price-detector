@@ -24,6 +24,7 @@ class ForecastResult(BaseModel):
     
     confidence: float = Field(..., ge=0.0, le=1.0)
     dominant_factor: Optional[str] = Field(None, description="The most influential news category.")
+    extreme_volatility_warning: bool = Field(False, description="Indicates extreme market volatility (Black Swan).")
     
     factor_breakdown: List[FactorBreakdown]
     

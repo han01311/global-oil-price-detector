@@ -102,20 +102,23 @@ class ForecastEngine:
         preds_7d = model_7d.predict(X_test)
         preds_30d = model_30d.predict(X_test)
 
-        rmse_7d = np.sqrt(mean_squared_error(y_test_7d, preds_7d))
-        mae_7d = mean_absolute_error(y_test_7d, preds_7d)
-        rmse_30d = np.sqrt(mean_squared_error(y_test_30d, preds_30d))
-        mae_30d = mean_absolute_error(y_test_30d, preds_30d)
+        rmse_7d = float(np.sqrt(mean_squared_error(y_test_7d, preds_7d)))
+        mae_7d = float(mean_absolute_error(y_test_7d, preds_7d))
+        rmse_30d = float(np.sqrt(mean_squared_error(y_test_30d, preds_30d)))
+        mae_30d = float(mean_absolute_error(y_test_30d, preds_30d))
 
         # --- Feature Importance ---
         importances = model_7d.feature_importances_
-        feature_importance_map = sorted(zip(feature_cols, importances), key=lambda x: x[1], reverse=True)
+        feature_importance_map = {}
+        for col, imp in sorted(zip(feature_cols, importances), key=lambda x: x[1], reverse=True):
+            feature_importance_map[col] = float(imp)
 
         return {
             "rmse_7d": rmse_7d,
             "mae_7d": mae_7d,
             "rmse_30d": rmse_30d,
             "mae_30d": mae_30d,
+            "feature_columns": feature_cols,
             "feature_importance": dict(feature_importance_map),
             "data_range": {
                 "start": features_df.index.min().strftime('%Y-%m-%d'),
@@ -130,8 +133,9 @@ class ForecastEngine:
             self._load_models()
 
         # Ensure columns are in the same order as during training
-        feature_cols = list(self.training_report['top_features'].keys())
-        current_features = current_features[feature_cols]
+        feature_cols = self.training_report.get('feature_columns')
+        if feature_cols:
+            current_features = current_features[feature_cols]
 
         pred_7d = self.model_7d.predict(current_features)[0]
         pred_30d = self.model_30d.predict(current_features)[0]
@@ -298,6 +302,9 @@ class HybridForecaster:
             [a for a in classified_articles if a.get("is_relevant")]
         )
 
+        # 8. Black Swan Detection
+        is_extreme = abs(adjustment["news_adjustment_pct"]) >= 0.05 or band_width_7d >= 0.1
+
         return ForecastResult(
             current_price=current_price,
             estimated_7d=estimated_price_7d,
@@ -311,6 +318,7 @@ class HybridForecaster:
             news_adjustment_pct=adjustment["news_adjustment_pct"],
             confidence=max(0, 1 - (band_width_7d * 2)),
             dominant_factor=adjustment["dominant_category"],
+            extreme_volatility_warning=is_extreme,
             factor_breakdown=[FactorBreakdown(**fb) for fb in factor_breakdown_data],
             generated_at=datetime.now(timezone.utc).isoformat(),
         )
@@ -356,6 +364,7 @@ async def run_training():
         "mae_7d": metrics['mae_7d'],
         "rmse_30d": metrics['rmse_30d'],
         "mae_30d": metrics['mae_30d'],
+        "feature_columns": metrics['feature_columns'],
         "top_features": dict(list(metrics['feature_importance'].items())[:10]),
     }
 

@@ -90,7 +90,7 @@ async def get_price_estimate() -> ForecastResult:
 
 @router.get("/baseline", response_model=dict)
 async def get_baseline_only(
-    horizon: str = Query(default="7d", regex="^(7d|30d)$"),
+    horizon: str = Query(default="7d", pattern="^(7d|30d)$"),
 ) -> dict:
     """XGBoost 베이스라인만 조회 (뉴스 보정 제외)"""
     try:

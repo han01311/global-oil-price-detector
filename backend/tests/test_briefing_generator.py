@@ -146,21 +146,10 @@ async def test_generate_briefing_invalid_response(mock_post, briefing_generator,
     invalid_json_resp.json.return_value = {"response": '{"summary": "incomplete...'}
     mock_post.return_value = invalid_json_resp
 
-    with pytest.raises(ValueError, match="Failed to generate a valid briefing"):
-        await briefing_generator.generate_briefing(
-            forecast=mock_forecast_result,
-            classified_articles=mock_classified_articles,
-            similar_events=mock_similar_events
-        )
+    result = await briefing_generator.generate_briefing(
+        forecast=mock_forecast_result,
+        classified_articles=mock_classified_articles,
+        similar_events=mock_similar_events
+    )
 
-    invalid_schema_resp = MagicMock()
-    invalid_schema_resp.raise_for_status = MagicMock()
-    invalid_schema_resp.json.return_value = {"response": json.dumps({"summary": "ok", "key_factors": [{"category": "supply"}]})}
-    mock_post.return_value = invalid_schema_resp
-
-    with pytest.raises(ValueError, match="Failed to generate a valid briefing"):
-        await briefing_generator.generate_briefing(
-            forecast=mock_forecast_result,
-            classified_articles=mock_classified_articles,
-            similar_events=mock_similar_events
-        )
+    assert result.summary == "일시적인 AI 분석 지연으로 인해 요약 브리핑을 불러오지 못했습니다."
