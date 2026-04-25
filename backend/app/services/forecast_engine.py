@@ -26,11 +26,27 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 CRUDE_TYPES = ["dubai", "brent", "wti"]
 
 
+def _resolve_ml_dir() -> Path:
+    """Resolve ML artifact directory independent of the process cwd."""
+    backend_dir = Path(__file__).resolve().parents[2]
+    candidates = [
+        backend_dir / "ml",
+        backend_dir / "backend" / "ml",
+    ]
+    for candidate in candidates:
+        report = candidate / "training_report.json"
+        model_dir = candidate / "models"
+        if report.exists() and any(model_dir.glob("xgb_*_7d.joblib")):
+            return candidate
+    return candidates[0]
+
+
 class ForecastEngine:
     """XGBoost-based oil price forecasting engine — 유종별 독립 모델 지원."""
 
-    MODEL_DIR = Path("backend/ml/models")
-    REPORT_PATH = Path("backend/ml/training_report.json")
+    _ML_DIR = _resolve_ml_dir()
+    MODEL_DIR = _ML_DIR / "models"
+    REPORT_PATH = _ML_DIR / "training_report.json"
 
     def __init__(self):
         self.MODEL_DIR.mkdir(parents=True, exist_ok=True)

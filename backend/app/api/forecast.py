@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Query, HTTPException
+import asyncio
 import pandas as pd
 import os
 import json
@@ -11,11 +12,12 @@ from app.services.market_memory import MarketMemory
 from app.services.forecast_engine import HybridForecaster, ForecastEngine, NewsAdjuster, CRUDE_TYPES
 from app.services.feature_engineering import FeatureEngineer
 from app.schemas.forecast import ForecastResult
-from app.api.news import classify_news
+from app.api.news import _news_cache
 
 router = APIRouter(prefix="/api/forecast", tags=["forecast"])
 
 _forecast_cache = {"data": None, "expires_at": 0}
+_forecast_cache_lock = asyncio.Lock()
 logger = logging.getLogger(__name__)
 
 async def _run_forecast_pipeline():
@@ -40,13 +42,24 @@ async def _run_forecast_pipeline():
 
         # 2. Feature Engineering
         feature_engineer = FeatureEngineer()
-        features_df = feature_engineer.build_features(prices_df, macro_df)
+        features_df = feature_engineer.build_features(prices_df, macro_df, include_targets=False)
+        if features_df.empty:
+            raise HTTPException(status_code=404, detail="Could not build forecast features from available data.")
         current_features = features_df.tail(1)
 
-        # 3. News Analysis (Uses cached results if available)
-        classified_articles = await classify_news(articles=None, fetch_latest=True)
-        
-        relevant_articles = [a.model_dump() for a in classified_articles if a.is_relevant]
+        # 3. News Analysis
+        # Forecast is on the critical UI path. Do not trigger live LLM classification here;
+        # use cached classified news when available and fall back to a quantitative-only forecast.
+        cached_articles = []
+        current_time = time.time()
+        if _news_cache["data"] is not None and current_time < _news_cache["expires_at"]:
+            cached_articles = _news_cache["data"]
+
+        relevant_articles = [
+            a.model_dump() if hasattr(a, "model_dump") else a
+            for a in cached_articles
+            if getattr(a, "is_relevant", False) or (isinstance(a, dict) and a.get("is_relevant"))
+        ]
 
         # 4. Market Memory Search (per-crude if available)
         memory = MarketMemory()
@@ -103,12 +116,17 @@ async def get_price_estimate(
     current_time = time.time()
     if _forecast_cache["data"] is not None and current_time < _forecast_cache["expires_at"]:
         return _forecast_cache["data"]
+
+    async with _forecast_cache_lock:
+        current_time = time.time()
+        if _forecast_cache["data"] is not None and current_time < _forecast_cache["expires_at"]:
+            return _forecast_cache["data"]
         
-    forecast_result, _, _ = await _run_forecast_pipeline()
-    
-    _forecast_cache["data"] = forecast_result
-    _forecast_cache["expires_at"] = current_time + 3600
-    return forecast_result
+        forecast_result, _, _ = await _run_forecast_pipeline()
+
+        _forecast_cache["data"] = forecast_result
+        _forecast_cache["expires_at"] = time.time() + 3600
+        return forecast_result
 
 @router.get("/baseline", response_model=dict)
 async def get_baseline_only(
@@ -122,7 +140,9 @@ async def get_baseline_only(
         macro_df = await collector.collect_macro_df_for_features()
         
         feature_engineer = FeatureEngineer()
-        features_df = feature_engineer.build_features(prices_df, macro_df)
+        features_df = feature_engineer.build_features(prices_df, macro_df, include_targets=False)
+        if features_df.empty:
+            raise HTTPException(status_code=404, detail="Could not build forecast features from available data.")
         current_features = features_df.tail(1)
         
         price_col = f"{crude_type}_price"

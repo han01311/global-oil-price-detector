@@ -111,7 +111,10 @@ class Database:
 
     @property
     def db_path(self) -> str:
-        return settings.DATABASE_PATH
+        if os.path.isabs(settings.DATABASE_PATH):
+            return settings.DATABASE_PATH
+        backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+        return os.path.join(backend_dir, settings.DATABASE_PATH)
 
     async def connect(self) -> None:
         """DB 연결 및 테이블 초기화"""

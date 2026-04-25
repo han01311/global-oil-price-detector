@@ -1,8 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { PriceDisplay } from '../common/PriceDisplay';
 import { Skeleton } from '../common/Skeleton';
-import { Tooltip } from '../common/Tooltip';
 import './Header.css';
 import type { OilPrice } from '../../types/price';
 import type { ForecastResult } from '../../types/forecast';
@@ -25,11 +23,7 @@ const BlackSwanBadge: React.FC = () => (
   </span>
 );
 
-export const Header: React.FC<HeaderProps> = ({ latestPrice, forecast, loading, isBlackSwan }) => {
-  const dubaiPrice = latestPrice?.dubai;
-  const wtiPrice = latestPrice?.wti;
-  const brentPrice = latestPrice?.brent;
-  const priceChange = latestPrice?.change;
+export const Header: React.FC<HeaderProps> = ({ forecast, loading, isBlackSwan }) => {
   const lastUpdated = forecast?.generated_at ? new Date(forecast.generated_at).toLocaleString() : 'N/A';
 
   return (

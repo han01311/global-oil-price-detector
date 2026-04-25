@@ -1,6 +1,8 @@
 import logging
+from pathlib import Path
 import chromadb
-from app.schemas.news import ClassifiedArticle
+from datetime import datetime, timezone
+from app.schemas.news import ClassifiedArticle, NewsArticle, CrudeImpact
 
 # Configure logging
 logging.basicConfig(level="INFO")
@@ -13,9 +15,22 @@ class MarketMemory:
 
     COLLECTION_NAME = "oil_market_events"
 
-    def __init__(self, db_path: str = "backend/data/chromadb"):
+    @staticmethod
+    def _default_db_path() -> str:
+        backend_dir = Path(__file__).resolve().parents[2]
+        candidates = [
+            backend_dir / "data" / "chromadb",
+            backend_dir / "backend" / "data" / "chromadb",
+        ]
+        for candidate in candidates:
+            db_file = candidate / "chroma.sqlite3"
+            if db_file.exists() and db_file.stat().st_size > 1024 * 1024:
+                return str(candidate)
+        return str(candidates[0])
+
+    def __init__(self, db_path: str | None = None):
         try:
-            self._client = chromadb.PersistentClient(path=db_path)
+            self._client = chromadb.PersistentClient(path=db_path or self._default_db_path())
             self._collection = self._client.get_or_create_collection(
                 name=self.COLLECTION_NAME,
                 metadata={"hnsw:space": "cosine"}
@@ -182,3 +197,65 @@ class MarketMemory:
             logger.error(f"Failed to get category stats: {e}")
             return {}
 
+    def get_recent_classified_articles(self, limit: int = 50) -> list[ClassifiedArticle]:
+        """Return already-classified articles from ChromaDB without invoking the LLM."""
+        if not self.is_available():
+            return []
+
+        try:
+            result = self._collection.get(limit=limit, include=["documents", "metadatas"])
+        except Exception as e:
+            logger.error(f"Failed to load cached classified articles: {e}")
+            return []
+
+        ids = result.get("ids") or []
+        documents = result.get("documents") or []
+        metadatas = result.get("metadatas") or []
+        articles: list[ClassifiedArticle] = []
+
+        for article_id, document, metadata in zip(ids, documents, metadatas):
+            try:
+                title = ""
+                summary = ""
+                for line in (document or "").splitlines():
+                    if line.startswith("Title: "):
+                        title = line.replace("Title: ", "", 1)
+                    elif line.startswith("Summary: "):
+                        summary = line.replace("Summary: ", "", 1)
+
+                impact_by_crude = {}
+                for crude in CRUDE_TYPES:
+                    impact_by_crude[crude] = CrudeImpact(
+                        direction=metadata.get(f"{crude}_direction", "neutral"),
+                        score=int(metadata.get(f"{crude}_score", metadata.get("impact_score", 0)) or 0),
+                        rationale="",
+                    )
+
+                news_article = NewsArticle(
+                    id=article_id,
+                    title=title or metadata.get("translated_title") or "Untitled",
+                    description=summary or None,
+                    source=metadata.get("source"),
+                    url=metadata.get("url") or "",
+                    published_at=f"{metadata.get('date') or datetime.now(timezone.utc).date().isoformat()}T00:00:00Z",
+                    content_snippet=summary or None,
+                    data_source="market_memory",
+                )
+
+                articles.append(ClassifiedArticle(
+                    article=news_article,
+                    is_relevant=True,
+                    category=metadata.get("category", "unknown"),
+                    sub_categories=[],
+                    impact_score=int(metadata.get("impact_score", 0) or 0),
+                    impact_summary=summary or "",
+                    confidence=float(metadata.get("confidence", 0.8) or 0.8),
+                    classified_at=datetime.now(timezone.utc).isoformat(),
+                    translated_title=metadata.get("translated_title") or None,
+                    impact_by_crude=impact_by_crude,
+                ))
+            except Exception as e:
+                logger.warning(f"Failed to reconstruct cached article {article_id}: {e}")
+
+        articles.sort(key=lambda item: item.article.published_at, reverse=True)
+        return articles

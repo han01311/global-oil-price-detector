@@ -5,6 +5,8 @@ import type { OilPrice } from "../types/price";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
+const inFlightRequests = new Map<string, Promise<unknown>>();
+
 /**
  * 백엔드 API 호출 래퍼
  * CRITICAL: 모든 외부 API 호출은 백엔드를 통해서만 수행
@@ -13,21 +15,41 @@ export async function apiFetch<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
-  const url = `${API_BASE_URL}${endpoint}`;
-  const response = await fetch(url, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-    ...options,
-  });
+  const requestKey = [
+    options?.method || "GET",
+    endpoint,
+    typeof options?.body === "string" ? options.body : "",
+  ].join(":");
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-    throw new Error(`API Error: ${response.status} ${errorData.detail || response.statusText}`);
+  const existingRequest = inFlightRequests.get(requestKey);
+  if (existingRequest) {
+    return existingRequest as Promise<T>;
   }
 
-  return response.json();
+  const url = `${API_BASE_URL}${endpoint}`;
+  const request = (async () => {
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        ...options?.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ detail: response.statusText }));
+      throw new Error(`API Error: ${response.status} ${errorData.detail || response.statusText}`);
+    }
+
+    return response.json() as Promise<T>;
+  })();
+
+  inFlightRequests.set(requestKey, request);
+  try {
+    return await request;
+  } finally {
+    inFlightRequests.delete(requestKey);
+  }
 }
 
 /**
@@ -76,4 +98,3 @@ export async function fetchTodayBriefing(): Promise<Briefing> {
 export async function fetchBriefingHistory(days: number): Promise<Briefing[]> {
   return apiFetch(`/api/briefing/history?days=${days}`);
 }
-

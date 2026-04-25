@@ -21,7 +21,7 @@ CRUDE_LABELS = {"dubai": "두바이유", "brent": "브렌트유", "wti": "WTI"}
 class BriefingGenerator:
     """AI 유가 브리핑 자동 생성기 — 유종별 독립 전망 포함"""
 
-    CACHE_DIR = "backend/data/processed/briefings"
+    CACHE_DIR = str(os.path.join(os.path.dirname(__file__), "..", "..", "data", "processed", "briefings"))
 
     def __init__(self, ollama_url: str | None = None):
         self.ollama_url = (ollama_url or settings.LOCAL_LLM_URL).rstrip("/")
@@ -38,7 +38,11 @@ class BriefingGenerator:
             try:
                 with open(cache_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                    return Briefing(**data)
+                    briefing = Briefing(**data)
+                    if self._is_korean_briefing(briefing):
+                        return briefing
+                    logger.warning("Ignoring non-Korean briefing cache: %s", cache_path)
+                    return None
             except (json.JSONDecodeError, ValidationError) as e:
                 logger.error(f"Failed to load briefing from cache: {e}")
                 return None
@@ -60,6 +64,11 @@ class BriefingGenerator:
         if cached_briefing:
             logger.info("Loaded briefing from cache.")
             return cached_briefing
+
+        if not classified_articles and not similar_events:
+            briefing = self._get_fallback_briefing(forecast)
+            self._save_to_cache(briefing)
+            return briefing
 
         prompt = self._build_briefing_prompt(
             forecast=forecast,
@@ -109,6 +118,9 @@ class BriefingGenerator:
                     crude_outlooks=crude_outlooks,
                     **response_data
                 )
+                if not self._is_korean_briefing(briefing):
+                    logger.warning("LLM returned a non-Korean briefing. Returning fallback briefing.")
+                    briefing = self._get_fallback_briefing(forecast)
                 
                 self._save_to_cache(briefing)
                 return briefing
@@ -144,6 +156,21 @@ class BriefingGenerator:
             price_outlook="기본 추정 모델에 따라 당분간 밴드 내 변동성을 보일 것으로 예상됩니다.",
             confidence_note="AI 모델 응답 지연으로 정성적 보정 신뢰도가 임시로 낮아졌습니다."
         )
+
+    def _has_hangul(self, value: str | None) -> bool:
+        return bool(value and re.search(r"[가-힣]", value))
+
+    def _is_korean_briefing(self, briefing: Briefing) -> bool:
+        text_values = [
+            briefing.summary,
+            briefing.price_outlook,
+            briefing.confidence_note,
+        ]
+        text_values.extend(f.description for f in briefing.key_factors)
+        text_values.extend(s.scenario for s in briefing.risk_scenarios)
+        text_values.extend(o.summary for o in briefing.crude_outlooks)
+        required = [value for value in text_values if value]
+        return bool(required) and sum(1 for value in required if self._has_hangul(value)) >= max(1, len(required) // 2)
 
     def _build_briefing_prompt(self, forecast: ForecastResult,
                                articles: List[Dict[str, Any]],

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import {
   fetchAdminOverview,
   fetchCollectionLogs,
-  fetchLogStats,
   fetchRateLimits,
   fetchSchedulerStatus,
   toggleScheduler,
@@ -16,7 +15,6 @@ import {
 import type {
   OverviewResponse,
   CollectionLog,
-  LogStatItem,
   RateLimitStatus,
   SchedulerStatus,
   PaginatedDataResponse,

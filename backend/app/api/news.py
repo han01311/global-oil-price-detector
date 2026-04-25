@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Query, HTTPException, Body
+import asyncio
 from datetime import datetime, timezone, timedelta
 from typing import List
 
@@ -13,6 +14,42 @@ from app.schemas.news import (
 router = APIRouter(prefix="/api/news", tags=["news"])
 
 _news_cache = {"data": None, "expires_at": 0}
+_news_cache_lock = asyncio.Lock()
+
+
+async def _classify_articles_payload(
+    articles_to_classify: list[dict],
+    *,
+    cache_fetch_latest: bool = False,
+) -> List[ClassifiedArticle]:
+    if not articles_to_classify:
+        return []
+
+    classifier = NewsClassifier()
+    if not classifier.ollama_url:
+        raise HTTPException(status_code=503, detail="NewsClassifier is not available. Check LOCAL_LLM_URL.")
+
+    try:
+        classified_results = await classifier.classify_batch(articles_to_classify)
+
+        # Store relevant articles to MarketMemory for FactorGauge to pick up
+        memory = MarketMemory()
+        if memory.is_available() and classified_results:
+            for res in classified_results:
+                if res.is_relevant:
+                    price_changes = {}
+                    for crude in ["dubai", "brent", "wti"]:
+                        for period in ["1d", "7d", "30d"]:
+                            price_changes[f"{crude}_change_{period}"] = 0.0
+                    await memory.store_event(res.model_dump(), price_changes)
+
+        if cache_fetch_latest:
+            _news_cache["data"] = classified_results
+            _news_cache["expires_at"] = datetime.now().timestamp() + 3600
+
+        return classified_results
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred during classification: {e}")
 
 @router.get("/latest", response_model=NewsCollection)
 async def get_latest_news(
@@ -44,6 +81,7 @@ async def get_latest_news(
 async def classify_news(
     articles: List[NewsArticle] = Body(default=None),
     fetch_latest: bool = Query(default=False),
+    force_refresh: bool = Query(default=False),
 ) -> List[ClassifiedArticle]:
     """
     뉴스 기사를 분류하고 영향도를 평가한다
@@ -57,11 +95,38 @@ async def classify_news(
         )
 
     current_time = datetime.now().timestamp()
-    # Bypass cache temporarily
-    # if fetch_latest and _news_cache["data"] is not None and current_time < _news_cache["expires_at"]:
-    #     return _news_cache["data"]
+    cacheable_latest = fetch_latest and not articles
+    if cacheable_latest and not force_refresh and _news_cache["data"] is not None and current_time < _news_cache["expires_at"]:
+        return _news_cache["data"]
 
     articles_to_classify = []
+    if cacheable_latest and not force_refresh:
+        memory = MarketMemory()
+        cached_articles = memory.get_recent_classified_articles(limit=50)
+        if cached_articles:
+            _news_cache["data"] = cached_articles
+            _news_cache["expires_at"] = datetime.now().timestamp() + 3600
+            return cached_articles
+
+    if cacheable_latest:
+        async with _news_cache_lock:
+            current_time = datetime.now().timestamp()
+            if not force_refresh and _news_cache["data"] is not None and current_time < _news_cache["expires_at"]:
+                return _news_cache["data"]
+            if not force_refresh:
+                memory = MarketMemory()
+                cached_articles = memory.get_recent_classified_articles(limit=50)
+                if cached_articles:
+                    _news_cache["data"] = cached_articles
+                    _news_cache["expires_at"] = datetime.now().timestamp() + 3600
+                    return cached_articles
+            try:
+                collector = DataCollector()
+                latest_articles_data = await collector.collect_news()
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Failed to fetch latest news: {e}")
+            return await _classify_articles_payload(latest_articles_data, cache_fetch_latest=True)
+
     if fetch_latest:
         try:
             collector = DataCollector()
@@ -74,37 +139,7 @@ async def classify_news(
         # Convert Pydantic models to dicts for the classifier
         articles_to_classify.extend([article.model_dump() for article in articles])
 
-    if not articles_to_classify:
-        return []
-
-    classifier = NewsClassifier()
-    if not classifier.ollama_url:
-        raise HTTPException(status_code=503, detail="NewsClassifier is not available. Check LOCAL_LLM_URL.")
-
-    try:
-        print("DEBUG API NEWS: CALLING CLASSIFY_BATCH")
-        classified_results = await classifier.classify_batch(articles_to_classify)
-        print("DEBUG API NEWS: CLASSIFY_BATCH RETURNED", len(classified_results), "RESULTS")
-        
-        # Store relevant articles to MarketMemory for FactorGauge to pick up
-        memory = MarketMemory()
-        if memory.is_available() and classified_results:
-            for res in classified_results:
-                if res.is_relevant:
-                    # Provide empty price changes for all crude types since this is live news
-                    price_changes = {}
-                    for crude in ["dubai", "brent", "wti"]:
-                        for period in ["1d", "7d", "30d"]:
-                            price_changes[f"{crude}_change_{period}"] = 0.0
-                    await memory.store_event(res.model_dump(), price_changes)
-        
-        if fetch_latest:
-            _news_cache["data"] = classified_results
-            _news_cache["expires_at"] = datetime.now().timestamp() + 3600
-            
-        return classified_results
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"An error occurred during classification: {e}")
+    return await _classify_articles_payload(articles_to_classify)
 
 
 @router.get("/similar", response_model=List[SimilarEvent])

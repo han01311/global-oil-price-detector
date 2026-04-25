@@ -159,11 +159,6 @@ JSON Output Format:
                 }
                 
                 classified_article = ClassifiedArticle(**result_data)
-                
-                with open("debug_log.txt", "a") as f:
-                    f.write(f"RESULT_DATA: {result_data.get('impact_by_crude')}\n")
-                    f.write(f"DUMP: {classified_article.model_dump().get('impact_by_crude')}\n")
-                    
                 return classified_article
 
             except httpx.HTTPError as e:
