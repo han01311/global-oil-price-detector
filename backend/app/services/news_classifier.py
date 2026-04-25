@@ -8,6 +8,7 @@ from pydantic import ValidationError
 
 from app.core.config import settings
 from app.schemas.news import NewsArticle, ClassifiedArticle
+from app.services.market_memory import MarketMemory
 
 # Configure logging
 logging.basicConfig(level=settings.LOG_LEVEL)
@@ -124,11 +125,69 @@ JSON Output Format:
                 return None
 
     async def classify_batch(self, articles: list[dict]) -> list[ClassifiedArticle]:
-        """여러 기사를 배치로 분류 (rate limit 고려)"""
+        """여러 기사를 배치로 분류 (rate limit 고려 및 기분류 기사 스킵)"""
         if not articles:
             return []
 
-        tasks = [self.classify_article(article) for article in articles]
-        results = await asyncio.gather(*tasks)
+        memory = MarketMemory()
+        existing_ids = set()
         
-        return [result for result in results if result is not None]
+        # Check which articles are already in memory
+        if memory.is_available():
+            article_ids = []
+            for article in articles:
+                try:
+                    # Validate to get the ID safely
+                    model = NewsArticle(**article)
+                    article_ids.append(model.id)
+                except:
+                    pass
+            
+            if article_ids:
+                try:
+                    # Fetch existing from ChromaDB
+                    existing_data = memory._collection.get(ids=article_ids, include=["metadatas", "documents"])
+                    if existing_data and existing_data.get('ids'):
+                        existing_ids = set(existing_data['ids'])
+                except Exception as e:
+                    logger.error(f"Failed to check existing articles in MarketMemory: {e}")
+
+        tasks = []
+        skipped_results = []
+        
+        for article in articles:
+            try:
+                model = NewsArticle(**article)
+                if model.id in existing_ids:
+                    # Reconstruct from memory if possible, or just skip if we don't strictly need it.
+                    # Since the frontend needs the full list, let's try to reconstruct it.
+                    idx = existing_data['ids'].index(model.id)
+                    meta = existing_data['metadatas'][idx]
+                    doc = existing_data['documents'][idx]
+                    
+                    # Basic reconstruction
+                    reconstructed = ClassifiedArticle(
+                        article=model,
+                        is_relevant=True,
+                        category=meta.get('category', 'unknown'),
+                        sub_categories=[],
+                        impact_score=meta.get('impact_score', 0),
+                        impact_summary=doc.split('\nSummary: ')[-1] if '\nSummary: ' in doc else '',
+                        confidence=meta.get('confidence', 0.8),
+                        classified_at=datetime.now(timezone.utc).isoformat()
+                    )
+                    skipped_results.append(reconstructed)
+                    continue
+            except:
+                pass
+                
+            tasks.append(self.classify_article(article))
+            
+        logger.info(f"Classifying {len(tasks)} new articles. Skipping {len(skipped_results)} already classified.")
+        
+        results = []
+        if tasks:
+            results = await asyncio.gather(*tasks)
+        
+        valid_results = [result for result in results if result is not None]
+        return valid_results + skipped_results

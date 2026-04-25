@@ -3,6 +3,7 @@ import pandas as pd
 import os
 import json
 import logging
+import time
 
 from app.services.data_collector import DataCollector
 from app.services.news_classifier import NewsClassifier
@@ -10,22 +11,26 @@ from app.services.market_memory import MarketMemory
 from app.services.forecast_engine import HybridForecaster, ForecastEngine, NewsAdjuster
 from app.services.feature_engineering import FeatureEngineer
 from app.schemas.forecast import ForecastResult
+from app.api.news import classify_news
 
 router = APIRouter(prefix="/api/forecast", tags=["forecast"])
+
+_forecast_cache = {"data": None, "expires_at": 0}
 logger = logging.getLogger(__name__)
 
 async def _run_forecast_pipeline():
     try:
         # 1. Collect data
         collector = DataCollector()
-        latest_price_data = await collector.collect_latest_prices()
-        if not latest_price_data or not latest_price_data.prices:
+        prices_df = await collector.collect_prices_df_for_features()
+        if prices_df.empty:
             raise HTTPException(status_code=404, detail="Could not fetch latest price data.")
-        current_price = latest_price_data.prices[-1].wti
-        if current_price is None:
+            
+        # prices_df is indexed by date and sorted
+        current_price = prices_df.iloc[-1]['wti']
+        if pd.isna(current_price):
              raise HTTPException(status_code=404, detail="WTI price is missing in the latest data.")
 
-        prices_df = await collector.collect_prices_df_for_features()
         macro_df = await collector.collect_macro_df_for_features()
 
         # 2. Feature Engineering
@@ -33,10 +38,8 @@ async def _run_forecast_pipeline():
         features_df = feature_engineer.build_features(prices_df, macro_df)
         current_features = features_df.tail(1)
 
-        # 3. News Analysis
-        news_articles = await collector.collect_news()
-        classifier = NewsClassifier()
-        classified_articles = await classifier.classify_batch(news_articles)
+        # 3. News Analysis (Uses cached results if available)
+        classified_articles = await classify_news(articles=None, fetch_latest=True)
         
         relevant_articles = [a.model_dump() for a in classified_articles if a.is_relevant]
 
@@ -87,7 +90,14 @@ async def get_price_estimate() -> ForecastResult:
     - XGBoost baseline + 뉴스 보정이 결합된 최종 추정
     - 7일/30일 예측 밴드 포함
     """
+    current_time = time.time()
+    if _forecast_cache["data"] is not None and current_time < _forecast_cache["expires_at"]:
+        return _forecast_cache["data"]
+        
     forecast_result, _, _ = await _run_forecast_pipeline()
+    
+    _forecast_cache["data"] = forecast_result
+    _forecast_cache["expires_at"] = current_time + 3600
     return forecast_result
 
 @router.get("/baseline", response_model=dict)

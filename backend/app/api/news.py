@@ -12,6 +12,8 @@ from app.schemas.news import (
 
 router = APIRouter(prefix="/api/news", tags=["news"])
 
+_news_cache = {"data": None, "expires_at": 0}
+
 @router.get("/latest", response_model=NewsCollection)
 async def get_latest_news(
     limit: int = Query(default=20, le=50),
@@ -54,6 +56,10 @@ async def classify_news(
             detail="Either 'articles' must be provided in the body or 'fetch_latest' must be set to true."
         )
 
+    current_time = datetime.now().timestamp()
+    if fetch_latest and _news_cache["data"] is not None and current_time < _news_cache["expires_at"]:
+        return _news_cache["data"]
+
     articles_to_classify = []
     if fetch_latest:
         try:
@@ -89,6 +95,10 @@ async def classify_news(
                         "wti_change_30d": 0.0
                     })
         
+        if fetch_latest:
+            _news_cache["data"] = classified_results
+            _news_cache["expires_at"] = datetime.now().timestamp() + 3600
+            
         return classified_results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred during classification: {e}")

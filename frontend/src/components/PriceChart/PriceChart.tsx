@@ -162,9 +162,9 @@ export const PriceChart: React.FC = () => {
           />
           <Tooltip content={<CustomTooltip />} />
           
-          <Line type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={2} dot={false} name="Dubai" />
-          <Line type="monotone" dataKey="wti" stroke="var(--color-bull)" strokeWidth={2} dot={false} name="WTI" />
-          <Line type="monotone" dataKey="brent" stroke="var(--color-bear)" strokeWidth={2} dot={false} name="Brent" />
+          <Line type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={2} dot={false} name="Dubai" connectNulls={true} />
+          <Line type="monotone" dataKey="wti" stroke="var(--color-bull)" strokeWidth={2} dot={false} name="WTI" connectNulls={true} />
+          <Line type="monotone" dataKey="brent" stroke="var(--color-bear)" strokeWidth={2} dot={false} name="Brent" connectNulls={true} />
           
           <Line type="monotone" dataKey="forecastLine" stroke={forecastStrokeColor} strokeWidth={2} strokeDasharray="5 5" dot={false} name="Forecast" />
           <Area type="monotone" dataKey="forecastBand" fill={`url(#${forecastColorId})`} stroke="none" name="Forecast Range" />
