@@ -95,6 +95,36 @@
   color: var(--color-text-primary);
 }
 
+.crude-filter-pills {
+  display: flex;
+  gap: 4px;
+  background-color: var(--color-card-hover);
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.crude-pill {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  padding: 4px 12px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+
+.crude-pill:hover {
+  background-color: var(--color-border);
+  color: var(--color-text-primary);
+}
+
+.crude-pill.active {
+  background-color: var(--color-primary);
+  color: var(--color-bg);
+}
+
 .sort-toggle {
   display: flex;
   gap: 4px;

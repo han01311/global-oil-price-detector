@@ -10,13 +10,16 @@ import './NewsExplorer.css';
 
 type SortOrder = 'time' | 'impact';
 type Category = 'All' | 'geopolitics' | 'supply' | 'demand' | 'macro' | 'climate' | 'speculation';
+type CrudeType = 'All' | 'dubai' | 'brent' | 'wti';
 
 const CATEGORIES: Category[] = ['All', 'geopolitics', 'supply', 'demand', 'macro', 'climate', 'speculation'];
+const CRUDE_TYPES: CrudeType[] = ['All', 'dubai', 'brent', 'wti'];
 
 export const NewsExplorer: React.FC = () => {
   const { articles, loading, error, refetch } = useNewsData();
   const { selectedDate, setSelectedDate, setHighlightedCategory } = useDashboardContext();
   const [activeCategory, setActiveCategory] = useState<Category>('All');
+  const [activeCrudeType, setActiveCrudeType] = useState<CrudeType>('All');
   const [sortOrder, setSortOrder] = useState<SortOrder>('time');
 
   // If a date is selected from the chart, reset the category filter
@@ -42,15 +45,32 @@ export const NewsExplorer: React.FC = () => {
     } else if (activeCategory !== 'All') {
       filtered = articles.filter(a => a.category === activeCategory);
     }
+    
+    if (activeCrudeType !== 'All') {
+      filtered = filtered.filter(a => {
+        const impact = a.impact_by_crude?.[activeCrudeType];
+        if (impact) {
+          return Math.abs(impact.score) > 0;
+        }
+        // Fallback to global score if crude-specific data is missing
+        return Math.abs(a.impact_score) > 0;
+      });
+    }
 
     return [...filtered].sort((a, b) => {
       if (sortOrder === 'impact') {
-        return Math.abs(b.impact_score) - Math.abs(a.impact_score);
+        const scoreA = activeCrudeType !== 'All' && a.impact_by_crude?.[activeCrudeType] 
+          ? a.impact_by_crude[activeCrudeType].score 
+          : a.impact_score;
+        const scoreB = activeCrudeType !== 'All' && b.impact_by_crude?.[activeCrudeType] 
+          ? b.impact_by_crude[activeCrudeType].score 
+          : b.impact_score;
+        return Math.abs(scoreB) - Math.abs(scoreA);
       }
       // Default to time
       return new Date(b.article.published_at).getTime() - new Date(a.article.published_at).getTime();
     });
-  }, [articles, activeCategory, sortOrder, selectedDate]);
+  }, [articles, activeCategory, activeCrudeType, sortOrder, selectedDate]);
 
   const handleRetry = useCallback(() => {
     refetch?.();
@@ -101,7 +121,7 @@ export const NewsExplorer: React.FC = () => {
             className="news-card-container" 
             style={{ animationDelay: `${index * 0.05}s` }}
           >
-            <NewsCard article={article} />
+            <NewsCard article={article} activeCrudeType={activeCrudeType !== 'All' ? activeCrudeType : undefined} />
           </div>
         ))}
       </div>
@@ -137,6 +157,17 @@ export const NewsExplorer: React.FC = () => {
               <button onClick={() => setSelectedDate(null)}>&times;</button>
             </div>
           )}
+          <div className="crude-filter-pills">
+            {CRUDE_TYPES.map(crude => (
+              <button
+                key={crude}
+                className={`crude-pill ${activeCrudeType === crude ? 'active' : ''}`}
+                onClick={() => setActiveCrudeType(crude)}
+              >
+                {crude === 'All' ? 'All Crudes' : crude.charAt(0).toUpperCase() + crude.slice(1)}
+              </button>
+            ))}
+          </div>
           <div className="sort-toggle">
             <button onClick={() => setSortOrder('time')} className={sortOrder === 'time' ? 'active' : ''}>Time</button>
             <button onClick={() => setSortOrder('impact')} className={sortOrder === 'impact' ? 'active' : ''}>Impact</button>

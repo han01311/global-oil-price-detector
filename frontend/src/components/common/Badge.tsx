@@ -21,9 +21,10 @@ const categoryDisplay: Record<Category, string> = {
 };
 
 export const Badge: React.FC<BadgeProps> = ({ category, children, className }) => {
-  const text = children || categoryDisplay[category] || categoryDisplay.default;
+  const normalizedCategory = (category || 'default').toString().toLowerCase() as Category;
+  const text = children || categoryDisplay[normalizedCategory] || categoryDisplay.default;
   return (
-    <span className={`badge badge-${category} ${className || ''}`}>
+    <span className={`badge badge-${normalizedCategory} ${className || ''}`}>
       {text}
     </span>
   );

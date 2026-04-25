@@ -7,6 +7,7 @@ import './SimilarEventsPopup.css';
 
 interface SimilarEventsPopupProps {
   query: string;
+  crudeType?: string;
   onClose: () => void;
 }
 
@@ -22,7 +23,7 @@ const formatChange = (change: number | null | undefined): React.ReactNode => {
   );
 };
 
-export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, onClose }) => {
+export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, crudeType, onClose }) => {
   const [events, setEvents] = useState<SimilarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -31,7 +32,7 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, o
     const loadSimilarEvents = async () => {
       try {
         setLoading(true);
-        const data = await fetchSimilarEvents(query);
+        const data = await fetchSimilarEvents(query, crudeType);
         setEvents(data);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch similar events'));
@@ -40,7 +41,7 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, o
       }
     };
     loadSimilarEvents();
-  }, [query]);
+  }, [query, crudeType]);
 
   const renderContent = () => {
     if (loading) {
@@ -63,9 +64,17 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, o
             <a href={event.url} target="_blank" rel="noopener noreferrer" className="event-title">
               {event.title}
             </a>
-            <div className="event-impact">
-              <span>7D WTI Change: {formatChange(event.wti_change_7d)}</span>
-              <span className="event-similarity">Similarity: {(event.similarity * 100).toFixed(0)}%</span>
+            <div className="event-impacts">
+              <div className="event-impact-item">
+                <span>Dubai:</span> {formatChange(event.dubai_change_7d)}
+              </div>
+              <div className="event-impact-item">
+                <span>WTI:</span> {formatChange(event.wti_change_7d)}
+              </div>
+              <div className="event-impact-item">
+                <span>Brent:</span> {formatChange(event.brent_change_7d)}
+              </div>
+              <span className="event-similarity">Sim: {(event.similarity * 100).toFixed(0)}%</span>
             </div>
           </li>
         ))}

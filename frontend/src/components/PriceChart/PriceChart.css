@@ -64,8 +64,18 @@
 }
 
 .tooltip-news-impact {
-  margin-top: 4px;
+  margin-top: 6px;
   font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tooltip-crude-impact {
+  font-size: 11px;
+  background-color: rgba(255, 255, 255, 0.05);
+  padding: 2px 4px;
+  border-radius: 2px;
 }
 
 .tooltip-bull { color: var(--color-bull); }

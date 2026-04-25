@@ -57,8 +57,9 @@ async def classify_news(
         )
 
     current_time = datetime.now().timestamp()
-    if fetch_latest and _news_cache["data"] is not None and current_time < _news_cache["expires_at"]:
-        return _news_cache["data"]
+    # Bypass cache temporarily
+    # if fetch_latest and _news_cache["data"] is not None and current_time < _news_cache["expires_at"]:
+    #     return _news_cache["data"]
 
     articles_to_classify = []
     if fetch_latest:
@@ -81,7 +82,9 @@ async def classify_news(
         raise HTTPException(status_code=503, detail="NewsClassifier is not available. Check LOCAL_LLM_URL.")
 
     try:
+        print("DEBUG API NEWS: CALLING CLASSIFY_BATCH")
         classified_results = await classifier.classify_batch(articles_to_classify)
+        print("DEBUG API NEWS: CLASSIFY_BATCH RETURNED", len(classified_results), "RESULTS")
         
         # Store relevant articles to MarketMemory for FactorGauge to pick up
         memory = MarketMemory()

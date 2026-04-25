@@ -157,6 +157,11 @@ JSON Output Format:
                 }
                 
                 classified_article = ClassifiedArticle(**result_data)
+                
+                with open("debug_log.txt", "a") as f:
+                    f.write(f"RESULT_DATA: {result_data.get('impact_by_crude')}\n")
+                    f.write(f"DUMP: {classified_article.model_dump().get('impact_by_crude')}\n")
+                    
                 return classified_article
 
             except httpx.HTTPError as e:
@@ -211,6 +216,16 @@ JSON Output Format:
                     meta = existing_data['metadatas'][idx]
                     doc = existing_data['documents'][idx]
                     
+                    # Reconstruct impact_by_crude from metadata
+                    impact_by_crude = {}
+                    for crude in self.CRUDE_TYPES:
+                        if f"{crude}_score" in meta:
+                            impact_by_crude[crude] = CrudeImpact(
+                                score=meta.get(f"{crude}_score", 0),
+                                direction=meta.get(f"{crude}_direction", "neutral"),
+                                rationale=meta.get(f"{crude}_rationale", "")
+                            )
+                            
                     # Basic reconstruction
                     reconstructed = ClassifiedArticle(
                         article=model,
@@ -220,7 +235,8 @@ JSON Output Format:
                         impact_score=meta.get('impact_score', 0),
                         impact_summary=doc.split('\nSummary: ')[-1] if '\nSummary: ' in doc else '',
                         confidence=meta.get('confidence', 0.8),
-                        classified_at=datetime.now(timezone.utc).isoformat()
+                        classified_at=datetime.now(timezone.utc).isoformat(),
+                        impact_by_crude=impact_by_crude
                     )
                     skipped_results.append(reconstructed)
                     continue

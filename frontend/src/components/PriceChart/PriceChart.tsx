@@ -37,11 +37,24 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
           <div className="tooltip-news-item">
             <Badge category={data.article.category as any} />
             <span>{data.article.article.title}</span>
-            <p className="tooltip-news-impact">
-              Impact: <span className={data.article.impact_score > 0 ? 'tooltip-bull' : data.article.impact_score < 0 ? 'tooltip-bear' : ''}>
-                {data.article.impact_score > 0 ? '+' : ''}{data.article.impact_score}
-              </span>
-            </p>
+            <div className="tooltip-news-impact">
+              {data.article.impact_by_crude ? (
+                Object.entries(data.article.impact_by_crude).map(([crudeType, impact]: [string, any]) => (
+                  <span key={crudeType} className="tooltip-crude-impact">
+                    {crudeType.charAt(0).toUpperCase() + crudeType.slice(1)}: 
+                    <span className={impact.score > 0 ? 'tooltip-bull' : impact.score < 0 ? 'tooltip-bear' : ''}>
+                      {impact.score > 0 ? '+' : ''}{impact.score}
+                    </span>
+                  </span>
+                ))
+              ) : (
+                <span>
+                  Impact: <span className={data.article.impact_score > 0 ? 'tooltip-bull' : data.article.impact_score < 0 ? 'tooltip-bear' : ''}>
+                    {data.article.impact_score > 0 ? '+' : ''}{data.article.impact_score}
+                  </span>
+                </span>
+              )}
+            </div>
             {data.article.impact_summary && (
               <p className="tooltip-news-snippet">{data.article.impact_summary}</p>
             )}
