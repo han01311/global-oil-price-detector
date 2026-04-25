@@ -26,9 +26,11 @@ MOCK_DOLLAR_INDEX_RESPONSE = {
 }
 
 @pytest.fixture
-def fred_collector():
+def fred_collector(tmp_path):
     """테스트용 FREDCollector 인스턴스"""
-    return FREDCollector(api_key="TEST_KEY")
+    collector = FREDCollector(api_key="TEST_KEY")
+    collector.cache_dir = tmp_path
+    return collector
 
 
 def test_missing_api_key(monkeypatch):

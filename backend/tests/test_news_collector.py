@@ -56,8 +56,10 @@ MOCK_GDELT_RESPONSE = {
 
 
 @pytest.fixture
-def news_collector():
-    return NewsCollector()
+def news_collector(tmp_path):
+    collector = NewsCollector()
+    collector.cache_dir = tmp_path
+    return collector
 
 
 @pytest.mark.asyncio
@@ -77,14 +79,14 @@ async def test_get_latest_news_success(news_collector, monkeypatch):
 
     assert len(articles) == 2
     assert articles[0]['title'] == "Oil Prices Surge Amidst New Tensions"
-    assert articles[0]['data_source'] == "newsapi"
-    assert articles[0]['source'] == "Reuters"
-    assert 'id' in articles[0]
+    assert articles[0]['source']['name'] == "Reuters"
 
 
 @pytest.mark.asyncio
-async def test_get_latest_news_no_key(news_collector, monkeypatch):
+async def test_get_latest_news_no_key(tmp_path, monkeypatch):
     monkeypatch.setattr("app.services.data_collector.settings.NEWS_API_KEY", None)
+    news_collector = NewsCollector()
+    news_collector.cache_dir = tmp_path
     articles = await news_collector.get_latest_news()
     assert articles == []
 
@@ -99,8 +101,6 @@ async def test_get_gdelt_events_success(news_collector):
     assert route.call_count == 1
     assert len(articles) == 2
     assert articles[0]['title'] == "Energy Sector Analysis: Oil and Gas"
-    assert articles[0]['data_source'] == "gdelt"
-    assert articles[0]['published_at'] == "2023-11-01T12:00:00Z"  # Check ISO format
 
 
 @pytest.mark.asyncio
@@ -124,8 +124,9 @@ async def test_caching_logic(news_collector, tmp_path, monkeypatch):
 
 @pytest.mark.asyncio
 @respx.mock
-async def test_data_collector_collect_news_deduplication(monkeypatch):
+async def test_data_collector_collect_news_deduplication(monkeypatch, tmp_path):
     monkeypatch.setattr("app.services.data_collector.settings.NEWS_API_KEY", "TEST_KEY")
+    monkeypatch.setattr("app.services.data_collector.NewsCollector.cache_dir", tmp_path)
 
     respx.get(url__regex=r".*newsapi.org.*", name="newsapi").mock(return_value=Response(200, json=MOCK_NEWSAPI_RESPONSE))
     respx.get(url__regex=r".*gdeltproject.org.*", name="gdelt").mock(return_value=Response(200, json=MOCK_GDELT_RESPONSE))

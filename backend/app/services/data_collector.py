@@ -60,7 +60,8 @@ class EIACollector(BaseCollector):
         "production": "PET.WCRFPUS2.W",
     }
 
-    def __init__(self, api_key: str | None = settings.EIA_API_KEY):
+    def __init__(self, api_key: str | None = None):
+        api_key = api_key or settings.EIA_API_KEY
         if not api_key:
             raise ValueError("EIA_API_KEY is required for EIACollector.")
         super().__init__(api_key, "https://api.eia.gov/v2")
@@ -96,12 +97,29 @@ class EIACollector(BaseCollector):
         df[['wti', 'brent']] = df[['wti', 'brent']].astype(float)
         return df
 
+    async def get_crude_inventory(self, start_date: str, end_date: str) -> pd.DataFrame:
+        data = await self._get_series_data(self.SERIES_IDS["inventory"], start_date, end_date)
+        if not data:
+            return pd.DataFrame(columns=['date', 'inventory_mbbl'])
+        df = pd.DataFrame(data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'inventory_mbbl'})
+        df['inventory_mbbl'] = df['inventory_mbbl'].astype(float)
+        return df
+
+    async def get_production(self, start_date: str, end_date: str) -> pd.DataFrame:
+        data = await self._get_series_data(self.SERIES_IDS["production"], start_date, end_date)
+        if not data:
+            return pd.DataFrame(columns=['date', 'production_mbbl_d'])
+        df = pd.DataFrame(data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'production_mbbl_d'})
+        df['production_mbbl_d'] = df['production_mbbl_d'].astype(float)
+        return df
+
 class FREDCollector(BaseCollector):
     MACRO_SERIES = {
         "fed_rate": "FEDFUNDS",
         "dollar_index": "DTWEXBGS",
     }
-    def __init__(self, api_key: str | None = settings.FRED_API_KEY):
+    def __init__(self, api_key: str | None = None):
+        api_key = api_key or settings.FRED_API_KEY
         if not api_key:
             raise ValueError("FRED_API_KEY is required for FREDCollector.")
         super().__init__(api_key, "https://api.stlouisfed.org/fred")
@@ -128,22 +146,30 @@ class FREDCollector(BaseCollector):
         tasks = [self.get_series(series_id, name, start_date, end_date) for name, series_id in self.MACRO_SERIES.items()]
         results = await asyncio.gather(*tasks)
         
-        merged_df = pd.DataFrame(pd.date_range(start=start_date, end=end_date), columns=['date'])
-        merged_df['date'] = merged_df['date'].dt.strftime('%Y-%m-%d')
+        all_dates = set()
+        for df in results:
+            if not df.empty:
+                all_dates.update(df['date'].tolist())
+        
+        if not all_dates:
+             return pd.DataFrame(columns=['date', 'fed_rate', 'dollar_index'])
+             
+        merged_df = pd.DataFrame(sorted(list(all_dates)), columns=['date'])
 
         for df in results:
             if not df.empty:
-                merged_df = pd.merge(merged_df, df, on='date', how='left')
+                merged_df = pd.merge(merged_df, df, on='date', how='outer')
         
-        merged_df = merged_df.ffill().dropna()
+        merged_df = merged_df.sort_values('date').ffill().bfill()
+        merged_df = merged_df[(merged_df['date'] >= start_date) & (merged_df['date'] <= end_date)]
         return merged_df
 
 class NewsCollector:
     KEYWORDS = ["crude oil", "WTI", "Brent", "OPEC", "shale oil", "oil demand", "oil supply", "oil reserves", "geopolitics oil"]
     cache_dir = os.path.join(settings.DATA_CACHE_DIR, "raw")
 
-    def __init__(self, news_api_key: str | None = settings.NEWS_API_KEY):
-        self.news_api_key = news_api_key
+    def __init__(self, news_api_key: str | None = None):
+        self.news_api_key = news_api_key or settings.NEWS_API_KEY
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def _get_cache_path(self, name: str) -> str:

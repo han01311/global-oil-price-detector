@@ -71,7 +71,8 @@ async def test_cache_usage_in_collect_all(monkeypatch, tmp_path):
     gdelt_route = respx.get(url__regex=r".*gdeltproject.org.*").mock(return_value=Response(200, json={"articles": []}))
 
     # Patch cache directory for all collectors
-    with patch('app.services.data_collector.BaseCollector.cache_dir', tmp_path):
+    with patch('app.services.data_collector.BaseCollector.cache_dir', tmp_path), \
+         patch('app.services.data_collector.NewsCollector.cache_dir', tmp_path):
         collector = DataCollector()
 
         # First call - should hit the APIs

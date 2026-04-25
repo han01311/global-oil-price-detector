@@ -50,9 +50,11 @@ MOCK_PRODUCTION_RESPONSE = {
 
 
 @pytest.fixture
-def eia_collector():
+def eia_collector(tmp_path):
     """테스트용 EIACollector 인스턴스"""
-    return EIACollector(api_key="TEST_KEY")
+    collector = EIACollector(api_key="TEST_KEY")
+    collector.cache_dir = tmp_path
+    return collector
 
 
 @pytest.mark.asyncio
