@@ -3,7 +3,7 @@ import { Card } from '../common/Card';
 import { useFactorSummary } from '../../hooks/useFactorSummary';
 import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';
-import { FactorScore } from '../../types/news';
+import type { FactorScore } from '../../types/news';
 import './FactorGauge.css';
 
 const getSentimentLabel = (score: number): string => {

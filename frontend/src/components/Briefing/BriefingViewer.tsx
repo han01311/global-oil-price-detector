@@ -3,7 +3,7 @@ import { useBriefing } from '../../hooks/useBriefing';
 import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';
 import './BriefingViewer.css';
-import { Briefing, BriefingKeyFactor, RiskScenario, SimilarCase } from '../../types/forecast';
+import type { Briefing, BriefingKeyFactor, RiskScenario, SimilarCase } from '../../types/forecast';
 
 const BriefingSection: React.FC<{ title: string; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
   <div className="briefing-section">

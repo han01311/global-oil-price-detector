@@ -18,7 +18,7 @@ export const PriceDisplay: React.FC<PriceDisplayProps> = ({ value, change, unit 
       <span className="price-value tabular-nums">{unit}{value.toFixed(2)}</span>
       {formattedChange && (
         <span className={`price-change tabular-nums price-${changeDirection}`}>
-          {formattedChange} ({change !== 0 ? (Math.abs(change) / (value - change) * 100).toFixed(2) : '0.00'}%)
+          {formattedChange} ({change !== undefined && change !== 0 ? (Math.abs(change) / (value - change) * 100).toFixed(2) : '0.00'}%)
         </span>
       )}
     </div>

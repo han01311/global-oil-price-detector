@@ -1,7 +1,7 @@
-import { PriceHistory } from "../types/price";
-import { ClassifiedArticle, FactorSummary, SimilarEvent } from "../types/news";
-import { ForecastResult, Briefing } from "../types/forecast";
-import { OilPrice } from "../types/price";
+import type { PriceHistory } from "../types/price";
+import type { ClassifiedArticle, FactorSummary, SimilarEvent } from "../types/news";
+import type { ForecastResult, Briefing } from "../types/forecast";
+import type { OilPrice } from "../types/price";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 

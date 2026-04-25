@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchAndClassifyNews } from '../services/api';
-import { ClassifiedArticle } from '../types/news';
+import type { ClassifiedArticle } from '../types/news';
 
 export function useNewsData() {
   const [articles, setArticles] = useState<ClassifiedArticle[]>([]);

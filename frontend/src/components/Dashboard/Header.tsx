@@ -2,8 +2,8 @@ import React from 'react';
 import { PriceDisplay } from '../common/PriceDisplay';
 import { Skeleton } from '../common/Skeleton';
 import './Header.css';
-import { OilPrice } from '../../types/price';
-import { ForecastResult } from '../../types/forecast';
+import type { OilPrice } from '../../types/price';
+import type { ForecastResult } from '../../types/forecast';
 
 interface HeaderProps {
   latestPrice: (OilPrice & { change?: number }) | null;

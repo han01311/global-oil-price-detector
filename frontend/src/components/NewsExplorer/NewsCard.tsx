@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ClassifiedArticle } from '../../types/news';
+import type { ClassifiedArticle } from '../../types/news';
 import { Badge } from '../common/Badge';
 import { SimilarEventsPopup } from './SimilarEventsPopup';
 import './NewsCard.css';

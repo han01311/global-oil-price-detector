@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { SimilarEvent } from '../../types/news';
+import type { SimilarEvent } from '../../types/news';
 import { fetchSimilarEvents } from '../../services/api';
 import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';

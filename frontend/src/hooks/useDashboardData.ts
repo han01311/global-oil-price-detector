@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { fetchLatestPrice, fetchForecastEstimate } from '../services/api';
-import { OilPrice } from '../types/price';
-import { ForecastResult } from '../types/forecast';
+import type { OilPrice } from '../types/price';
+import type { ForecastResult } from '../types/forecast';
 
 interface DashboardData {
   latestPrice: (OilPrice & { change?: number }) | null;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { fetchTodayBriefing, fetchBriefingHistory } from '../services/api';
-import { Briefing } from '../types/forecast';
+import type { Briefing } from '../types/forecast';
 
 export function useBriefing() {
   const [briefings, setBriefings] = useState<Briefing[]>([]);

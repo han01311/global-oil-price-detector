@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { fetchPriceHistory, fetchForecastEstimate, fetchAndClassifyNews } from '../services/api';
-import { OilPrice } from '../types/price';
-import { ForecastResult } from '../types/forecast';
-import { ClassifiedArticle } from '../types/news';
+import type { OilPrice } from '../types/price';
+import type { ForecastResult } from '../types/forecast';
+import type { ClassifiedArticle } from '../types/news';
 
 export type Period = '1M' | '3M' | '6M' | '1Y' | 'ALL';
 

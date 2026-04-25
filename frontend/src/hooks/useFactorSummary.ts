@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { fetchFactorSummary } from '../services/api';
-import { FactorSummary } from '../types/news';
+import type { FactorSummary } from '../types/news';
 
 export function useFactorSummary() {
   const [summary, setSummary] = useState<FactorSummary | null>(null);

@@ -8,12 +8,13 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ReferenceDot,
-  DotProps,
+  ReferenceDot
 } from 'recharts';
+import type { DotProps } from 'recharts';
 import { Card } from '../common/Card';
 import { Skeleton } from '../common/Skeleton';
-import { usePriceData, Period, getCategoryColor, NewsMarker } from '../../hooks/usePriceData';
+import { usePriceData, getCategoryColor } from '../../hooks/usePriceData';
+import type { Period, NewsMarker } from '../../hooks/usePriceData';
 import { Badge } from '../common/Badge';
 import { useDashboardContext } from '../../context/DashboardContext';
 import './PriceChart.css';
@@ -45,7 +46,7 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
 
 interface CustomDotProps extends DotProps {
   payload?: NewsMarker;
-  onClick?: (payload: NewsMarker) => void;
+  onClick?: any;
   isHighlighted: boolean;
   isDimmed: boolean;
 }
@@ -141,7 +142,7 @@ export const PriceChart: React.FC = () => {
           <Line type="monotone" dataKey="brent" stroke="var(--color-bear)" strokeWidth={2} dot={false} name="Brent" />
           
           <Line type="monotone" dataKey="forecastLine" stroke={forecastStrokeColor} strokeWidth={2} strokeDasharray="5 5" dot={false} name="Forecast" />
-          <Area type="monotone" dataKey="forecastBand" fill={`url(#${forecastColorId})`} stroke={false} name="Forecast Range" />
+          <Area type="monotone" dataKey="forecastBand" fill={`url(#${forecastColorId})`} stroke="none" name="Forecast Range" />
 
           {newsMarkers.map((marker, index) => (
             <ReferenceDot 
