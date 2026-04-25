@@ -1,7 +1,7 @@
 .price-chart-controls {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .period-selector {
@@ -101,4 +101,32 @@
 .recharts-layer:focus,
 .recharts-wrapper * {
   outline: none !important;
+}
+
+.chart-container {
+  flex: 1;
+  min-height: 340px;
+  position: relative;
+  width: 100%;
+  margin-top: 16px;
+  padding-bottom: 40px;
+}
+
+.chart-wrapper {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+}
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--color-border);
+  stroke-opacity: 0.5;
+}
+
+.recharts-text.recharts-cartesian-axis-tick-value {
+  font-family: inherit;
+  fill: var(--color-text-muted);
 }

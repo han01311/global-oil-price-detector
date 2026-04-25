@@ -120,7 +120,7 @@ export const PriceChart: React.FC = () => {
 
   const renderChart = () => {
     if (loading) {
-      return <Skeleton height="400px" />;
+      return <Skeleton height="340px" />;
     }
     if (error) {
       return (
@@ -146,10 +146,10 @@ export const PriceChart: React.FC = () => {
     const yDomain = ['auto', 'auto'];
 
     return (
-      <div style={{ flex: 1, minHeight: 400, position: 'relative' }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <div className="chart-container">
+        <div className="chart-wrapper">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+            <ComposedChart data={chartData} margin={{ top: 10, right: 40, left: 40, bottom: 40 }}>
             <defs>
               <linearGradient id="forecast-bull" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="var(--color-bull)" stopOpacity={0.2}/>
@@ -163,17 +163,24 @@ export const PriceChart: React.FC = () => {
             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
             <XAxis 
               dataKey="timestamp"
-              tickFormatter={(unixTime) => new Date(unixTime).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' })}
-            stroke="var(--color-text-muted)"
-            fontSize={12}
-          />
-          <YAxis 
-            orientation="right" 
-            domain={yDomain}
-            tickFormatter={(value) => `$${value}`}
-            stroke="var(--color-text-muted)"
-            fontSize={12}
-          />
+              tickFormatter={(unixTime) => new Date(unixTime).toLocaleDateString('ko-KR', { year: 'numeric', month: 'short', day: 'numeric' })}
+              stroke="var(--color-text-muted)"
+              fontSize={11}
+              axisLine={false}
+              tickLine={false}
+              dy={20}
+              minTickGap={30}
+            />
+            <YAxis 
+              orientation="right" 
+              domain={yDomain}
+              tickFormatter={(value) => `$${value}`}
+              stroke="var(--color-text-muted)"
+              fontSize={11}
+              axisLine={false}
+              tickLine={false}
+              dx={10}
+            />
           <Tooltip content={<CustomTooltip />} />
           
           <Line type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={2} dot={false} name="Dubai" connectNulls={true} />
