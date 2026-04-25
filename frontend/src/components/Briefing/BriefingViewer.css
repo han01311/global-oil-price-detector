@@ -141,3 +141,68 @@
 .similar-case-impact.bull { color: var(--color-bull); }
 .similar-case-impact.bear { color: var(--color-bear); }
 .similar-case-impact.neutral { color: var(--color-neutral); }
+
+/* Crude Outlooks Section */
+.crude-outlooks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 1024px) {
+  .crude-outlooks-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.crude-outlook-card {
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.crude-outlook-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.crude-outlook-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.crude-outlook-direction {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+.crude-outlook-direction.bullish {
+  color: var(--color-bull);
+  background-color: rgba(255, 107, 53, 0.12);
+}
+.crude-outlook-direction.bearish {
+  color: var(--color-bear);
+  background-color: rgba(0, 212, 255, 0.12);
+}
+.crude-outlook-direction.neutral {
+  color: var(--color-neutral);
+  background-color: rgba(82, 82, 82, 0.15);
+}
+
+.crude-outlook-summary {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-body);
+}
+
+.crude-outlook-driver {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+

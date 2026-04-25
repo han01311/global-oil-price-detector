@@ -123,14 +123,14 @@ global-oil-price-detector/
 ```
 [수집] EIA/FRED/News API → data_collector → data/raw/ (JSON 캐시)
                                           ↓
-[분류] raw news → news_classifier (Gemma 4) → 6대 요인 + Impact Score (JSON)
+[분류] raw news → news_classifier (Gemma 4) → 6대 요인 + 유종별(Dubai/Brent/WTI) 영향도 평가 (JSON)
                                             ↓
-[적재] 분류된 뉴스 + 당시 유가 변동률 → market_memory → ChromaDB
+[적재] 분류된 뉴스 + 유종별 유가 변동률 → market_memory → ChromaDB
                                                         ↓
-[예측] data/processed → forecast_engine (XGBoost) → Baseline
-       ChromaDB 유사 사례 → News Adjustment% → Final Band
+[예측] data/processed → forecast_engine (XGBoost) → 유종별 6개 모델 추론 (Baseline)
+       ChromaDB 유사 사례 검색 (유종별 필터) → 유종별 News Adjustment% 산출 → 유종별 Final Band
                                                 ↓
-[브리핑] Final Band + 유사 사례 → briefing_generator (Gemma 4) → 리포트
+[브리핑] 유종별 Final Band + 유사 사례 → briefing_generator (Gemma 4) → 유종별 독립 전망 리포트
                                                                ↓
 [표시] React Dashboard ← REST API ← FastAPI Route (에러 포맷팅 거쳐 서빙)
 ```

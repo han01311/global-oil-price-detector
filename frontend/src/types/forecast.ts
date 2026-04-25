@@ -4,6 +4,22 @@ export interface FactorBreakdown {
   article_count: number;
 }
 
+export interface CrudeForecast {
+  crude_type: string; // "dubai" | "brent" | "wti"
+  current_price: number;
+  estimated_7d: number;
+  estimated_7d_high: number;
+  estimated_7d_low: number;
+  estimated_30d: number;
+  estimated_30d_high: number;
+  estimated_30d_low: number;
+  baseline_change_7d: number;
+  baseline_change_30d: number;
+  news_adjustment_pct: number;
+  confidence: number; // 0.0 to 1.0
+  dominant_factor: string | null;
+}
+
 export interface ForecastResult {
   current_price: number;
   estimated_7d: number;
@@ -17,7 +33,9 @@ export interface ForecastResult {
   news_adjustment_pct: number;
   confidence: number; // 0.0 to 1.0
   dominant_factor: string | null;
+  extreme_volatility_warning?: boolean;
   factor_breakdown: FactorBreakdown[];
+  forecasts_by_crude: Record<string, CrudeForecast>; // {"dubai": ..., "brent": ..., "wti": ...}
   generated_at: string;
 }
 
@@ -41,6 +59,13 @@ export interface SimilarCase {
   actual_impact: string;
 }
 
+export interface CrudeOutlook {
+  crude_type: string; // "dubai" | "brent" | "wti"
+  direction: 'bullish' | 'bearish' | 'neutral';
+  summary: string;
+  key_driver: string;
+}
+
 export interface Briefing {
   date: string;
   summary: string;
@@ -49,5 +74,6 @@ export interface Briefing {
   similar_cases: SimilarCase[];
   price_outlook: string;
   confidence_note: string;
+  crude_outlooks: CrudeOutlook[]; // 유종별 독립 전망
   generated_at: string;
 }

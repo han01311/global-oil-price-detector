@@ -6,6 +6,8 @@ from app.schemas.news import ClassifiedArticle
 logging.basicConfig(level="INFO")
 logger = logging.getLogger(__name__)
 
+CRUDE_TYPES = ["dubai", "brent", "wti"]
+
 class MarketMemory:
     """ChromaDB-based vector search system for historical market events."""
 
@@ -30,6 +32,7 @@ class MarketMemory:
     async def store_event(self, classified_article: dict, price_change: dict):
         """
         Stores a classified article and its corresponding price change in the vector DB.
+        Includes per-crude impact scores and price changes in metadata.
         """
         if not self.is_available():
             logger.warning("MarketMemory is not available. Skipping store_event.")
@@ -49,12 +52,34 @@ class MarketMemory:
                 "date": article_info.published_at.split('T')[0],
                 "source": article_info.source or "Unknown",
                 "url": article_info.url,
-                **price_change
             }
+
+            # Store per-crude impact scores
+            for crude in CRUDE_TYPES:
+                if article_model.impact_by_crude and crude in article_model.impact_by_crude:
+                    impact = article_model.impact_by_crude[crude]
+                    metadata[f"{crude}_score"] = impact.score
+                    metadata[f"{crude}_direction"] = impact.direction
+                else:
+                    # Fallback to overall score
+                    metadata[f"{crude}_score"] = article_model.impact_score
+                    metadata[f"{crude}_direction"] = "neutral"
+
+            # Store per-crude price changes
+            for crude in CRUDE_TYPES:
+                for period in ["1d", "7d", "30d"]:
+                    key = f"{crude}_change_{period}"
+                    metadata[key] = price_change.get(key, price_change.get(f"wti_change_{period}", 0.0))
+
+            # Also keep legacy wti_change_* for backward compatibility
+            for key in ["wti_change_1d", "wti_change_7d", "wti_change_30d"]:
+                if key in price_change:
+                    metadata[key] = price_change[key]
+
             # Ensure all metadata values are of supported types
             for key, value in metadata.items():
                 if value is None:
-                    metadata[key] = -1.0 # ChromaDB doesn't like None
+                    metadata[key] = -1.0  # ChromaDB doesn't like None
                 elif isinstance(value, (int, float, str, bool)):
                     continue
                 else:
@@ -69,23 +94,35 @@ class MarketMemory:
         except Exception as e:
             logger.error(f"Failed to store event {classified_article.get('article', {}).get('id')}: {e}")
 
-    async def search_similar(self, query: str, category: str = None, n_results: int = 5) -> list[dict]:
+    async def search_similar(self, query: str, category: str = None,
+                             crude_type: str = None, n_results: int = 5) -> list[dict]:
         """
         Searches for similar historical events.
+        When crude_type is specified, filters for events that had significant impact on that crude type.
         """
         if not self.is_available():
             logger.warning("MarketMemory is not available. Skipping search_similar.")
             return []
 
         try:
-            where_clause = {}
+            where_clauses = []
             if category:
-                where_clause["category"] = category
+                where_clauses.append({"category": category})
+            if crude_type and crude_type in CRUDE_TYPES:
+                # Filter for events that had at least moderate impact on this crude type
+                where_clauses.append({f"{crude_type}_score": {"$gte": 1}})
+
+            # Build final where clause
+            where = None
+            if len(where_clauses) == 1:
+                where = where_clauses[0]
+            elif len(where_clauses) > 1:
+                where = {"$and": where_clauses}
 
             results = self._collection.query(
                 query_texts=[query],
                 n_results=n_results,
-                where=where_clause if where_clause else None
+                where=where
             )
 
             # Process and format results
@@ -143,3 +180,4 @@ class MarketMemory:
         except Exception as e:
             logger.error(f"Failed to get category stats: {e}")
             return {}
+

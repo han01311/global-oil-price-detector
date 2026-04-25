@@ -69,3 +69,15 @@ MVP 속도 최우선. 무료/오픈 데이터 소스 우선 활용. 작동하는
 **결정**: Homebrew로 설치되는 Ollama Native App(데몬)을 사용하여 로컬 환경에 Gemma 4 모델을 직접 호스팅하고 HTTP로 연동. (ADR-003 및 이전 Docker 계획에서 최종 변경)
 **이유**: 완전한 오프라인 운영과 더불어 Apple Silicon(Metal) 자원을 한 치의 낭비 없는 100% 효율로 사용하기 위함.
 **트레이드오프**: 환경을 맞추기 위한 초기 Homebrew/앱 설치의 번거로움이 존재함. 그러나 일단 설정되면 압도적으로 빠른 생성 속도를 보장함.
+
+### ADR-013: 유종별(Crude-Type-Specific) 독립 분석 전략
+**결정**: 뉴스 분류, 벡터 DB 검색, XGBoost 예측, 브리핑 생성의 전체 파이프라인을 두바이유, 브렌트유, WTI 각각에 대해 독립적으로 수행하도록 설계.
+**이유**: 유종마다 영향을 받는 지정학적 요인과 지역적 배경이 근본적으로 다름. (예: 호르무즈 해협 이슈는 두바이유에 직격탄이지만 WTI에는 간접 영향만 미침) 단일 모델로는 이 차이를 포착할 수 없으며, 정확한 예측을 위해 유종별 독립 파이프라인이 필수적.
+**구현 범위**:
+  - `NewsClassifier`: 기사당 `impact_by_crude` (Dubai/Brent/WTI 개별 score/direction/rationale) 산출
+  - `MarketMemory`: 유종별 메타데이터 저장 + `crude_type` 필터 검색
+  - `ForecastEngine`: 6개 XGBoost 모델 (3유종 × 2시계)
+  - `NewsAdjuster`: 유종별 독립 보정값 산출
+  - `BriefingGenerator`: `crude_outlooks` 유종별 독립 전망
+**트레이드오프**: 모델 학습 시간 3배 증가, 프롬프트 토큰 사용량 증가. 그러나 예측 정확도와 설명 가능성 측면에서 획기적인 개선. 향후 pgvector 마이그레이션 시 유종별 가중치 필터링이 더욱 정교해질 수 있음.
+

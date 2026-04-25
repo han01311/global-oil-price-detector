@@ -7,7 +7,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import settings
-from app.schemas.news import NewsArticle, ClassifiedArticle
+from app.schemas.news import NewsArticle, ClassifiedArticle, CrudeImpact
 from app.services.market_memory import MarketMemory
 
 # Configure logging
@@ -18,6 +18,7 @@ class NewsClassifier:
     """Ollama (Gemma 4) 기반 뉴스 요인 분류기"""
 
     CATEGORIES = ["geopolitics", "supply", "demand", "macro", "climate", "speculation"]
+    CRUDE_TYPES = ["dubai", "brent", "wti"]
     CONCURRENCY_LIMIT = 5
 
     def __init__(self, ollama_url: str | None = None):
@@ -26,7 +27,7 @@ class NewsClassifier:
         self.semaphore = asyncio.Semaphore(self.CONCURRENCY_LIMIT)
 
     def _build_classification_prompt(self, article_content: str) -> str:
-        """분류용 프롬프트 생성"""
+        """분류용 프롬프트 생성 — 유종별 독립 영향도 평가 포함"""
         category_definitions = """
 - geopolitics (지정학): 전쟁, 제재, 외교 분쟁, 선거 등 국가 간 관계 및 정치적 사건. (예: 이스라엘-하마스 전쟁, 이란 핵 협상, 러시아-우크라이나 전쟁)
 - supply (공급): OPEC+ 회의, 감산/증산, 셰일 오일 생산량, 원유 재고, 시추 리그 수, 수송 차질 등 공급량에 직접적 영향을 주는 요인. (예: 사우디 자발적 감산, 미국 원유 재고 급증)
@@ -37,7 +38,7 @@ class NewsClassifier:
 """
 
         impact_score_guide = """
-- +5: 주요 산유국 간 대규모 전쟁 발발, 호르무즈 해협 봉쇄 등 공급에 즉각적이고 심각한 충격을 주는 사건. (예: 2019년 사우디 아람코 피격)
+- +5: 주요 산유국 간 대규모 전쟁 발발, 호르무즈 해협 봉쇄 등 공급에 즉각적이고 심각한 충격을 주는 사건.
 - +3: OPEC+의 예상 밖 대규모 감산, 주요 산유국 생산 차질 장기화.
 - +1: 지정학적 긴장 고조 발언, 예상보다 낮은 원유 재고.
 - 0: 유가에 미치는 영향이 중립적이거나 불확실함.
@@ -46,8 +47,21 @@ class NewsClassifier:
 - -5: 이란 핵 협상 타결로 인한 대규모 공급 재개, 심각한 글로벌 금융위기 발생.
 """
 
+        crude_sensitivity_guide = """
+Each crude type has different geopolitical sensitivities. Evaluate impact INDEPENDENTLY for each:
+
+- Dubai Crude: Most sensitive to Middle East geopolitics (Iran, Hormuz Strait, Saudi Arabia, OPEC+ cuts), Asian demand (China, India, Japan), and Gulf state production policies.
+- Brent Crude: Most sensitive to European energy policy, Russia-Ukraine conflict, Libyan production, North Sea supply disruptions, and global benchmark sentiment.
+- WTI Crude: Most sensitive to US shale production, SPR releases, Gulf of Mexico hurricanes, US interest rates/dollar strength, Cushing storage levels, and US domestic policy.
+
+Example: A Hormuz Strait tension event → Dubai: +4 (direct supply route threat), Brent: +2 (global supply concern), WTI: +1 (indirect sentiment only).
+Example: US shale production surge → WTI: -3 (direct oversupply), Brent: -1 (global sentiment), Dubai: 0 (minimal direct impact).
+"""
+
         return f"""
-You are an expert financial analyst specializing in the global oil market. Your task is to analyze a news article and classify it based on its potential impact on crude oil prices (WTI, Brent).
+You are an expert financial analyst specializing in the global oil market. Your task is to analyze a news article and classify it based on its potential impact on crude oil prices.
+
+CRITICAL: You must evaluate the impact on EACH crude type (Dubai, Brent, WTI) INDEPENDENTLY, as they have different geopolitical sensitivities.
 
 Follow these instructions precisely:
 1.  Read the provided news article content.
@@ -55,11 +69,19 @@ Follow these instructions precisely:
 3.  If relevant, identify the primary category that best describes the news. The categories are:
 {category_definitions}
 4.  Identify any secondary categories if applicable.
-5.  Assess the potential impact on oil prices and assign an `impact_score` from -5 (strong bearish) to +5 (strong bullish). Use the following guide:
+5.  For EACH crude type (dubai, brent, wti), independently assess:
+    - direction: "bullish", "bearish", or "neutral"
+    - score: -5 to +5 using the guide below
+    - rationale: A concise explanation in Korean of WHY this crude type is affected differently
 {impact_score_guide}
-6.  Write a concise, one-sentence `impact_summary` in Korean explaining the reason for the score.
-7.  Provide a `confidence` score (0.0 to 1.0) for your overall classification.
-8.  You MUST respond ONLY with a valid JSON object in the specified format. Do not include any other text, explanations, or markdown formatting.
+
+Use this guide for crude-specific sensitivity:
+{crude_sensitivity_guide}
+
+6.  Set the overall `impact_score` to the maximum absolute score among the three crude types.
+7.  Write a concise, one-sentence `impact_summary` in Korean explaining the overall situation.
+8.  Provide a `confidence` score (0.0 to 1.0) for your overall classification.
+9.  You MUST respond ONLY with a valid JSON object in the specified format. Do not include any other text, explanations, or markdown formatting.
 
 Article Content to Analyze:
 ---
@@ -71,6 +93,11 @@ JSON Output Format:
   "is_relevant": boolean,
   "category": "string (one of {', '.join(self.CATEGORIES)})",
   "sub_categories": ["string"],
+  "impact_by_crude": {{
+    "dubai": {{"direction": "string", "score": integer, "rationale": "string (in Korean)"}},
+    "brent": {{"direction": "string", "score": integer, "rationale": "string (in Korean)"}},
+    "wti": {{"direction": "string", "score": integer, "rationale": "string (in Korean)"}}
+  }},
   "impact_score": integer (-5 to 5),
   "impact_summary": "string (in Korean)",
   "confidence": float (0.0 to 1.0)
@@ -78,7 +105,7 @@ JSON Output Format:
 """
 
     async def classify_article(self, article: dict) -> ClassifiedArticle | None:
-        """단일 기사를 분류하고 영향도를 평가한다"""
+        """단일 기사를 분류하고 유종별 영향도를 독립 평가한다"""
         async with self.semaphore:
             try:
                 article_model = NewsArticle(**article)
@@ -104,9 +131,28 @@ JSON Output Format:
                     response.raise_for_status()
                     response_json = json.loads(response.json()["response"])
 
+                # Parse impact_by_crude from response
+                raw_impact = response_json.pop("impact_by_crude", {})
+                impact_by_crude = {}
+                for crude_type in self.CRUDE_TYPES:
+                    if crude_type in raw_impact:
+                        try:
+                            impact_by_crude[crude_type] = CrudeImpact(**raw_impact[crude_type])
+                        except (ValidationError, TypeError):
+                            impact_by_crude[crude_type] = CrudeImpact()
+                    else:
+                        # Fallback: use overall impact_score for all crude types
+                        overall_score = response_json.get("impact_score", 0)
+                        direction = "bullish" if overall_score > 0 else ("bearish" if overall_score < 0 else "neutral")
+                        impact_by_crude[crude_type] = CrudeImpact(
+                            direction=direction, score=overall_score,
+                            rationale=response_json.get("impact_summary", "")
+                        )
+
                 result_data = {
                     "article": article_model,
                     "classified_at": datetime.now(timezone.utc).isoformat(),
+                    "impact_by_crude": impact_by_crude,
                     **response_json
                 }
                 

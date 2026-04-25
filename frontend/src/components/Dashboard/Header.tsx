@@ -51,6 +51,11 @@ export const Header: React.FC<HeaderProps> = ({ latestPrice, forecast, loading, 
                   <span className="price-label">Dubai</span>
                 </Tooltip>
                 <PriceDisplay value={dubaiPrice} size="medium" />
+                {forecast?.forecasts_by_crude?.dubai && (
+                  <span className={`header-7d-badge ${forecast.forecasts_by_crude.dubai.news_adjustment_pct >= 0 ? 'bull' : 'bear'}`}>
+                    {forecast.forecasts_by_crude.dubai.news_adjustment_pct >= 0 ? '▲' : '▼'}7d
+                  </span>
+                )}
               </div>
             )}
             {wtiPrice !== null && wtiPrice !== undefined && (
@@ -59,6 +64,11 @@ export const Header: React.FC<HeaderProps> = ({ latestPrice, forecast, loading, 
                   <span className="price-label">WTI</span>
                 </Tooltip>
                 <PriceDisplay value={wtiPrice} change={priceChange} size="medium" />
+                {forecast?.forecasts_by_crude?.wti && (
+                  <span className={`header-7d-badge ${forecast.forecasts_by_crude.wti.news_adjustment_pct >= 0 ? 'bull' : 'bear'}`}>
+                    {forecast.forecasts_by_crude.wti.news_adjustment_pct >= 0 ? '▲' : '▼'}7d
+                  </span>
+                )}
               </div>
             )}
             {brentPrice !== null && brentPrice !== undefined && (
@@ -67,6 +77,11 @@ export const Header: React.FC<HeaderProps> = ({ latestPrice, forecast, loading, 
                   <span className="price-label">Brent</span>
                 </Tooltip>
                 <PriceDisplay value={brentPrice} size="medium" />
+                {forecast?.forecasts_by_crude?.brent && (
+                  <span className={`header-7d-badge ${forecast.forecasts_by_crude.brent.news_adjustment_pct >= 0 ? 'bull' : 'bear'}`}>
+                    {forecast.forecasts_by_crude.brent.news_adjustment_pct >= 0 ? '▲' : '▼'}7d
+                  </span>
+                )}
               </div>
             )}
           </>

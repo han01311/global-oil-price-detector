@@ -8,7 +8,7 @@ import time
 from app.services.data_collector import DataCollector
 from app.services.news_classifier import NewsClassifier
 from app.services.market_memory import MarketMemory
-from app.services.forecast_engine import HybridForecaster, ForecastEngine, NewsAdjuster
+from app.services.forecast_engine import HybridForecaster, ForecastEngine, NewsAdjuster, CRUDE_TYPES
 from app.services.feature_engineering import FeatureEngineer
 from app.schemas.forecast import ForecastResult
 from app.api.news import classify_news
@@ -26,10 +26,15 @@ async def _run_forecast_pipeline():
         if prices_df.empty:
             raise HTTPException(status_code=404, detail="Could not fetch latest price data.")
             
-        # prices_df is indexed by date and sorted
-        current_price = prices_df.iloc[-1]['wti']
-        if pd.isna(current_price):
-             raise HTTPException(status_code=404, detail="WTI price is missing in the latest data.")
+        # Extract current prices for all crude types
+        latest_row = prices_df.iloc[-1]
+        current_prices = {}
+        for crude in CRUDE_TYPES:
+            if crude in latest_row and not pd.isna(latest_row[crude]):
+                current_prices[crude] = float(latest_row[crude])
+
+        if not current_prices:
+            raise HTTPException(status_code=404, detail="No valid crude prices found in the latest data.")
 
         macro_df = await collector.collect_macro_df_for_features()
 
@@ -43,7 +48,7 @@ async def _run_forecast_pipeline():
         
         relevant_articles = [a.model_dump() for a in classified_articles if a.is_relevant]
 
-        # 4. Market Memory Search
+        # 4. Market Memory Search (per-crude if available)
         memory = MarketMemory()
         similar_events = []
         if relevant_articles and memory.is_available():
@@ -61,15 +66,17 @@ async def _run_forecast_pipeline():
                     "title": res.get('document', '').split('\n')[0].replace('Title: ', ''),
                     "similarity": 1.0 - res.get('distance', 1.0),
                     "wti_change_7d": get_change('wti_change_7d'),
+                    "dubai_change_7d": get_change('dubai_change_7d'),
+                    "brent_change_7d": get_change('brent_change_7d'),
                 }
                 similar_events.append(event)
 
-        # 5. Hybrid Forecast
+        # 5. Hybrid Forecast (multi-crude)
         engine = ForecastEngine()
         adjuster = NewsAdjuster()
         forecaster = HybridForecaster(engine, adjuster)
         forecast_result = await forecaster.forecast(
-            current_price=current_price,
+            current_prices=current_prices,
             current_features=current_features,
             classified_articles=relevant_articles,
             similar_events=similar_events
@@ -84,11 +91,14 @@ async def _run_forecast_pipeline():
 
 
 @router.get("/estimate", response_model=ForecastResult)
-async def get_price_estimate() -> ForecastResult:
+async def get_price_estimate(
+    crude_type: str = Query(default=None, description="특정 유종 필터 (dubai, brent, wti)"),
+) -> ForecastResult:
     """
     현재 유가 추정 결과 조회
     - XGBoost baseline + 뉴스 보정이 결합된 최종 추정
     - 7일/30일 예측 밴드 포함
+    - forecasts_by_crude에 유종별 독립 예측 포함
     """
     current_time = time.time()
     if _forecast_cache["data"] is not None and current_time < _forecast_cache["expires_at"]:
@@ -103,8 +113,9 @@ async def get_price_estimate() -> ForecastResult:
 @router.get("/baseline", response_model=dict)
 async def get_baseline_only(
     horizon: str = Query(default="7d", pattern="^(7d|30d)$"),
+    crude_type: str = Query(default="wti", description="유종 타입 (dubai, brent, wti)"),
 ) -> dict:
-    """XGBoost 베이스라인만 조회 (뉴스 보정 제외)"""
+    """XGBoost 베이스라인만 조회 (뉴스 보정 제외) — 유종별"""
     try:
         collector = DataCollector()
         prices_df = await collector.collect_prices_df_for_features()
@@ -113,15 +124,20 @@ async def get_baseline_only(
         feature_engineer = FeatureEngineer()
         features_df = feature_engineer.build_features(prices_df, macro_df)
         current_features = features_df.tail(1)
-        current_price = current_features['wti_price'].iloc[0]
+        
+        price_col = f"{crude_type}_price"
+        if price_col not in current_features.columns:
+            raise HTTPException(status_code=400, detail=f"Price data not available for {crude_type}")
+        current_price = current_features[price_col].iloc[0]
 
         engine = ForecastEngine()
-        predictions = engine.predict(current_features)
+        predictions = engine.predict(current_features, crude_type=crude_type)
         
         baseline_change = predictions[f'baseline_change_{horizon}']
         estimated_price = current_price * (1 + baseline_change)
 
         return {
+            "crude_type": crude_type,
             "current_price": current_price,
             "horizon": horizon,
             "baseline_change_pct": baseline_change * 100,

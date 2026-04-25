@@ -5,7 +5,7 @@ import { Badge } from '../common/Badge';
 import { EmptyState } from '../common/EmptyState';
 import { Tooltip } from '../common/Tooltip';
 import './BriefingViewer.css';
-import type { Briefing, BriefingKeyFactor, RiskScenario, SimilarCase } from '../../types/forecast';
+import type { Briefing, BriefingKeyFactor, RiskScenario, SimilarCase, CrudeOutlook } from '../../types/forecast';
 
 const BriefingSection: React.FC<{ title: string; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
   <div className="briefing-section">
@@ -62,6 +62,36 @@ const SimilarCases: React.FC<{ cases: SimilarCase[] }> = ({ cases }) => (
   </ul>
 );
 
+const CRUDE_LABELS: Record<string, string> = {
+  dubai: '두바이유',
+  brent: '브렌트유',
+  wti: 'WTI',
+};
+
+const DIRECTION_LABELS: Record<string, string> = {
+  bullish: '상승',
+  bearish: '하락',
+  neutral: '보합',
+};
+
+const CrudeOutlooks: React.FC<{ outlooks: CrudeOutlook[] }> = ({ outlooks }) => (
+  <div className="crude-outlooks-grid">
+    {outlooks.map((outlook) => (
+      <div key={outlook.crude_type} className="crude-outlook-card">
+        <div className="crude-outlook-header">
+          <span className="crude-outlook-label">{CRUDE_LABELS[outlook.crude_type] || outlook.crude_type}</span>
+          <span className={`crude-outlook-direction ${outlook.direction}`}>
+            {outlook.direction === 'bullish' ? '▲' : outlook.direction === 'bearish' ? '▼' : '—'}
+            {' '}{DIRECTION_LABELS[outlook.direction] || outlook.direction}
+          </span>
+        </div>
+        <p className="crude-outlook-summary">{outlook.summary}</p>
+        <p className="crude-outlook-driver">핵심 동인: {outlook.key_driver}</p>
+      </div>
+    ))}
+  </div>
+);
+
 const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => (
   <div className="briefing-viewer">
     <BriefingSection title="핵심 요약" icon="📋">
@@ -72,6 +102,12 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => (
         </p>
       </div>
     </BriefingSection>
+
+    {briefing.crude_outlooks && briefing.crude_outlooks.length > 0 && (
+      <BriefingSection title="유종별 독립 전망" icon="🛢️">
+        <CrudeOutlooks outlooks={briefing.crude_outlooks} />
+      </BriefingSection>
+    )}
 
     {briefing.key_factors.length > 0 && (
       <BriefingSection title="주요 요인" icon="📊">

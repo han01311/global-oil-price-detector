@@ -88,12 +88,12 @@ async def classify_news(
         if memory.is_available() and classified_results:
             for res in classified_results:
                 if res.is_relevant:
-                    # Provide empty price changes since this is live news
-                    await memory.store_event(res.model_dump(), {
-                        "wti_change_1d": 0.0,
-                        "wti_change_7d": 0.0,
-                        "wti_change_30d": 0.0
-                    })
+                    # Provide empty price changes for all crude types since this is live news
+                    price_changes = {}
+                    for crude in ["dubai", "brent", "wti"]:
+                        for period in ["1d", "7d", "30d"]:
+                            price_changes[f"{crude}_change_{period}"] = 0.0
+                    await memory.store_event(res.model_dump(), price_changes)
         
         if fetch_latest:
             _news_cache["data"] = classified_results
@@ -108,6 +108,7 @@ async def classify_news(
 async def search_similar_events(
     query: str = Query(..., min_length=3, description="검색 쿼리 (뉴스 제목 또는 키워드)"),
     category: str = Query(default=None, description="필터링할 카테고리"),
+    crude_type: str = Query(default=None, description="특정 유종 필터 (dubai, brent, wti)"),
     limit: int = Query(default=5, ge=1, le=20),
 ) -> List[SimilarEvent]:
     """유사 과거 사례 검색"""
@@ -116,7 +117,7 @@ async def search_similar_events(
         raise HTTPException(status_code=503, detail="MarketMemory is not available.")
 
     try:
-        search_results = await memory.search_similar(query=query, category=category, n_results=limit)
+        search_results = await memory.search_similar(query=query, category=category, crude_type=crude_type, n_results=limit)
         
         response_events = []
         for res in search_results:
@@ -137,6 +138,12 @@ async def search_similar_events(
                 wti_change_1d=get_change('wti_change_1d'),
                 wti_change_7d=get_change('wti_change_7d'),
                 wti_change_30d=get_change('wti_change_30d'),
+                dubai_change_1d=get_change('dubai_change_1d'),
+                dubai_change_7d=get_change('dubai_change_7d'),
+                dubai_change_30d=get_change('dubai_change_30d'),
+                brent_change_1d=get_change('brent_change_1d'),
+                brent_change_7d=get_change('brent_change_7d'),
+                brent_change_30d=get_change('brent_change_30d'),
                 similarity=1.0 - res.get('distance', 1.0)
             )
             response_events.append(event)

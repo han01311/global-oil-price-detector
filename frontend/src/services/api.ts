@@ -52,8 +52,12 @@ export async function fetchAndClassifyNews(): Promise<ClassifiedArticle[]> {
   return apiFetch(`/api/news/classify?fetch_latest=true`, { method: 'POST' });
 }
 
-export async function fetchSimilarEvents(query: string): Promise<SimilarEvent[]> {
-  return apiFetch(`/api/news/similar?query=${encodeURIComponent(query)}`);
+export async function fetchSimilarEvents(query: string, crudeType?: string): Promise<SimilarEvent[]> {
+  let url = `/api/news/similar?query=${encodeURIComponent(query)}`;
+  if (crudeType) {
+    url += `&crude_type=${crudeType}`;
+  }
+  return apiFetch(url);
 }
 
 export async function fetchFactorSummary(): Promise<FactorSummary> {
@@ -72,3 +76,4 @@ export async function fetchTodayBriefing(): Promise<Briefing> {
 export async function fetchBriefingHistory(days: number): Promise<Briefing[]> {
   return apiFetch(`/api/briefing/history?days=${days}`);
 }
+

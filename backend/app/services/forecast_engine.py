@@ -19,105 +19,129 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 from app.services.feature_engineering import FeatureEngineer
 from app.services.data_collector import DataCollector
-from app.schemas.forecast import ForecastResult, FactorBreakdown
+from app.schemas.forecast import ForecastResult, FactorBreakdown, CrudeForecast
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+CRUDE_TYPES = ["dubai", "brent", "wti"]
+
+
 class ForecastEngine:
-    """XGBoost-based oil price forecasting engine."""
+    """XGBoost-based oil price forecasting engine — 유종별 독립 모델 지원."""
 
     MODEL_DIR = Path("backend/ml/models")
     REPORT_PATH = Path("backend/ml/training_report.json")
 
     def __init__(self):
         self.MODEL_DIR.mkdir(parents=True, exist_ok=True)
-        self.model_7d = None
-        self.model_30d = None
+        # Per-crude models: {"wti": {"7d": model, "30d": model}, ...}
+        self.models: Dict[str, Dict[str, object]] = {}
         self.training_report = None
 
-    def _load_models(self):
-        """Loads the trained models and training report from disk."""
-        model_path_7d = self.MODEL_DIR / "xgb_7d.joblib"
-        model_path_30d = self.MODEL_DIR / "xgb_30d.joblib"
+    def _model_path(self, crude: str, horizon: str) -> Path:
+        return self.MODEL_DIR / f"xgb_{crude}_{horizon}.joblib"
 
-        if not model_path_7d.exists() or not model_path_30d.exists():
-            raise FileNotFoundError("Trained models not found. Please run the training script first.")
-        
-        if not self.REPORT_PATH.exists():
+    def _load_models(self):
+        """Loads all trained models and training report from disk."""
+        if self.REPORT_PATH.exists():
+            with open(self.REPORT_PATH, 'r') as f:
+                self.training_report = json.load(f)
+        else:
             raise FileNotFoundError("Training report not found. Please run the training script first.")
 
-        self.model_7d = joblib.load(model_path_7d)
-        self.model_30d = joblib.load(model_path_30d)
-        with open(self.REPORT_PATH, 'r') as f:
-            self.training_report = json.load(f)
+        for crude in CRUDE_TYPES:
+            self.models[crude] = {}
+            for horizon in ["7d", "30d"]:
+                path = self._model_path(crude, horizon)
+                if path.exists():
+                    self.models[crude][horizon] = joblib.load(path)
+                else:
+                    # Fallback: try loading legacy WTI-only models
+                    legacy_path = self.MODEL_DIR / f"xgb_{horizon}.joblib"
+                    if crude == "wti" and legacy_path.exists():
+                        self.models[crude][horizon] = joblib.load(legacy_path)
+                    else:
+                        logging.warning(f"Model not found: {path}. Will skip {crude}/{horizon}.")
+                        self.models[crude][horizon] = None
+
+    def _get_feature_cols(self, features_df: pd.DataFrame) -> list:
+        """Get feature columns (exclude all target columns)."""
+        return [c for c in features_df.columns if not c.startswith("target_")]
 
     def train(self, features_df: pd.DataFrame) -> dict:
-        """Trains the models and evaluates them."""
+        """Trains models for all crude types and evaluates them."""
         if features_df.empty:
             raise ValueError("Features DataFrame cannot be empty.")
 
         train, test = FeatureEngineer().split_train_test(features_df)
+        feature_cols = self._get_feature_cols(train)
 
-        feature_cols = [c for c in train.columns if not c.startswith("target_")]
-        
-        # --- 7-day model ---
-        X_train, y_train_7d = train[feature_cols], train["target_7d"]
-        X_test, y_test_7d = test[feature_cols], test["target_7d"]
+        all_metrics = {}
 
-        model_7d = xgb.XGBRegressor(
-            n_estimators=200,
-            max_depth=6,
-            learning_rate=0.05,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            random_state=42,
-            early_stopping_rounds=10,
-        )
-        model_7d.fit(X_train, y_train_7d,
-                     eval_set=[(X_test, y_test_7d)],
-                     verbose=False)
+        for crude in CRUDE_TYPES:
+            target_7d = f"target_{crude}_7d"
+            target_30d = f"target_{crude}_30d"
 
-        # --- 30-day model ---
-        y_train_30d = train["target_30d"]
-        y_test_30d = test["target_30d"]
+            # Skip if target columns don't exist (e.g., missing Dubai data)
+            if target_7d not in train.columns or target_30d not in train.columns:
+                logging.warning(f"Skipping {crude}: target columns not found in features.")
+                continue
 
-        model_30d = xgb.XGBRegressor(
-            n_estimators=200,
-            max_depth=6,
-            learning_rate=0.05,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            random_state=42,
-            early_stopping_rounds=10,
-        )
-        model_30d.fit(X_train, y_train_30d,
-                      eval_set=[(X_test, y_test_30d)],
-                      verbose=False)
+            X_train, X_test = train[feature_cols], test[feature_cols]
 
-        # --- Save models ---
-        joblib.dump(model_7d, self.MODEL_DIR / "xgb_7d.joblib")
-        joblib.dump(model_30d, self.MODEL_DIR / "xgb_30d.joblib")
+            # --- 7-day model ---
+            y_train_7d, y_test_7d = train[target_7d], test[target_7d]
+            model_7d = xgb.XGBRegressor(
+                n_estimators=200, max_depth=6, learning_rate=0.05,
+                subsample=0.8, colsample_bytree=0.8, random_state=42,
+                early_stopping_rounds=10,
+            )
+            model_7d.fit(X_train, y_train_7d, eval_set=[(X_test, y_test_7d)], verbose=False)
 
-        # --- Evaluation ---
-        preds_7d = model_7d.predict(X_test)
-        preds_30d = model_30d.predict(X_test)
+            # --- 30-day model ---
+            y_train_30d, y_test_30d = train[target_30d], test[target_30d]
+            model_30d = xgb.XGBRegressor(
+                n_estimators=200, max_depth=6, learning_rate=0.05,
+                subsample=0.8, colsample_bytree=0.8, random_state=42,
+                early_stopping_rounds=10,
+            )
+            model_30d.fit(X_train, y_train_30d, eval_set=[(X_test, y_test_30d)], verbose=False)
 
-        rmse_7d = float(np.sqrt(mean_squared_error(y_test_7d, preds_7d)))
-        mae_7d = float(mean_absolute_error(y_test_7d, preds_7d))
-        rmse_30d = float(np.sqrt(mean_squared_error(y_test_30d, preds_30d)))
-        mae_30d = float(mean_absolute_error(y_test_30d, preds_30d))
+            # --- Save models ---
+            joblib.dump(model_7d, self._model_path(crude, "7d"))
+            joblib.dump(model_30d, self._model_path(crude, "30d"))
 
-        # --- Feature Importance ---
-        importances = model_7d.feature_importances_
+            # --- Evaluation ---
+            preds_7d = model_7d.predict(X_test)
+            preds_30d = model_30d.predict(X_test)
+
+            all_metrics[crude] = {
+                "rmse_7d": float(np.sqrt(mean_squared_error(y_test_7d, preds_7d))),
+                "mae_7d": float(mean_absolute_error(y_test_7d, preds_7d)),
+                "rmse_30d": float(np.sqrt(mean_squared_error(y_test_30d, preds_30d))),
+                "mae_30d": float(mean_absolute_error(y_test_30d, preds_30d)),
+            }
+
+            logging.info(f"[{crude.upper()}] RMSE_7d={all_metrics[crude]['rmse_7d']:.4f}, RMSE_30d={all_metrics[crude]['rmse_30d']:.4f}")
+
+        # Feature importance from WTI 7d model (primary)
+        wti_7d_path = self._model_path("wti", "7d")
         feature_importance_map = {}
-        for col, imp in sorted(zip(feature_cols, importances), key=lambda x: x[1], reverse=True):
-            feature_importance_map[col] = float(imp)
+        if wti_7d_path.exists():
+            wti_model = joblib.load(wti_7d_path)
+            importances = wti_model.feature_importances_
+            for col, imp in sorted(zip(feature_cols, importances), key=lambda x: x[1], reverse=True):
+                feature_importance_map[col] = float(imp)
+
+        # Legacy compatibility: top-level metrics use WTI
+        wti_metrics = all_metrics.get("wti", {})
 
         return {
-            "rmse_7d": rmse_7d,
-            "mae_7d": mae_7d,
-            "rmse_30d": rmse_30d,
-            "mae_30d": mae_30d,
+            "rmse_7d": wti_metrics.get("rmse_7d", 0),
+            "mae_7d": wti_metrics.get("mae_7d", 0),
+            "rmse_30d": wti_metrics.get("rmse_30d", 0),
+            "mae_30d": wti_metrics.get("mae_30d", 0),
+            "metrics_by_crude": all_metrics,
             "feature_columns": feature_cols,
             "feature_importance": dict(feature_importance_map),
             "data_range": {
@@ -127,9 +151,9 @@ class ForecastEngine:
             "samples": len(features_df)
         }
 
-    def predict(self, current_features: pd.DataFrame) -> dict:
-        """Predicts price changes based on current features."""
-        if self.model_7d is None or self.training_report is None:
+    def predict(self, current_features: pd.DataFrame, crude_type: str = "wti") -> dict:
+        """Predicts price changes for a specific crude type."""
+        if not self.models:
             self._load_models()
 
         # Ensure columns are in the same order as during training
@@ -137,34 +161,67 @@ class ForecastEngine:
         if feature_cols:
             current_features = current_features[feature_cols]
 
-        pred_7d = self.model_7d.predict(current_features)[0]
-        pred_30d = self.model_30d.predict(current_features)[0]
+        crude_models = self.models.get(crude_type, {})
+        model_7d = crude_models.get("7d")
+        model_30d = crude_models.get("30d")
+
+        # Fallback to WTI models if specific crude model not available
+        if model_7d is None:
+            model_7d = self.models.get("wti", {}).get("7d")
+        if model_30d is None:
+            model_30d = self.models.get("wti", {}).get("30d")
+
+        if model_7d is None or model_30d is None:
+            raise FileNotFoundError(f"Models for {crude_type} not found.")
+
+        pred_7d = model_7d.predict(current_features)[0]
+        pred_30d = model_30d.predict(current_features)[0]
+
+        # Get RMSE from report
+        metrics_by_crude = self.training_report.get("metrics_by_crude", {})
+        crude_metrics = metrics_by_crude.get(crude_type, {})
 
         return {
             "baseline_change_7d": float(pred_7d),
             "baseline_change_30d": float(pred_30d),
-            "model_rmse_7d": self.training_report.get("rmse_7d"),
-            "model_rmse_30d": self.training_report.get("rmse_30d"),
+            "model_rmse_7d": crude_metrics.get("rmse_7d", self.training_report.get("rmse_7d")),
+            "model_rmse_30d": crude_metrics.get("rmse_30d", self.training_report.get("rmse_30d")),
         }
 
+
 class NewsAdjuster:
-    """뉴스 기반 유가 보정 로직"""
+    """뉴스 기반 유가 보정 로직 — 유종별 독립 보정 지원"""
 
     async def calculate_adjustment(self, classified_articles: List[Dict],
-                                    similar_events: List[Dict]) -> Dict:
-        """뉴스 분석 결과를 기반으로 보정값 산출"""
+                                    similar_events: List[Dict],
+                                    crude_type: str = "wti") -> Dict:
+        """뉴스 분석 결과를 기반으로 특정 유종의 보정값 산출"""
         relevant_articles = [a for a in classified_articles if a.get("is_relevant")]
         
-        # 1. 현재 뉴스 기반 종합 감성
-        weighted_score = sum(
-            a["impact_score"] * a["confidence"]
-            for a in relevant_articles
-        )
-        article_count = len(relevant_articles)
+        # 1. 유종별 뉴스 감성 점수 계산
+        weighted_score = 0
+        article_count = 0
+        for a in relevant_articles:
+            impact_by_crude = a.get("impact_by_crude", {})
+            if crude_type in impact_by_crude:
+                crude_impact = impact_by_crude[crude_type]
+                # Handle both dict and CrudeImpact model
+                if isinstance(crude_impact, dict):
+                    score = crude_impact.get("score", 0)
+                else:
+                    score = crude_impact.score if hasattr(crude_impact, 'score') else 0
+                confidence = a.get("confidence", 0.8)
+                weighted_score += score * confidence
+                article_count += 1
+            else:
+                # Fallback to overall impact_score
+                weighted_score += a.get("impact_score", 0) * a.get("confidence", 0.8)
+                article_count += 1
+
         avg_sentiment = weighted_score / max(article_count, 1)
 
-        # 2. 유사 과거 사례 기반 보정
-        similar_adjustment = self._calculate_similar_adjustment(similar_events)
+        # 2. 유사 과거 사례 기반 보정 (유종별)
+        similar_adjustment = self._calculate_similar_adjustment(similar_events, crude_type)
 
         # 3. 최종 보정값 = 감성 기반 + 유사 사례 기반 (가중 결합)
         sentiment_adjustment = self._sentiment_to_pct(avg_sentiment)
@@ -173,8 +230,8 @@ class NewsAdjuster:
             0.6 * similar_adjustment
         )
 
-        # 4. 불확실성 (뉴스 분산이 크면 신뢰구간 넓힘)
-        uncertainty = self._calculate_uncertainty(relevant_articles)
+        # 4. 불확실성
+        uncertainty = self._calculate_uncertainty(relevant_articles, crude_type)
 
         return {
             "news_adjustment_pct": news_adjustment,
@@ -182,7 +239,7 @@ class NewsAdjuster:
             "similar_component": similar_adjustment,
             "uncertainty_factor": uncertainty,
             "article_count": article_count,
-            "dominant_category": self._get_dominant_category(relevant_articles),
+            "dominant_category": self._get_dominant_category(relevant_articles, crude_type),
         }
 
     def _sentiment_to_pct(self, score: float) -> float:
@@ -192,73 +249,103 @@ class NewsAdjuster:
         # 비선형 매핑: score ±1 → ±0.4%, ±3 → ±2.3%, ±5 → ±5%
         return np.sign(score) * (abs(score) / 5) ** 1.5 * 0.05
 
-    def _calculate_similar_adjustment(self, events: List[Dict]) -> float:
-        """유사 사례의 유가 변동률 가중 평균"""
+    def _calculate_similar_adjustment(self, events: List[Dict], crude_type: str = "wti") -> float:
+        """유사 사례의 유종별 유가 변동률 가중 평균"""
         total_weight = 0
         weighted_sum = 0
         
+        change_key = f"{crude_type}_change_7d"
+        fallback_key = "wti_change_7d"
+        
         for event in events:
             similarity = event.get("similarity", 0)
-            # Use 7-day change as it's more stable than 1-day
-            change = event.get("wti_change_7d")
+            change = event.get(change_key) or event.get(fallback_key)
             
-            if change is not None and similarity > 0.5: # Use a similarity threshold
+            if change is not None and similarity > 0.5:
                 change_decimal = change / 100.0
                 weighted_sum += change_decimal * similarity
                 total_weight += similarity
                 
         return weighted_sum / total_weight if total_weight > 0 else 0.0
 
-    def _calculate_uncertainty(self, articles: List[Dict]) -> float:
-        """뉴스 의견 분산으로 불확실성 계산"""
-        relevant_scores = [a["impact_score"] for a in articles]
-        if len(relevant_scores) < 2:
-            return 0.005  # Base uncertainty for few articles
-        
-        std_dev = np.std(relevant_scores)
-        normalized_std = std_dev / 5.0  # Max score is 5
-        
-        # Map to a small percentage for the confidence band, e.g., 0% to 2%
-        uncertainty_pct = normalized_std * 0.02
-        return uncertainty_pct
+    def _calculate_uncertainty(self, articles: List[Dict], crude_type: str = "wti") -> float:
+        """뉴스 의견 분산으로 불확실성 계산 — 유종별"""
+        scores = []
+        for a in articles:
+            impact_by_crude = a.get("impact_by_crude", {})
+            if crude_type in impact_by_crude:
+                crude_impact = impact_by_crude[crude_type]
+                if isinstance(crude_impact, dict):
+                    scores.append(crude_impact.get("score", 0))
+                else:
+                    scores.append(crude_impact.score if hasattr(crude_impact, 'score') else 0)
+            else:
+                scores.append(a.get("impact_score", 0))
 
-    def _get_dominant_category(self, articles: List[Dict]) -> Optional[str]:
-        """가장 영향력 있는 카테고리 식별"""
+        if len(scores) < 2:
+            return 0.005
+        
+        std_dev = np.std(scores)
+        normalized_std = std_dev / 5.0
+        return normalized_std * 0.02
+
+    def _get_dominant_category(self, articles: List[Dict], crude_type: str = "wti") -> Optional[str]:
+        """가장 영향력 있는 카테고리 식별 — 유종별"""
         category_impacts = Counter()
         for article in articles:
             category = article.get("category")
-            impact = article.get("impact_score", 0)
+            impact_by_crude = article.get("impact_by_crude", {})
+            if crude_type in impact_by_crude:
+                crude_impact = impact_by_crude[crude_type]
+                if isinstance(crude_impact, dict):
+                    impact = abs(crude_impact.get("score", 0))
+                else:
+                    impact = abs(crude_impact.score) if hasattr(crude_impact, 'score') else 0
+            else:
+                impact = abs(article.get("impact_score", 0))
             if category:
-                category_impacts[category] += abs(impact)
+                category_impacts[category] += impact
         
         if not category_impacts:
             return None
-        
         return category_impacts.most_common(1)[0][0]
 
-    def _calculate_factor_breakdown(self, articles: List[Dict]) -> List[Dict]:
-        """카테고리별 기여도 계산"""
+    def _calculate_factor_breakdown(self, articles: List[Dict], crude_type: str = "wti") -> List[Dict]:
+        """카테고리별 기여도 계산 — 유종별"""
         category_contributions = Counter()
         category_counts = Counter()
-        total_weighted_score = sum(a["impact_score"] * a["confidence"] for a in articles if a.get("is_relevant"))
+        total_weighted_score = 0
+
+        for article in articles:
+            if not article.get("is_relevant"):
+                continue
+            impact_by_crude = article.get("impact_by_crude", {})
+            if crude_type in impact_by_crude:
+                crude_impact = impact_by_crude[crude_type]
+                if isinstance(crude_impact, dict):
+                    score = crude_impact.get("score", 0)
+                else:
+                    score = crude_impact.score if hasattr(crude_impact, 'score') else 0
+            else:
+                score = article.get("impact_score", 0)
+
+            confidence = article.get("confidence", 1.0)
+            weighted = score * confidence
+            total_weighted_score += weighted
+
+            category = article.get("category")
+            if category:
+                category_contributions[category] += weighted
+                category_counts[category] += 1
 
         if total_weighted_score == 0:
             return []
 
-        for article in articles:
-            if article.get("is_relevant"):
-                category = article.get("category")
-                weighted_score = article.get("impact_score", 0) * article.get("confidence", 1.0)
-                if category:
-                    category_contributions[category] += weighted_score
-                    category_counts[category] += 1
-        
         breakdown = []
         sentiment_total_pct = self._sentiment_to_pct(total_weighted_score / max(1, len(articles)))
         
         for category, total_score in category_contributions.items():
-            # Approximate contribution based on its share of the total score
-            contribution_pct = (total_score / total_weighted_score) * sentiment_total_pct * 0.4 # 0.4 sentiment weight
+            contribution_pct = (total_score / total_weighted_score) * sentiment_total_pct * 0.4
             breakdown.append({
                 "category": category,
                 "contribution": contribution_pct,
@@ -268,60 +355,98 @@ class NewsAdjuster:
 
 
 class HybridForecaster:
-    """하이브리드 유가 추정기 (XGBoost + 뉴스 보정)"""
+    """하이브리드 유가 추정기 — 유종별 독립 추정 지원"""
 
     def __init__(self, engine: ForecastEngine, adjuster: NewsAdjuster):
         self.engine = engine
         self.adjuster = adjuster
 
-    async def forecast(self, current_price: float, current_features: pd.DataFrame,
-                       classified_articles: List[Dict], similar_events: List[Dict]) -> ForecastResult:
-        """최종 유가 추정 밴드 산출"""
-        # 1. XGBoost baseline
-        baseline = self.engine.predict(current_features)
+    async def forecast(self, current_prices: Dict[str, float],
+                       current_features: pd.DataFrame,
+                       classified_articles: List[Dict],
+                       similar_events: List[Dict]) -> ForecastResult:
+        """유종별 독립 추정 밴드 산출"""
 
-        # 2. News adjustment
-        adjustment = await self.adjuster.calculate_adjustment(classified_articles, similar_events)
+        forecasts_by_crude = {}
 
-        # 3. Final calculation (7d)
-        final_change_7d = (1 + baseline["baseline_change_7d"]) * (1 + adjustment["news_adjustment_pct"]) - 1
-        estimated_price_7d = current_price * (1 + final_change_7d)
+        for crude in CRUDE_TYPES:
+            price = current_prices.get(crude)
+            if price is None or pd.isna(price):
+                continue
 
-        # 4. Confidence band (7d)
-        band_width_7d = baseline["model_rmse_7d"] + adjustment["uncertainty_factor"]
+            try:
+                baseline = self.engine.predict(current_features, crude_type=crude)
+            except FileNotFoundError:
+                logging.warning(f"No model for {crude}, skipping.")
+                continue
 
-        # 5. Final calculation (30d)
-        final_change_30d = (1 + baseline["baseline_change_30d"]) * (1 + adjustment["news_adjustment_pct"]) - 1
-        estimated_price_30d = current_price * (1 + final_change_30d)
+            adjustment = await self.adjuster.calculate_adjustment(
+                classified_articles, similar_events, crude_type=crude
+            )
 
-        # 6. Confidence band (30d)
-        band_width_30d = baseline["model_rmse_30d"] + adjustment["uncertainty_factor"]
+            final_change_7d = (1 + baseline["baseline_change_7d"]) * (1 + adjustment["news_adjustment_pct"]) - 1
+            estimated_7d = price * (1 + final_change_7d)
+            band_7d = baseline["model_rmse_7d"] + adjustment["uncertainty_factor"]
 
-        # 7. Factor breakdown
+            final_change_30d = (1 + baseline["baseline_change_30d"]) * (1 + adjustment["news_adjustment_pct"]) - 1
+            estimated_30d = price * (1 + final_change_30d)
+            band_30d = baseline["model_rmse_30d"] + adjustment["uncertainty_factor"]
+
+            forecasts_by_crude[crude] = CrudeForecast(
+                crude_type=crude,
+                current_price=price,
+                estimated_7d=estimated_7d,
+                estimated_7d_high=estimated_7d * (1 + band_7d),
+                estimated_7d_low=estimated_7d * (1 - band_7d),
+                estimated_30d=estimated_30d,
+                estimated_30d_high=estimated_30d * (1 + band_30d),
+                estimated_30d_low=estimated_30d * (1 - band_30d),
+                baseline_change_7d=baseline["baseline_change_7d"],
+                baseline_change_30d=baseline["baseline_change_30d"],
+                news_adjustment_pct=adjustment["news_adjustment_pct"],
+                confidence=max(0, 1 - (band_7d * 2)),
+                dominant_factor=adjustment["dominant_category"],
+            )
+
+        # Primary result uses WTI for backward compatibility
+        wti = forecasts_by_crude.get("wti")
+        if wti is None:
+            # Use first available crude
+            wti = next(iter(forecasts_by_crude.values())) if forecasts_by_crude else None
+
+        if wti is None:
+            raise ValueError("No crude type could be forecasted.")
+
+        # Factor breakdown using WTI
         factor_breakdown_data = self.adjuster._calculate_factor_breakdown(
-            [a for a in classified_articles if a.get("is_relevant")]
+            [a for a in classified_articles if a.get("is_relevant")],
+            crude_type="wti"
         )
 
-        # 8. Black Swan Detection
-        is_extreme = abs(adjustment["news_adjustment_pct"]) >= 0.05 or band_width_7d >= 0.1
+        wti_adj = await self.adjuster.calculate_adjustment(
+            classified_articles, similar_events, crude_type="wti"
+        )
+        is_extreme = abs(wti_adj["news_adjustment_pct"]) >= 0.05 or wti.confidence < 0.3
 
         return ForecastResult(
-            current_price=current_price,
-            estimated_7d=estimated_price_7d,
-            estimated_7d_high=estimated_price_7d * (1 + band_width_7d),
-            estimated_7d_low=estimated_price_7d * (1 - band_width_7d),
-            estimated_30d=estimated_price_30d,
-            estimated_30d_high=estimated_price_30d * (1 + band_width_30d),
-            estimated_30d_low=estimated_price_30d * (1 - band_width_30d),
-            baseline_change_7d=baseline["baseline_change_7d"],
-            baseline_change_30d=baseline["baseline_change_30d"],
-            news_adjustment_pct=adjustment["news_adjustment_pct"],
-            confidence=max(0, 1 - (band_width_7d * 2)),
-            dominant_factor=adjustment["dominant_category"],
+            current_price=wti.current_price,
+            estimated_7d=wti.estimated_7d,
+            estimated_7d_high=wti.estimated_7d_high,
+            estimated_7d_low=wti.estimated_7d_low,
+            estimated_30d=wti.estimated_30d,
+            estimated_30d_high=wti.estimated_30d_high,
+            estimated_30d_low=wti.estimated_30d_low,
+            baseline_change_7d=wti.baseline_change_7d,
+            baseline_change_30d=wti.baseline_change_30d,
+            news_adjustment_pct=wti.news_adjustment_pct,
+            confidence=wti.confidence,
+            dominant_factor=wti.dominant_factor,
             extreme_volatility_warning=is_extreme,
             factor_breakdown=[FactorBreakdown(**fb) for fb in factor_breakdown_data],
+            forecasts_by_crude=forecasts_by_crude,
             generated_at=datetime.now(timezone.utc).isoformat(),
         )
+
 
 async def run_training():
     """The main training pipeline script."""
@@ -330,7 +455,6 @@ async def run_training():
     # 1. Data Collection
     logging.info("Collecting historical data...")
     collector = DataCollector()
-    # Collect data for the last 5 years
     end_date = datetime.now()
     start_date = end_date - pd.DateOffset(years=5)
     
@@ -350,7 +474,7 @@ async def run_training():
     features_df = feature_engineer.build_features(prices_df, macro_df)
 
     # 3. Model Training
-    logging.info("Training XGBoost models...")
+    logging.info("Training XGBoost models for all crude types...")
     engine = ForecastEngine()
     metrics = engine.train(features_df)
 
@@ -364,6 +488,7 @@ async def run_training():
         "mae_7d": metrics['mae_7d'],
         "rmse_30d": metrics['rmse_30d'],
         "mae_30d": metrics['mae_30d'],
+        "metrics_by_crude": metrics.get('metrics_by_crude', {}),
         "feature_columns": metrics['feature_columns'],
         "top_features": dict(list(metrics['feature_importance'].items())[:10]),
     }
@@ -372,7 +497,8 @@ async def run_training():
         json.dump(report, f, indent=2)
 
     logging.info(f"Training complete. Report saved to {engine.REPORT_PATH}")
-    logging.info(f"Metrics: RMSE_7d={report['rmse_7d']:.4f}, RMSE_30d={report['rmse_30d']:.4f}")
+    for crude, m in metrics.get('metrics_by_crude', {}).items():
+        logging.info(f"[{crude.upper()}] RMSE_7d={m['rmse_7d']:.4f}, RMSE_30d={m['rmse_30d']:.4f}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Forecast Engine Training Script")

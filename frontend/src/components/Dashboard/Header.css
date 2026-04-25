@@ -75,3 +75,18 @@
   transform: rotate(45deg);
 }
 
+.header-7d-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 2px;
+  letter-spacing: 0.02em;
+}
+.header-7d-badge.bull {
+  color: var(--color-bull);
+  background-color: rgba(255, 107, 53, 0.12);
+}
+.header-7d-badge.bear {
+  color: var(--color-bear);
+  background-color: rgba(0, 212, 255, 0.12);
+}
