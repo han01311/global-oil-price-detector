@@ -88,3 +88,17 @@
   line-height: 1.4;
   max-width: 280px;
 }
+
+/* 
+  Remove annoying white/blue focus borders when clicking the chart.
+  Recharts applies tabindex and SVG focus rings that cause borders. 
+*/
+.recharts-wrapper, 
+.recharts-surface, 
+.recharts-wrapper:focus, 
+.recharts-surface:focus,
+.recharts-layer,
+.recharts-layer:focus,
+.recharts-wrapper * {
+  outline: none !important;
+}

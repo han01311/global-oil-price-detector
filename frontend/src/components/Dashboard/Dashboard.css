@@ -12,6 +12,8 @@
 
 .dashboard-chart {
   grid-area: chart;
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-sidebar {
@@ -26,7 +28,19 @@
 }
 
 .price-chart-card {
-  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.price-chart-card .card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.recharts-wrapper {
+  outline: none !important;
 }
 
 .dashboard-global-error {

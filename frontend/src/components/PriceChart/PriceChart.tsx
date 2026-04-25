@@ -143,26 +143,27 @@ export const PriceChart: React.FC = () => {
     if (chartData.length === 0) {
       return <EmptyState icon="chart" title="선택한 기간에 유가 데이터가 없습니다" description="다른 기간을 선택해 주세요." />;
     }
-
-    const yDomain = [ 'dataMin - 5', 'dataMax + 5' ];
+    const yDomain = ['auto', 'auto'];
 
     return (
-      <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-          <defs>
-            <linearGradient id="forecast-bull" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--color-bull)" stopOpacity={0.2}/>
-              <stop offset="95%" stopColor="var(--color-bull)" stopOpacity={0}/>
-            </linearGradient>
-            <linearGradient id="forecast-bear" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--color-bear)" stopOpacity={0.2}/>
-              <stop offset="95%" stopColor="var(--color-bear)" stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-          <XAxis 
-            dataKey="timestamp"
-            tickFormatter={(unixTime) => new Date(unixTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+      <div style={{ flex: 1, minHeight: 400, position: 'relative' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <ComposedChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+            <defs>
+              <linearGradient id="forecast-bull" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-bull)" stopOpacity={0.2}/>
+                <stop offset="95%" stopColor="var(--color-bull)" stopOpacity={0}/>
+              </linearGradient>
+              <linearGradient id="forecast-bear" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="var(--color-bear)" stopOpacity={0.2}/>
+                <stop offset="95%" stopColor="var(--color-bear)" stopOpacity={0}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+            <XAxis 
+              dataKey="timestamp"
+              tickFormatter={(unixTime) => new Date(unixTime).toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric', day: 'numeric' })}
             stroke="var(--color-text-muted)"
             fontSize={12}
           />
@@ -199,7 +200,9 @@ export const PriceChart: React.FC = () => {
             />
           ))}
         </ComposedChart>
-      </ResponsiveContainer>
+        </ResponsiveContainer>
+        </div>
+      </div>
     );
   };
 

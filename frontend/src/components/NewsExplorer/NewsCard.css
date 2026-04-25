@@ -46,9 +46,24 @@
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
-.impact-bull { color: var(--color-bull); }
-.impact-bear { color: var(--color-bear); }
-.impact-neutral { color: var(--color-neutral); }
+
+.crude-impact-badge.impact-bull {
+  color: var(--color-bull);
+  border-color: rgba(46, 204, 113, 0.4);
+  background: rgba(46, 204, 113, 0.1);
+}
+.crude-impact-badge.impact-bull .crude-label { color: var(--color-bull); opacity: 0.8; }
+
+.crude-impact-badge.impact-bear {
+  color: var(--color-bear);
+  border-color: rgba(231, 76, 60, 0.4);
+  background: rgba(231, 76, 60, 0.1);
+}
+.crude-impact-badge.impact-bear .crude-label { color: var(--color-bear); opacity: 0.8; }
+
+.crude-impact-badge.impact-neutral {
+  color: var(--color-text-secondary);
+}
 
 .news-card-title-container {
   display: flex;

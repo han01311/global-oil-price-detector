@@ -6,6 +6,7 @@ import { AIBriefing } from '../Briefing/AIBriefing';
 import { NewsExplorer } from '../NewsExplorer/NewsExplorer';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { ErrorBoundary } from '../common/ErrorBoundary';
+import { PriceSummaryBox } from './PriceSummaryBox';
 import './Dashboard.css';
 
 export const Dashboard: React.FC = () => {
@@ -49,6 +50,9 @@ export const Dashboard: React.FC = () => {
 
       {/* Progressive loading: each widget manages its own loading/error state independently */}
       <main className="dashboard-chart fade-in">
+        <ErrorBoundary moduleName="Price Summary Box">
+          <PriceSummaryBox latestPrice={latestPrice} forecast={forecast} loading={loading} />
+        </ErrorBoundary>
         <ErrorBoundary moduleName="Price Chart">
           <PriceChart />
         </ErrorBoundary>

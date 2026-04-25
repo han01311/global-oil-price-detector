@@ -213,40 +213,40 @@ Based on the contextual data, generate the daily briefing with independent per-c
 
 [JSON OUTPUT FORMAT]
 {{
-  "summary": "string (3-sentence executive summary covering all crude types)",
+  "summary": "string (반드시 한국어로 작성. 3개 유종을 모두 아우르는 3문장 이내의 핵심 요약)",
   "key_factors": [
     {{
-      "category": "string (e.g., 'supply', 'geopolitics')",
-      "description": "string (analysis of this factor's impact)",
-      "impact": "string ('bullish', 'bearish', or 'neutral')",
+      "category": "string (예: '공급', '지정학', '수요' 등 한국어로 작성)",
+      "description": "string (반드시 한국어로 작성. 이 요인이 유가에 미치는 영향에 대한 상세 분석)",
+      "impact": "string ('bullish', 'bearish', 또는 'neutral' 중 하나로 영문 유지)",
       "score": "integer (-5 to 5)"
     }}
   ],
   "risk_scenarios": [
     {{
-      "scenario": "string",
-      "probability": "string ('high', 'medium', or 'low')",
-      "price_impact": "string (e.g., '+$3-5/bbl')"
+      "scenario": "string (반드시 한국어로 작성. 발생 가능한 시장 리스크 시나리오)",
+      "probability": "string ('high', 'medium', 또는 'low' 중 하나로 영문 유지)",
+      "price_impact": "string (예: '+$3-5/bbl')"
     }}
   ],
   "similar_cases": [
     {{
-      "event": "string",
+      "event": "string (과거 유사 사례 이벤트명, 한국어로 작성)",
       "date": "string",
       "similarity": "float",
-      "actual_impact": "string"
+      "actual_impact": "string (실제 가격에 미친 영향, 한국어로 작성)"
     }}
   ],
   "crude_outlooks": [
     {{
-      "crude_type": "string ('dubai', 'brent', or 'wti')",
-      "direction": "string ('bullish', 'bearish', or 'neutral')",
-      "summary": "string (2-sentence outlook specific to this crude type)",
-      "key_driver": "string (the primary driver for this crude type's movement)"
+      "crude_type": "string ('dubai', 'brent', 또는 'wti')",
+      "direction": "string ('bullish', 'bearish', 또는 'neutral')",
+      "summary": "string (반드시 한국어로 작성. 해당 유종에 특화된 2문장 이내의 전망)",
+      "key_driver": "string (반드시 한국어로 작성. 해당 유종의 가격 변동을 이끄는 핵심 동인)"
     }}
   ],
-  "price_outlook": "string (concluding overall price direction)",
-  "confidence_note": "string (note on forecast confidence and limitations)"
+  "price_outlook": "string (반드시 한국어로 작성. 종합적인 유가 방향성 결론)",
+  "confidence_note": "string (반드시 한국어로 작성. 예측 신뢰도 및 한계점에 대한 코멘트)"
 }}
 """
         return prompt

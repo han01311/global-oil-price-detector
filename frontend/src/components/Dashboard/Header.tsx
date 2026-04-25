@@ -38,54 +38,7 @@ export const Header: React.FC<HeaderProps> = ({ latestPrice, forecast, loading, 
         Petro-AX
       </div>
       <div className="header-prices">
-        {loading ? (
-          <>
-            <Skeleton width="200px" height="2rem" />
-            <Skeleton width="200px" height="2rem" />
-          </>
-        ) : (
-          <>
-            {dubaiPrice !== null && dubaiPrice !== undefined && (
-              <div className="header-price-item">
-                <Tooltip content="Dubai Crude. 중동 지역에서 생산되는 원유 벤치마크 가격.">
-                  <span className="price-label">Dubai</span>
-                </Tooltip>
-                <PriceDisplay value={dubaiPrice} size="medium" />
-                {forecast?.forecasts_by_crude?.dubai && (
-                  <span className={`header-7d-badge ${forecast.forecasts_by_crude.dubai.news_adjustment_pct >= 0 ? 'bull' : 'bear'}`}>
-                    {forecast.forecasts_by_crude.dubai.news_adjustment_pct >= 0 ? '▲' : '▼'}7d
-                  </span>
-                )}
-              </div>
-            )}
-            {wtiPrice !== null && wtiPrice !== undefined && (
-              <div className="header-price-item">
-                <Tooltip content="West Texas Intermediate. 미국 텍사스에서 생산되는 경질 원유 벤치마크 가격.">
-                  <span className="price-label">WTI</span>
-                </Tooltip>
-                <PriceDisplay value={wtiPrice} change={priceChange} size="medium" />
-                {forecast?.forecasts_by_crude?.wti && (
-                  <span className={`header-7d-badge ${forecast.forecasts_by_crude.wti.news_adjustment_pct >= 0 ? 'bull' : 'bear'}`}>
-                    {forecast.forecasts_by_crude.wti.news_adjustment_pct >= 0 ? '▲' : '▼'}7d
-                  </span>
-                )}
-              </div>
-            )}
-            {brentPrice !== null && brentPrice !== undefined && (
-              <div className="header-price-item">
-                <Tooltip content="Brent Crude. 북해에서 생산되는 원유로 글로벌 유가의 국제 기준 벤치마크.">
-                  <span className="price-label">Brent</span>
-                </Tooltip>
-                <PriceDisplay value={brentPrice} size="medium" />
-                {forecast?.forecasts_by_crude?.brent && (
-                  <span className={`header-7d-badge ${forecast.forecasts_by_crude.brent.news_adjustment_pct >= 0 ? 'bull' : 'bear'}`}>
-                    {forecast.forecasts_by_crude.brent.news_adjustment_pct >= 0 ? '▲' : '▼'}7d
-                  </span>
-                )}
-              </div>
-            )}
-          </>
-        )}
+        {/* Prices moved to PriceSummaryBox above the chart */}
       </div>
       <div className="header-meta">
         {isBlackSwan && <BlackSwanBadge />}
