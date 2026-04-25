@@ -75,14 +75,14 @@ async def _log_collection(source: str, task_type: str, func, *args, **kwargs):
     await db.insert_collection_log(log_entry)
 
 
-async def collect_eia_prices():
-    """EIA 유가 수집"""
+async def collect_opinet_prices():
+    """Opinet 유가 수집 (Dubai, Brent, WTI)"""
     from app.services.data_collector import DataCollector
     collector = DataCollector()
     end_date = date.today()
     start_date = end_date - timedelta(days=30)
     await _log_collection(
-        "eia", "prices",
+        "opinet", "prices",
         collector.collect_prices,
         start_date.isoformat(), end_date.isoformat()
     )
@@ -166,12 +166,12 @@ class CollectionScheduler:
         interval_hours = settings.COLLECTION_INTERVAL_HOURS
         self._scheduler = AsyncIOScheduler()
 
-        # EIA 수집 (유가, 재고, 생산량) — 매 interval 시간마다
+        # Opinet 수집 (유가) — 매 interval 시간마다
         self._scheduler.add_job(
-            collect_eia_prices,
+            collect_opinet_prices,
             IntervalTrigger(hours=interval_hours),
-            id="eia_prices",
-            name="EIA 유가 수집",
+            id="opinet_prices",
+            name="Opinet 유가 수집",
             replace_existing=True,
         )
         self._scheduler.add_job(
@@ -239,7 +239,7 @@ class CollectionScheduler:
     async def trigger_manual(self, source: str) -> dict:
         """수동으로 특정 소스 수집을 트리거한다."""
         job_map = {
-            "eia_prices": collect_eia_prices,
+            "opinet_prices": collect_opinet_prices,
             "eia_inventory": collect_eia_inventory,
             "eia_production": collect_eia_production,
             "fred_macro": collect_fred_macro,

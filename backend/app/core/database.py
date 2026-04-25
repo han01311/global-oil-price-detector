@@ -22,9 +22,10 @@ SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS oil_prices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT NOT NULL,
+    dubai REAL,
     wti REAL,
     brent REAL,
-    source TEXT DEFAULT 'eia',
+    source TEXT DEFAULT 'opinet',
     collected_at TEXT NOT NULL,
     UNIQUE(date, source)
 );
@@ -151,9 +152,9 @@ class Database:
         for row in rows:
             try:
                 await conn.execute(
-                    "INSERT OR REPLACE INTO oil_prices (date, wti, brent, source, collected_at) "
-                    "VALUES (?, ?, ?, ?, ?)",
-                    (row["date"], row.get("wti"), row.get("brent"), row.get("source", "eia"), now),
+                    "INSERT OR REPLACE INTO oil_prices (date, dubai, wti, brent, source, collected_at) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (row["date"], row.get("dubai"), row.get("wti"), row.get("brent"), row.get("source", "opinet"), now),
                 )
                 count += 1
             except Exception as e:

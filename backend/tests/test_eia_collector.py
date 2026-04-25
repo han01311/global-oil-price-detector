@@ -61,8 +61,8 @@ def eia_collector(tmp_path):
 @respx.mock
 async def test_get_crude_prices_success(eia_collector):
     """유가 데이터를 성공적으로 가져오는지 테스트"""
-    respx.get(url__regex=r".*PET\.RWTC\.D.*").mock(return_value=Response(200, json=MOCK_WTI_RESPONSE))
-    respx.get(url__regex=r".*PET\.RBRTE\.D.*").mock(return_value=Response(200, json=MOCK_BRENT_RESPONSE))
+    respx.get(url__regex=r".*RWTC.*").mock(return_value=Response(200, json=MOCK_WTI_RESPONSE))
+    respx.get(url__regex=r".*RBRTE.*").mock(return_value=Response(200, json=MOCK_BRENT_RESPONSE))
 
     df = await eia_collector.get_crude_prices("2023-10-26", "2023-10-27")
 
@@ -87,8 +87,8 @@ async def test_caching_logic(eia_collector, tmp_path):
     """데이터가 캐시되고 재사용되는지 테스트"""
     eia_collector.cache_dir = tmp_path
 
-    wti_route = respx.get(url__regex=r".*PET\.RWTC\.D.*").mock(return_value=Response(200, json=MOCK_WTI_RESPONSE))
-    brent_route = respx.get(url__regex=r".*PET\.RBRTE\.D.*").mock(return_value=Response(200, json=MOCK_BRENT_RESPONSE))
+    wti_route = respx.get(url__regex=r".*RWTC.*").mock(return_value=Response(200, json=MOCK_WTI_RESPONSE))
+    brent_route = respx.get(url__regex=r".*RBRTE.*").mock(return_value=Response(200, json=MOCK_BRENT_RESPONSE))
 
     # 첫 번째 호출: API 호출
     await eia_collector.get_crude_prices("2023-10-26", "2023-10-27")
@@ -97,8 +97,8 @@ async def test_caching_logic(eia_collector, tmp_path):
 
     # 캐시 파일 생성 확인
     today = datetime.now().strftime('%Y-%m-%d')
-    assert (tmp_path / f"{today}_PET.RWTC.D.json").exists()
-    assert (tmp_path / f"{today}_PET.RBRTE.D.json").exists()
+    assert (tmp_path / f"{today}_RWTC.json").exists()
+    assert (tmp_path / f"{today}_RBRTE.json").exists()
 
     # 두 번째 호출: 캐시 사용
     df = await eia_collector.get_crude_prices("2023-10-26", "2023-10-27")
@@ -111,7 +111,7 @@ async def test_caching_logic(eia_collector, tmp_path):
 @respx.mock
 async def test_get_crude_inventory(eia_collector):
     """원유 재고 데이터를 성공적으로 가져오는지 테스트"""
-    inventory_route = respx.get(url__regex=r".*PET\.WCESTUS1\.W.*").mock(return_value=Response(200, json=MOCK_INVENTORY_RESPONSE))
+    inventory_route = respx.get(url__regex=r".*WCESTUS1.*").mock(return_value=Response(200, json=MOCK_INVENTORY_RESPONSE))
 
     df = await eia_collector.get_crude_inventory("2023-10-20", "2023-10-20")
 
@@ -125,7 +125,7 @@ async def test_get_crude_inventory(eia_collector):
 @respx.mock
 async def test_get_production(eia_collector):
     """원유 생산량 데이터를 성공적으로 가져오는지 테스트"""
-    production_route = respx.get(url__regex=r".*PET\.WCRFPUS2\.W.*").mock(return_value=Response(200, json=MOCK_PRODUCTION_RESPONSE))
+    production_route = respx.get(url__regex=r".*WCRFPUS2.*").mock(return_value=Response(200, json=MOCK_PRODUCTION_RESPONSE))
 
     df = await eia_collector.get_production("2023-10-20", "2023-10-20")
 

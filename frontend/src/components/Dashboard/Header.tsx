@@ -26,6 +26,7 @@ const BlackSwanBadge: React.FC = () => (
 );
 
 export const Header: React.FC<HeaderProps> = ({ latestPrice, forecast, loading, isBlackSwan }) => {
+  const dubaiPrice = latestPrice?.dubai;
   const wtiPrice = latestPrice?.wti;
   const brentPrice = latestPrice?.brent;
   const priceChange = latestPrice?.change;
@@ -44,6 +45,14 @@ export const Header: React.FC<HeaderProps> = ({ latestPrice, forecast, loading, 
           </>
         ) : (
           <>
+            {dubaiPrice !== null && dubaiPrice !== undefined && (
+              <div className="header-price-item">
+                <Tooltip content="Dubai Crude. 중동 지역에서 생산되는 원유 벤치마크 가격.">
+                  <span className="price-label">Dubai</span>
+                </Tooltip>
+                <PriceDisplay value={dubaiPrice} size="medium" />
+              </div>
+            )}
             {wtiPrice !== null && wtiPrice !== undefined && (
               <div className="header-price-item">
                 <Tooltip content="West Texas Intermediate. 미국 텍사스에서 생산되는 경질 원유 벤치마크 가격.">

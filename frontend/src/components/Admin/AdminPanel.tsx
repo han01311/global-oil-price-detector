@@ -214,6 +214,7 @@ const LogsSection: React.FC = () => {
       <div className="filters-bar">
         <select className="filter-select" value={sourceFilter} onChange={(e) => { setSourceFilter(e.target.value); setOffset(0); }}>
           <option value="">All Sources</option>
+          <option value="opinet">Opinet</option>
           <option value="eia">EIA</option>
           <option value="fred">FRED</option>
           <option value="news">News</option>
@@ -335,7 +336,19 @@ const DataExplorerSection: React.FC = () => {
     loadData();
   }, [loadData]);
 
-  const columns = data?.data?.[0] ? Object.keys(data.data[0]) : [];
+  let columns = data?.data?.[0] ? Object.keys(data.data[0]) : [];
+  
+  if (activeTab === 'prices' && columns.length > 0) {
+    const preferredOrder = ['id', 'date', 'dubai', 'brent', 'wti', 'source', 'collected_at'];
+    columns = columns.sort((a, b) => {
+      const idxA = preferredOrder.indexOf(a);
+      const idxB = preferredOrder.indexOf(b);
+      if (idxA === -1 && idxB === -1) return 0;
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
+  }
 
   return (
     <>
@@ -422,7 +435,7 @@ const TriggerSection: React.FC = () => {
   const [results, setResults] = useState<Record<string, { status: string; message: string }>>({});
 
   const triggers = [
-    { id: 'eia_prices', label: 'EIA Prices', desc: 'WTI / Brent 현물가' },
+    { id: 'opinet_prices', label: 'Opinet Prices', desc: 'Dubai / Brent / WTI 현물가' },
     { id: 'eia_inventory', label: 'EIA Inventory', desc: '미국 원유 재고' },
     { id: 'eia_production', label: 'EIA Production', desc: '미국 원유 생산량' },
     { id: 'fred_macro', label: 'FRED Macro', desc: '금리, 달러 인덱스' },

@@ -29,6 +29,7 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
     return (
       <div className="chart-tooltip-content">
         <p className="tooltip-label">{new Date(label).toLocaleDateString()}</p>
+        {data.dubai && <p className="tooltip-item" style={{ color: 'var(--color-primary)' }}>Dubai: ${data.dubai.toFixed(2)}</p>}
         {data.wti && <p className="tooltip-item" style={{ color: 'var(--color-bull)' }}>WTI: ${data.wti.toFixed(2)}</p>}
         {data.brent && <p className="tooltip-item" style={{ color: 'var(--color-bear)' }}>Brent: ${data.brent.toFixed(2)}</p>}
         {data.forecastLine && <p className="tooltip-item">Forecast: ${data.forecastLine.toFixed(2)}</p>}
@@ -161,6 +162,7 @@ export const PriceChart: React.FC = () => {
           />
           <Tooltip content={<CustomTooltip />} />
           
+          <Line type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={2} dot={false} name="Dubai" />
           <Line type="monotone" dataKey="wti" stroke="var(--color-bull)" strokeWidth={2} dot={false} name="WTI" />
           <Line type="monotone" dataKey="brent" stroke="var(--color-bear)" strokeWidth={2} dot={false} name="Brent" />
           

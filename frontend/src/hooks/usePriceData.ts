@@ -9,6 +9,7 @@ export type Period = '1M' | '3M' | '6M' | '1Y' | 'ALL';
 export interface ChartDataPoint {
   date: string;
   timestamp: number;
+  dubai: number | null;
   wti: number | null;
   brent: number | null;
   forecastLine?: number;
@@ -101,6 +102,7 @@ export function usePriceData(period: Period): PriceData {
     const processedChartData: ChartDataPoint[] = history.map(p => ({
       date: p.date,
       timestamp: new Date(p.date).getTime(),
+      dubai: p.dubai,
       wti: p.wti,
       brent: p.brent,
     }));
@@ -119,6 +121,7 @@ export function usePriceData(period: Period): PriceData {
       processedChartData.push({
         date: futureDate7d.toISOString().split('T')[0],
         timestamp: futureDate7d.getTime(),
+        dubai: null,
         wti: null,
         brent: null,
         forecastLine: forecast.estimated_7d,

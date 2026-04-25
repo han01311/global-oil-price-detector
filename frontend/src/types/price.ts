@@ -1,5 +1,6 @@
 export interface OilPrice {
   date: string; // YYYY-MM-DD
+  dubai: number | null;
   wti: number | null;
   brent: number | null;
 }

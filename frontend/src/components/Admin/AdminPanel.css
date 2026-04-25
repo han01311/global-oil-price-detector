@@ -353,6 +353,7 @@
 }
 
 .source-tag.eia       { background: rgba(0, 212, 255, 0.1); color: #00D4FF; }
+.source-tag.opinet    { background: rgba(0, 212, 255, 0.1); color: #00D4FF; }
 .source-tag.fred      { background: rgba(120, 100, 255, 0.1); color: #7864FF; }
 .source-tag.newsapi   { background: rgba(255, 107, 53, 0.1); color: #FF6B35; }
 .source-tag.gnews     { background: rgba(0, 200, 120, 0.1); color: #00C878; }

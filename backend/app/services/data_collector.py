@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.database import Database
 from app.schemas.price import PriceHistory, OilPrice, MacroHistory, MacroIndicator
 from app.services.rate_limiter import RateLimiter, with_backoff
+from app.services.opinet_collector import OpinetCollector
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
@@ -108,10 +109,10 @@ class BaseCollector:
 
 class EIACollector(BaseCollector):
     SERIES_IDS = {
-        "wti": "PET.RWTC.D",
-        "brent": "PET.RBRTE.D",
-        "inventory": "PET.WCESTUS1.W",
-        "production": "PET.WCRFPUS2.W",
+        "wti": "RWTC",
+        "brent": "RBRTE",
+        "inventory": "WCESTUS1",
+        "production": "WCRFPUS2",
     }
 
     def __init__(self, api_key: str | None = None):
@@ -120,12 +121,12 @@ class EIACollector(BaseCollector):
             raise ValueError("EIA_API_KEY is required for EIACollector.")
         super().__init__(api_key, "https://api.eia.gov/v2")
 
-    async def _get_series_data(self, series_id: str, start: str, end: str) -> List[Dict]:
+    async def _get_series_data(self, endpoint: str, frequency: str, series_id: str, start: str, end: str) -> List[Dict]:
         params = {
             "api_key": self.api_key,
-            "frequency": "daily" if ".D" in series_id else "weekly",
+            "frequency": frequency,
             "data[0]": "value",
-            "facets[seriesId][]": series_id,
+            "facets[series][]": series_id,
             "start": start,
             "end": end,
             "sort[0][column]": "period",
@@ -133,13 +134,13 @@ class EIACollector(BaseCollector):
             "offset": 0,
             "length": 5000,
         }
-        data = await self._fetch_api("/petroleum/pri/spt/data/", params, series_id, rate_limit_source="eia")
+        data = await self._fetch_api(endpoint, params, series_id, rate_limit_source="eia")
         return data.get("response", {}).get("data", [])
 
     async def get_crude_prices(self, start_date: str, end_date: str) -> pd.DataFrame:
         wti_data, brent_data = await asyncio.gather(
-            self._get_series_data(self.SERIES_IDS["wti"], start_date, end_date),
-            self._get_series_data(self.SERIES_IDS["brent"], start_date, end_date)
+            self._get_series_data("/petroleum/pri/spt/data/", "daily", self.SERIES_IDS["wti"], start_date, end_date),
+            self._get_series_data("/petroleum/pri/spt/data/", "daily", self.SERIES_IDS["brent"], start_date, end_date)
         )
         wti_df = pd.DataFrame(wti_data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'wti'}) if wti_data else pd.DataFrame(columns=['date', 'wti'])
         brent_df = pd.DataFrame(brent_data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'brent'}) if brent_data else pd.DataFrame(columns=['date', 'brent'])
@@ -152,7 +153,7 @@ class EIACollector(BaseCollector):
         return df
 
     async def get_crude_inventory(self, start_date: str, end_date: str) -> pd.DataFrame:
-        data = await self._get_series_data(self.SERIES_IDS["inventory"], start_date, end_date)
+        data = await self._get_series_data("/petroleum/stoc/wstk/data/", "weekly", self.SERIES_IDS["inventory"], start_date, end_date)
         if not data:
             return pd.DataFrame(columns=['date', 'inventory_mbbl'])
         df = pd.DataFrame(data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'inventory_mbbl'})
@@ -160,7 +161,7 @@ class EIACollector(BaseCollector):
         return df
 
     async def get_production(self, start_date: str, end_date: str) -> pd.DataFrame:
-        data = await self._get_series_data(self.SERIES_IDS["production"], start_date, end_date)
+        data = await self._get_series_data("/petroleum/sum/sndw/data/", "weekly", self.SERIES_IDS["production"], start_date, end_date)
         if not data:
             return pd.DataFrame(columns=['date', 'production_mbbl_d'])
         df = pd.DataFrame(data)[['period', 'value']].rename(columns={'period': 'date', 'value': 'production_mbbl_d'})
@@ -377,19 +378,18 @@ class DataCollector:
         self.fred = FREDCollector() if settings.FRED_API_KEY else None
         self.news = NewsCollector()
         self.gnews = GNewsCollector()
+        self.opinet = OpinetCollector()
         self.db = Database()
 
     async def collect_prices(self, start_date: str, end_date: str) -> PriceHistory:
-        if not self.eia:
-            return PriceHistory(prices=[], source="eia", last_updated=datetime.now().isoformat())
-        df = await self.eia.get_crude_prices(start_date, end_date)
+        df = await self.opinet.get_crude_prices(start_date, end_date)
         prices = [OilPrice(**row) for _, row in df.iterrows()]
 
         # SQLite에 저장
         if prices:
-            await self.db.upsert_oil_prices([{"date": p.date, "wti": p.wti, "brent": p.brent} for p in prices])
+            await self.db.upsert_oil_prices([{"date": p.date, "dubai": p.dubai, "wti": p.wti, "brent": p.brent} for p in prices])
 
-        return PriceHistory(prices=prices, source="eia", last_updated=datetime.now().isoformat())
+        return PriceHistory(prices=prices, source="opinet", last_updated=datetime.now().isoformat())
 
     async def collect_inventory(self, start_date: str, end_date: str) -> pd.DataFrame:
         """재고 데이터 수집 + DB 저장"""
