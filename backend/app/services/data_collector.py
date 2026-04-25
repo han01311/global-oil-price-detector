@@ -529,7 +529,7 @@ class DataCollector:
         if len(db_rows) >= 30:
             logger.info(f"[DataCollector] Using {len(db_rows)} price records from SQLite (skipping API)")
             df = pd.DataFrame(db_rows)
-            df = df[['date', 'wti', 'brent']].sort_values('date')
+            df = df[['date', 'dubai', 'wti', 'brent']].sort_values('date')
             return df
 
         # 2차: API에서 수집
