@@ -5,6 +5,10 @@
   --color-card-hover: #1a1a1a;
   --color-border: #262626;
 
+  /* 스켈레톤 */
+  --color-skeleton-base: #262626;
+  --color-skeleton-pulse: #333333;
+
   /* 텍스트 */
   --color-text-primary: #ffffff;
   --color-text-body: #d4d4d4;
@@ -83,5 +87,137 @@ a:hover {
 }
 
 .fade-in {
-  animation: fade-in 0.5s ease-out forwards;
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slide-up 0.3s ease-out forwards;
+}
+
+/* ErrorBoundary Fallback Styles */
+.error-fallback-partial {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  text-align: center;
+  gap: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background-color: var(--color-card);
+}
+
+.error-fallback-icon {
+  color: var(--color-error);
+  margin-bottom: 4px;
+}
+
+.error-fallback-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.error-fallback-module {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.error-retry-button {
+  margin-top: 8px;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  padding: 6px 16px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.error-retry-button:hover {
+  background-color: var(--color-card-hover);
+  border-color: var(--color-text-secondary);
+  color: var(--color-text-primary);
+}
+
+.error-fallback-global {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 48px);
+}
+
+.error-fallback-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.error-fallback-heading {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.error-fallback-desc {
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+
+.error-retry-button-primary {
+  margin-top: 8px;
+  background: var(--color-bull);
+  border: none;
+  color: #0a0a0a;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.error-retry-button-primary:hover {
+  opacity: 0.85;
+}
+
+/* Black Swan Warning Badge */
+.black-swan-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background-color: rgba(251, 191, 36, 0.15);
+  border: 1px solid var(--color-warning);
+  color: var(--color-warning);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  animation: fade-in 0.3s ease-out;
+}
+
+.black-swan-badge svg {
+  width: 14px;
+  height: 14px;
 }

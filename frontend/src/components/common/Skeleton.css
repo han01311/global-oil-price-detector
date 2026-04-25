@@ -1,13 +1,17 @@
-@keyframes skeleton-loading {
+@keyframes skeleton-pulse {
   0% {
-    background-color: var(--color-border);
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
   }
   100% {
-    background-color: var(--color-card-hover);
+    opacity: 0.5;
   }
 }
 
 .skeleton {
   border-radius: 4px;
-  animation: skeleton-loading 1s linear infinite alternate;
+  background-color: var(--color-skeleton-base, #262626);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
 }

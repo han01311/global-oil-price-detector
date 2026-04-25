@@ -13,6 +13,7 @@ import {
 import type { DotProps } from 'recharts';
 import { Card } from '../common/Card';
 import { Skeleton } from '../common/Skeleton';
+import { EmptyState } from '../common/EmptyState';
 import { usePriceData, getCategoryColor } from '../../hooks/usePriceData';
 import type { Period, NewsMarker } from '../../hooks/usePriceData';
 import { Badge } from '../common/Badge';
@@ -35,7 +36,14 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
           <div className="tooltip-news-item">
             <Badge category={data.article.category as any} />
             <span>{data.article.article.title}</span>
-            <p>Impact: {data.article.impact_score}</p>
+            <p className="tooltip-news-impact">
+              Impact: <span className={data.article.impact_score > 0 ? 'tooltip-bull' : data.article.impact_score < 0 ? 'tooltip-bear' : ''}>
+                {data.article.impact_score > 0 ? '+' : ''}{data.article.impact_score}
+              </span>
+            </p>
+            {data.article.impact_summary && (
+              <p className="tooltip-news-snippet">{data.article.impact_summary}</p>
+            )}
           </div>
         )}
       </div>
@@ -101,10 +109,25 @@ export const PriceChart: React.FC = () => {
       return <Skeleton height="400px" />;
     }
     if (error) {
-      return <p style={{ color: 'var(--color-error)' }}>Error loading chart data: {error.message}</p>;
+      return (
+        <div className="error-fallback-partial">
+          <div className="error-fallback-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="10" cy="10" r="8.5" />
+              <line x1="7" y1="7" x2="13" y2="13" />
+              <line x1="13" y1="7" x2="7" y2="13" />
+            </svg>
+          </div>
+          <p className="error-fallback-title">차트 데이터를 불러올 수 없습니다</p>
+          <p className="error-fallback-module">{error.message}</p>
+          <button className="error-retry-button" onClick={() => window.location.reload()}>
+            재시도
+          </button>
+        </div>
+      );
     }
     if (chartData.length === 0) {
-      return <p>No data available for the selected period.</p>;
+      return <EmptyState icon="chart" title="선택한 기간에 유가 데이터가 없습니다" description="다른 기간을 선택해 주세요." />;
     }
 
     const yDomain = [ 'dataMin - 5', 'dataMax + 5' ];

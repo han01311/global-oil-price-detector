@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useBriefing } from '../../hooks/useBriefing';
 import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';
+import { EmptyState } from '../common/EmptyState';
+import { Tooltip } from '../common/Tooltip';
 import './BriefingViewer.css';
 import type { Briefing, BriefingKeyFactor, RiskScenario, SimilarCase } from '../../types/forecast';
 
@@ -85,6 +87,9 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => (
 
     {briefing.similar_cases.length > 0 && (
       <BriefingSection title="과거 유사 사례" icon="📜">
+        <Tooltip content="Market Memory: ChromaDB 벡터 검색으로 현재 뉴스와 유사한 과거 이벤트를 코사인 유사도 기반으로 매칭한 결과입니다.">
+          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Market Memory</span>
+        </Tooltip>
         <SimilarCases cases={briefing.similar_cases} />
       </BriefingSection>
     )}
@@ -92,7 +97,11 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => (
 );
 
 export const BriefingViewer: React.FC = () => {
-  const { currentBriefing, loading, error, goToPrevious, goToNext, hasPrevious, hasNext } = useBriefing();
+  const { currentBriefing, loading, error, goToPrevious, goToNext, hasPrevious, hasNext, refetch } = useBriefing();
+
+  const handleRetry = useCallback(() => {
+    refetch?.();
+  }, [refetch]);
 
   if (loading) {
     return (
@@ -105,11 +114,32 @@ export const BriefingViewer: React.FC = () => {
   }
 
   if (error) {
-    return <p style={{ color: 'var(--color-error)' }}>Error loading briefing: {error.message}</p>;
+    return (
+      <div className="error-fallback-partial">
+        <div className="error-fallback-icon">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="10" cy="10" r="8.5" />
+            <line x1="7" y1="7" x2="13" y2="13" />
+            <line x1="13" y1="7" x2="7" y2="13" />
+          </svg>
+        </div>
+        <p className="error-fallback-title">브리핑을 불러올 수 없습니다</p>
+        <p className="error-fallback-module">{error.message}</p>
+        <button className="error-retry-button" onClick={handleRetry}>
+          재시도
+        </button>
+      </div>
+    );
   }
 
   if (!currentBriefing) {
-    return <p>No briefing available.</p>;
+    return (
+      <EmptyState
+        icon="briefing"
+        title="생성된 브리핑이 없습니다"
+        description="AI 브리핑이 아직 생성되지 않았거나 데이터가 부족합니다."
+      />
+    );
   }
 
   return (

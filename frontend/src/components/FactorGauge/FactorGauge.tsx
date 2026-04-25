@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { Card } from '../common/Card';
 import { useFactorSummary } from '../../hooks/useFactorSummary';
 import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';
+import { EmptyState } from '../common/EmptyState';
+import { Tooltip } from '../common/Tooltip';
 import type { FactorScore } from '../../types/news';
 import './FactorGauge.css';
 
@@ -55,7 +57,11 @@ const FactorBar: React.FC<{ factor: FactorScore }> = ({ factor }) => {
 };
 
 export const FactorGauge: React.FC = () => {
-  const { summary, loading, error } = useFactorSummary();
+  const { summary, loading, error, refetch } = useFactorSummary();
+
+  const handleRetry = useCallback(() => {
+    refetch?.();
+  }, [refetch]);
 
   const renderContent = () => {
     if (loading) {
@@ -66,10 +72,30 @@ export const FactorGauge: React.FC = () => {
       );
     }
     if (error) {
-      return <p style={{ color: 'var(--color-error)' }}>Error: {error.message}</p>;
+      return (
+        <div className="error-fallback-partial">
+          <div className="error-fallback-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="10" cy="10" r="8.5" />
+              <line x1="7" y1="7" x2="13" y2="13" />
+              <line x1="13" y1="7" x2="7" y2="13" />
+            </svg>
+          </div>
+          <p className="error-fallback-title">요인 데이터를 불러올 수 없습니다</p>
+          <button className="error-retry-button" onClick={handleRetry}>
+            재시도
+          </button>
+        </div>
+      );
     }
     if (!summary || summary.factors.length === 0) {
-      return <p>No factor data available.</p>;
+      return (
+        <EmptyState
+          icon="chart"
+          title="요인 분석 데이터가 없습니다"
+          description="뉴스 분류가 완료되면 자동으로 표시됩니다."
+        />
+      );
     }
 
     const totalArticles = summary.factors.reduce((acc, f) => acc + f.article_count, 0);
@@ -83,7 +109,9 @@ export const FactorGauge: React.FC = () => {
         </ul>
         <div className="factor-gauge-footer">
           <div className="overall-sentiment">
-            <span className="overall-sentiment-label">종합 센티먼트</span>
+            <Tooltip content="6대 카테고리 뉴스의 Impact Score를 기사 수 가중 평균하여 산출한 종합 시장 심리 지표입니다.">
+              <span className="overall-sentiment-label">종합 센티먼트</span>
+            </Tooltip>
             <span className={`overall-sentiment-value ${sentimentDirection}`}>
               {sentimentScore > 0 ? '+' : ''}{sentimentScore.toFixed(2)}
               <span style={{ fontSize: '12px', marginLeft: '4px' }}>({getSentimentLabel(sentimentScore)})</span>

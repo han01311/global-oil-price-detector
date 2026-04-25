@@ -5,65 +5,68 @@ import { FactorGauge } from '../FactorGauge/FactorGauge';
 import { AIBriefing } from '../Briefing/AIBriefing';
 import { NewsExplorer } from '../NewsExplorer/NewsExplorer';
 import { useDashboardData } from '../../hooks/useDashboardData';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import './Dashboard.css';
-import { Card } from '../common/Card';
-import { Skeleton } from '../common/Skeleton';
 
 export const Dashboard: React.FC = () => {
   const { latestPrice, forecast, loading, error } = useDashboardData();
 
-  if (loading) {
-    return (
-      <div className="dashboard-container">
-        <Header latestPrice={null} forecast={null} loading={true} />
-        <main className="dashboard-chart">
-          <Card title="Price Chart"><Skeleton height="400px" /></Card>
-        </main>
-        <aside className="dashboard-sidebar">
-          <Card title="Market Factors"><Skeleton height="240px" /></Card>
-          <Card title="AI Daily Briefing"><Skeleton height="300px" /></Card>
-        </aside>
-        <footer className="dashboard-news">
-          <Card title="News Explorer"><Skeleton height="200px" /></Card>
-        </footer>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="dashboard-container">
-        <Header latestPrice={null} forecast={null} loading={false} />
-        <main className="dashboard-chart" style={{ gridColumn: '1 / -1' }}>
-          <Card title="Error">
-            <div style={{ color: 'var(--color-error)' }}>
-              <h2>Failed to load dashboard data</h2>
-              <p>{error.message}</p>
-              <p style={{ marginTop: '1rem', color: 'var(--color-text-secondary)'}}>
-                Please ensure the backend server is running and accessible.
-              </p>
-            </div>
-          </Card>
-        </main>
-      </div>
-    );
-  }
+  // Determine black swan warning
+  const isBlackSwan = forecast
+    ? Math.abs(forecast.news_adjustment_pct) > 5 || forecast.confidence < 0.3
+    : false;
 
   return (
     <div className="dashboard-container">
-      <Header latestPrice={latestPrice} forecast={forecast} loading={loading} />
-      
+      <Header
+        latestPrice={latestPrice}
+        forecast={forecast}
+        loading={loading}
+        isBlackSwan={isBlackSwan}
+      />
+
+      {error && !latestPrice && (
+        <div className="dashboard-global-error fade-in" style={{ gridColumn: '1 / -1' }}>
+          <div className="error-fallback-partial">
+            <div className="error-fallback-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="10" cy="10" r="8.5" />
+                <line x1="7" y1="7" x2="13" y2="13" />
+                <line x1="13" y1="7" x2="7" y2="13" />
+              </svg>
+            </div>
+            <p className="error-fallback-title">대시보드 데이터를 불러올 수 없습니다</p>
+            <p className="error-fallback-module">{error.message}</p>
+            <p className="error-fallback-module" style={{ marginTop: '4px' }}>
+              백엔드 서버가 실행 중인지 확인해 주세요.
+            </p>
+            <button className="error-retry-button" onClick={() => window.location.reload()}>
+              새로고침
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Progressive loading: each widget manages its own loading/error state independently */}
       <main className="dashboard-chart fade-in">
-        <PriceChart />
+        <ErrorBoundary moduleName="Price Chart">
+          <PriceChart />
+        </ErrorBoundary>
       </main>
 
       <aside className="dashboard-sidebar fade-in" style={{ animationDelay: '0.1s' }}>
-        <FactorGauge />
-        <AIBriefing />
+        <ErrorBoundary moduleName="Market Factors">
+          <FactorGauge />
+        </ErrorBoundary>
+        <ErrorBoundary moduleName="AI Daily Briefing">
+          <AIBriefing />
+        </ErrorBoundary>
       </aside>
 
       <footer className="dashboard-news fade-in" style={{ animationDelay: '0.2s' }}>
-        <NewsExplorer />
+        <ErrorBoundary moduleName="News Explorer">
+          <NewsExplorer />
+        </ErrorBoundary>
       </footer>
     </div>
   );

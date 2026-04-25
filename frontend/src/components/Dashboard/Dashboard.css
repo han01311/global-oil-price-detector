@@ -1,6 +1,6 @@
 .dashboard-container {
   display: grid;
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: 7fr 3fr;
   grid-template-rows: auto minmax(0, 1fr) auto;
   grid-template-areas:
     "header header"
@@ -27,6 +27,10 @@
 
 .price-chart-card {
   height: 100%;
+}
+
+.dashboard-global-error {
+  grid-column: 1 / -1;
 }
 
 /* Responsive layout for smaller screens */

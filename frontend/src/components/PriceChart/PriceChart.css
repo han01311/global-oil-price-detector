@@ -62,3 +62,19 @@
 .chart-tooltip-content .tooltip-news-item .badge {
   margin-right: 4px;
 }
+
+.tooltip-news-impact {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.tooltip-bull { color: var(--color-bull); }
+.tooltip-bear { color: var(--color-bear); }
+
+.tooltip-news-snippet {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1.4;
+  max-width: 280px;
+}
