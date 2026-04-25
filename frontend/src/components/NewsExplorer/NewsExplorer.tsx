@@ -125,7 +125,7 @@ export const NewsExplorer: React.FC = () => {
               onMouseEnter={() => setHighlightedCategory(cat === 'All' ? null : cat as any)}
               onMouseLeave={() => setHighlightedCategory(null)}
             >
-              <Badge category={cat === 'All' ? 'default' : cat} />
+              <Badge category={cat === 'All' ? 'all' : cat as any} />
               <span className="category-count">{categoryCounts[cat] || 0}</span>
             </button>
           ))}

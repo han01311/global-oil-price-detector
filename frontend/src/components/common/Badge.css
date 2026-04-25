@@ -37,3 +37,7 @@
   background-color: rgba(82, 82, 82, 0.15);
   color: var(--color-neutral);
 }
+.badge-all {
+  background-color: rgba(82, 82, 82, 0.15);
+  color: var(--color-neutral);
+}

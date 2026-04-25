@@ -145,6 +145,8 @@ class BriefingGenerator:
         prompt = f"""
 You are a senior oil market analyst at a top financial institution. Your task is to generate a daily oil price briefing for professional clients. The briefing must be objective, data-driven, and concise.
 
+IMPORTANT: All text values in the JSON output MUST be written in Korean (한국어). Do NOT translate the JSON keys.
+
 Use the provided data to construct your analysis. You MUST respond ONLY with a valid JSON object in the specified format. Do not include any other text, explanations, or markdown formatting.
 
 [CONTEXTUAL DATA]

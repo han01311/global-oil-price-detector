@@ -55,6 +55,10 @@
   text-transform: capitalize;
 }
 
+.category-tab.active .badge {
+  color: var(--color-text-primary);
+}
+
 .category-count {
   font-size: 12px;
   color: var(--color-text-secondary);

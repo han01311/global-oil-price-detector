@@ -1,7 +1,7 @@
 import React from 'react';
 import './Badge.css';
 
-type Category = 'geopolitics' | 'supply' | 'demand' | 'macro' | 'climate' | 'speculation' | 'default';
+type Category = 'all' | 'geopolitics' | 'supply' | 'demand' | 'macro' | 'climate' | 'speculation' | 'default';
 
 interface BadgeProps {
   category: Category;
@@ -10,6 +10,7 @@ interface BadgeProps {
 }
 
 const categoryDisplay: Record<Category, string> = {
+  all: '전체',
   geopolitics: '지정학',
   supply: '공급',
   demand: '수요',
