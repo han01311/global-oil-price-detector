@@ -10,11 +10,14 @@ class FeatureEngineer:
         prices_df['date'] = pd.to_datetime(prices_df['date'])
         prices_df = prices_df.sort_values('date').set_index('date')
         
-        macro_df['date'] = pd.to_datetime(macro_df['date'])
-        macro_df = macro_df.sort_values('date').set_index('date')
-
-        # Merge dataframes. Start with prices and left-join macro data.
-        df = prices_df.join(macro_df, how='left')
+        if not macro_df.empty and 'date' in macro_df.columns:
+            macro_df['date'] = pd.to_datetime(macro_df['date'])
+            macro_df = macro_df.sort_values('date').set_index('date')
+            df = prices_df.join(macro_df, how='left')
+        else:
+            df = prices_df.copy()
+            for col in ['fed_rate', 'dollar_index', 'yield_spread']:
+                df[col] = 0.0
 
         # Create a new dataframe for features to avoid modifying the original
         features = pd.DataFrame(index=df.index)
@@ -38,12 +41,20 @@ class FeatureEngineer:
         features["wti_vol_20d"] = df["wti"].pct_change().rolling(20).std()
 
         # 5. 거시경제 피처 (forward fill for frequency mismatch)
-        features["fed_rate"] = df["fed_rate"].ffill()
-        features["dollar_index"] = df["dollar_index"].ffill()
-        if "yield_spread" in df.columns:
-            features["yield_spread"] = df["yield_spread"].ffill()
+        if "fed_rate" in df.columns:
+            features["fed_rate"] = df["fed_rate"].ffill().fillna(0.0)
         else:
-            features["yield_spread"] = pd.NA
+            features["fed_rate"] = 0.0
+            
+        if "dollar_index" in df.columns:
+            features["dollar_index"] = df["dollar_index"].ffill().fillna(0.0)
+        else:
+            features["dollar_index"] = 0.0
+            
+        if "yield_spread" in df.columns:
+            features["yield_spread"] = df["yield_spread"].ffill().fillna(0.0)
+        else:
+            features["yield_spread"] = 0.0
 
         # 6. 래깅 피처 (미래 정보 누출 방지)
         for col in ["fed_rate", "dollar_index"]:
@@ -54,7 +65,9 @@ class FeatureEngineer:
         features["target_7d"] = df["wti"].shift(-7) / df["wti"] - 1
         features["target_30d"] = df["wti"].shift(-30) / df["wti"] - 1
 
-        return features.dropna()
+        import numpy as np
+        features.replace([float('inf'), float('-inf')], np.nan, inplace=True)
+        return features.dropna().astype(float)
 
     def split_train_test(self, features_df: pd.DataFrame,
                          test_ratio: float = 0.2) -> tuple:

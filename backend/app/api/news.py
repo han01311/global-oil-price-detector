@@ -71,11 +71,24 @@ async def classify_news(
         return []
 
     classifier = NewsClassifier()
-    if not classifier.model:
-        raise HTTPException(status_code=503, detail="NewsClassifier is not available. Check GEMINI_API_KEY.")
+    if not classifier.ollama_url:
+        raise HTTPException(status_code=503, detail="NewsClassifier is not available. Check LOCAL_LLM_URL.")
 
     try:
         classified_results = await classifier.classify_batch(articles_to_classify)
+        
+        # Store relevant articles to MarketMemory for FactorGauge to pick up
+        memory = MarketMemory()
+        if memory.is_available() and classified_results:
+            for res in classified_results:
+                if res.is_relevant:
+                    # Provide empty price changes since this is live news
+                    await memory.store_event(res.model_dump(), {
+                        "wti_change_1d": 0.0,
+                        "wti_change_7d": 0.0,
+                        "wti_change_30d": 0.0
+                    })
+        
         return classified_results
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"An error occurred during classification: {e}")
@@ -137,18 +150,17 @@ async def get_factor_summary() -> FactorSummary:
         if not all_events or not all_events['metadatas']:
             return FactorSummary(factors=[], overall_sentiment=0.0, updated_at=datetime.now(timezone.utc).isoformat())
 
-        # Filter for the last 24 hours
+        # Filter for the last 7 days
         now = datetime.now(timezone.utc)
-        one_day_ago = now - timedelta(days=1)
+        seven_days_ago = now - timedelta(days=7)
         
         recent_events = []
         for metadata in all_events['metadatas']:
             event_date_str = metadata.get('date')
             if event_date_str:
                 try:
-                    # Assuming date is 'YYYY-MM-DD'
                     event_date = datetime.strptime(event_date_str, '%Y-%m-%d').replace(tzinfo=timezone.utc)
-                    if event_date >= one_day_ago:
+                    if event_date >= seven_days_ago:
                         recent_events.append(metadata)
                 except ValueError:
                     continue # Skip if date format is wrong

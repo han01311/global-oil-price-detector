@@ -7,7 +7,7 @@ import logging
 from app.services.data_collector import DataCollector
 from app.services.news_classifier import NewsClassifier
 from app.services.market_memory import MarketMemory
-from app.services.forecast_engine import HybridForecaster, ForecastEngine
+from app.services.forecast_engine import HybridForecaster, ForecastEngine, NewsAdjuster
 from app.services.feature_engineering import FeatureEngineer
 from app.schemas.forecast import ForecastResult
 
@@ -62,7 +62,9 @@ async def _run_forecast_pipeline():
                 similar_events.append(event)
 
         # 5. Hybrid Forecast
-        forecaster = HybridForecaster()
+        engine = ForecastEngine()
+        adjuster = NewsAdjuster()
+        forecaster = HybridForecaster(engine, adjuster)
         forecast_result = await forecaster.forecast(
             current_price=current_price,
             current_features=current_features,

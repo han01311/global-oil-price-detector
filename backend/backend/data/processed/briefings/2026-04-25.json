@@ -1,0 +1,23 @@
+{
+  "date": "2026-04-25",
+  "summary": "Oil markets are in a holding pattern with limited news impacting prices. The 7-day forecast suggests a range of $72.61-$107.44, with a midpoint of $90.02. Model confidence is 61.3%.",
+  "key_factors": [
+    {
+      "category": "Supply",
+      "description": "Limited supply updates and ongoing geopolitical tensions contribute to price volatility.",
+      "impact": "Neutral",
+      "score": 0
+    }
+  ],
+  "risk_scenarios": [
+    {
+      "scenario": "Unexpected escalation of geopolitical tensions",
+      "probability": "Medium",
+      "price_impact": "-$10-15/bbl"
+    }
+  ],
+  "similar_cases": [],
+  "price_outlook": "Prices are likely to remain volatile but with a slight upward bias.",
+  "confidence_note": "High uncertainty levels due to limited news and lack of historical precedents.",
+  "generated_at": "2026-04-25T07:55:25.910790+00:00"
+}
