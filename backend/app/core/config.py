@@ -2,6 +2,7 @@
 프로젝트 설정 관리
 """
 import warnings
+from typing import Optional, List
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,21 +16,26 @@ class Settings(BaseSettings):
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"
     DATA_CACHE_DIR: str = "data"
+    DATABASE_PATH: str = "data/petro_ax.db"
 
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
 
     # 로컬 LLM 설정
     LOCAL_LLM_URL: str = "http://localhost:11434"
 
     # 옵셔널 API 키 (Fallback)
-    GEMINI_API_KEY: str | None = None
+    GEMINI_API_KEY: Optional[str] = None
     EIA_API_KEY: str = ""
     FRED_API_KEY: str = ""
 
     # 선택 API 키
-    NEWS_API_KEY: str | None = None
-    GNEWS_API_KEY: str | None = None
+    NEWS_API_KEY: Optional[str] = None
+    GNEWS_API_KEY: Optional[str] = None
+
+    # 스케줄러
+    SCHEDULER_ENABLED: bool = True
+    COLLECTION_INTERVAL_HOURS: int = 6
 
     # 데이터베이스 (추후 설정)
     DATABASE_URL: str = ""

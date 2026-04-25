@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { PriceDisplay } from '../common/PriceDisplay';
 import { Skeleton } from '../common/Skeleton';
 import { Tooltip } from '../common/Tooltip';
@@ -69,6 +70,9 @@ export const Header: React.FC<HeaderProps> = ({ latestPrice, forecast, loading, 
         ) : (
           <span className="last-updated">Last updated: {lastUpdated}</span>
         )}
+        <Link to="/admin" className="header-admin-link" title="Data Pipeline Admin">
+          ⚙
+        </Link>
       </div>
     </header>
   );
