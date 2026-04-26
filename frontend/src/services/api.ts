@@ -1,6 +1,6 @@
 import type { PriceHistory } from "../types/price";
 import type { ClassifiedArticle, FactorSummary, SimilarEvent } from "../types/news";
-import type { ForecastResult, Briefing } from "../types/forecast";
+import type { ForecastResult, Briefing, DualForecastResult } from "../types/forecast";
 import type { OilPrice } from "../types/price";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -91,6 +91,10 @@ export async function fetchForecastEstimate(): Promise<ForecastResult> {
   return apiFetch("/api/forecast/estimate");
 }
 
+export async function fetchDualForecast(): Promise<DualForecastResult> {
+  return apiFetch("/api/forecast/dual");
+}
+
 export async function fetchTodayBriefing(): Promise<Briefing> {
   return apiFetch("/api/briefing/today");
 }
@@ -98,3 +102,4 @@ export async function fetchTodayBriefing(): Promise<Briefing> {
 export async function fetchBriefingHistory(days: number): Promise<Briefing[]> {
   return apiFetch(`/api/briefing/history?days=${days}`);
 }
+

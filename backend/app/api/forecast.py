@@ -11,7 +11,11 @@ from app.services.news_classifier import NewsClassifier
 from app.services.market_memory import MarketMemory
 from app.services.forecast_engine import HybridForecaster, ForecastEngine, NewsAdjuster, CRUDE_TYPES
 from app.services.feature_engineering import FeatureEngineer
-from app.schemas.forecast import ForecastResult
+from app.services.fundamental_forecast import FundamentalForecastEngine
+from app.schemas.forecast import (
+    ForecastResult, DualForecastResult, FundamentalForecastResult,
+    FundamentalCrudeForecast, FundamentalSignal
+)
 from app.api.news import _news_cache
 
 router = APIRouter(prefix="/api/forecast", tags=["forecast"])
@@ -182,3 +186,87 @@ async def get_model_info() -> dict:
         report = json.load(f)
     
     return report
+
+
+_dual_forecast_cache = {"data": None, "expires_at": 0}
+_dual_forecast_cache_lock = asyncio.Lock()
+
+
+@router.get("/dual", response_model=DualForecastResult)
+async def get_dual_forecast() -> DualForecastResult:
+    """이중 방법론 비교 예측 결과 조회.
+
+    Method A: 기술적 분석 (XGBoost + 뉴스 보정)
+    Method B: 펀더멘탈 분석 (수급 기반)
+    """
+    current_time = time.time()
+    if _dual_forecast_cache["data"] is not None and current_time < _dual_forecast_cache["expires_at"]:
+        return _dual_forecast_cache["data"]
+
+    async with _dual_forecast_cache_lock:
+        current_time = time.time()
+        if _dual_forecast_cache["data"] is not None and current_time < _dual_forecast_cache["expires_at"]:
+            return _dual_forecast_cache["data"]
+
+        try:
+            # Method A: 기존 Hybrid Forecast
+            method_a_result, _, _ = await _run_forecast_pipeline()
+
+            # Method B: 펀더멘탈 분석
+            # Method A의 current_prices를 재사용
+            current_prices = {}
+            for crude, cf in method_a_result.forecasts_by_crude.items():
+                current_prices[crude] = cf.current_price
+
+            fundamental_engine = FundamentalForecastEngine()
+            raw_b = await fundamental_engine.forecast(current_prices)
+
+            # raw dict → Pydantic 모델로 변환
+            b_forecasts = {}
+            for crude, data in raw_b.get("forecasts_by_crude", {}).items():
+                signals = [FundamentalSignal(**s) for s in data.get("signals", [])]
+                b_forecasts[crude] = FundamentalCrudeForecast(
+                    crude_type=data["crude_type"],
+                    current_price=data["current_price"],
+                    estimated_7d=data["estimated_7d"],
+                    estimated_7d_high=data["estimated_7d_high"],
+                    estimated_7d_low=data["estimated_7d_low"],
+                    total_change_pct=data["total_change_pct"],
+                    signals=signals,
+                    confidence=data["confidence"],
+                )
+
+            method_b_result = FundamentalForecastResult(
+                forecasts_by_crude=b_forecasts,
+                method="fundamental",
+                generated_at=raw_b.get("generated_at", ""),
+            )
+
+            # Consensus: WTI 기준으로 두 방법론이 같은 방향인지 확인
+            consensus = False
+            a_wti = method_a_result.forecasts_by_crude.get("wti")
+            b_wti = b_forecasts.get("wti")
+            if a_wti and b_wti:
+                a_direction = a_wti.estimated_7d - a_wti.current_price
+                b_direction = b_wti.estimated_7d - b_wti.current_price
+                consensus = (a_direction > 0) == (b_direction > 0)
+
+            from datetime import datetime, timezone
+            dual_result = DualForecastResult(
+                method_a=method_a_result,
+                method_b=method_b_result,
+                consensus=consensus,
+                generated_at=datetime.now(timezone.utc).isoformat(),
+            )
+
+            _dual_forecast_cache["data"] = dual_result
+            _dual_forecast_cache["expires_at"] = time.time() + 3600
+
+            return dual_result
+
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.exception("Error in dual forecast pipeline")
+            raise HTTPException(status_code=500, detail=f"Dual forecast error: {str(e)}")
+

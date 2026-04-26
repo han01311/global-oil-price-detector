@@ -381,6 +381,21 @@ class DataCollector:
         self.opinet = OpinetCollector()
         self.db = Database()
 
+    def _forward_fill_prices(self, df: pd.DataFrame) -> pd.DataFrame:
+        """값이 없거나 0인 경우 전일 데이터를 사용하여 보간 (Forward-fill)"""
+        if df.empty:
+            return df
+        
+        # 0은 유효한 유가로 보기 어려우므로 결측치로 취급하여 ffill이 작동하도록 함
+        for col in ['dubai', 'wti', 'brent']:
+            if col in df.columns:
+                df[col] = df[col].replace(0, None)
+        
+        # 날짜순 정렬 후 결측치 채움
+        df = df.sort_values('date')
+        df[['dubai', 'wti', 'brent']] = df[['dubai', 'wti', 'brent']].ffill()
+        return df
+
     async def collect_prices(self, start_date: str, end_date: str) -> PriceHistory:
         df = await self.opinet.get_crude_prices(start_date, end_date)
         prices = [OilPrice(**row) for _, row in df.iterrows()]
@@ -530,13 +545,15 @@ class DataCollector:
             logger.info(f"[DataCollector] Using {len(db_rows)} price records from SQLite (skipping API)")
             df = pd.DataFrame(db_rows)
             df = df[['date', 'dubai', 'wti', 'brent']].sort_values('date')
-            return df
+            return self._forward_fill_prices(df)
 
         # 2차: API에서 수집
         price_history = await self.collect_prices(start_date.isoformat(), end_date.isoformat())
         if not price_history or not price_history.prices:
             return pd.DataFrame()
-        return pd.DataFrame([p.model_dump() for p in price_history.prices])
+        
+        df = pd.DataFrame([p.model_dump() for p in price_history.prices])
+        return self._forward_fill_prices(df)
 
     async def collect_macro_df_for_features(self) -> pd.DataFrame:
         """

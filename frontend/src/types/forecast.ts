@@ -77,3 +77,45 @@ export interface Briefing {
   crude_outlooks: CrudeOutlook[]; // 유종별 독립 전망
   generated_at: string;
 }
+
+// ──────────────────────────────────────────────
+// Method B: 펀더멘탈 분석 모델 타입
+// ──────────────────────────────────────────────
+
+export interface FundamentalSignal {
+  signal_id: string;     // "inventory" | "production" | "seasonal" | "mean_reversion" | "dollar"
+  name: string;          // 한국어 표시명
+  change: number | null; // 예상 변동률 (0.01 = 1%)
+  confidence: number;    // 0.0 ~ 1.0
+  weight: number;        // 최종 합산 시 가중치 비율
+  detail: string;        // 근거 설명
+}
+
+export interface FundamentalCrudeForecast {
+  crude_type: string;
+  current_price: number;
+  estimated_7d: number;
+  estimated_7d_high: number;
+  estimated_7d_low: number;
+  total_change_pct: number;
+  signals: FundamentalSignal[];
+  confidence: number;
+}
+
+export interface FundamentalForecastResult {
+  forecasts_by_crude: Record<string, FundamentalCrudeForecast>;
+  method: string;
+  generated_at: string;
+}
+
+// ──────────────────────────────────────────────
+// 이중 방법론 비교 타입
+// ──────────────────────────────────────────────
+
+export interface DualForecastResult {
+  method_a: ForecastResult;
+  method_b: FundamentalForecastResult;
+  consensus: boolean;
+  generated_at: string;
+}
+

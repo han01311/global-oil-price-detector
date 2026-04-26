@@ -99,13 +99,28 @@ export function usePriceData(period: Period): PriceData {
 
     const priceMap = new Map<string, OilPrice>(history.map(p => [p.date, p]));
 
-    const processedChartData: ChartDataPoint[] = history.map(p => ({
-      date: p.date,
-      timestamp: new Date(p.date).getTime(),
-      dubai: p.dubai,
-      wti: p.wti,
-      brent: p.brent,
-    }));
+    const processedChartData: ChartDataPoint[] = [];
+    const lastValid = { dubai: null as number | null, wti: null as number | null, brent: null as number | null };
+
+    history.forEach(p => {
+      // 값이 없거나 0인 경우 이전의 유효한 값을 사용 (Forward-fill)
+      const dubai = (p.dubai && p.dubai !== 0) ? p.dubai : lastValid.dubai;
+      const wti = (p.wti && p.wti !== 0) ? p.wti : lastValid.wti;
+      const brent = (p.brent && p.brent !== 0) ? p.brent : lastValid.brent;
+
+      // 현재 값이 유효하다면 캐시 업데이트
+      if (dubai && dubai !== 0) lastValid.dubai = dubai;
+      if (wti && wti !== 0) lastValid.wti = wti;
+      if (brent && brent !== 0) lastValid.brent = brent;
+
+      processedChartData.push({
+        date: p.date,
+        timestamp: new Date(p.date).getTime(),
+        dubai: dubai,
+        wti: wti,
+        brent: brent,
+      });
+    });
 
     if (forecast && processedChartData.length > 0) {
       const lastDataPoint = processedChartData[processedChartData.length - 1];
@@ -130,16 +145,20 @@ export function usePriceData(period: Period): PriceData {
     }
 
     const processedNewsMarkers: NewsMarker[] = news
-      .filter(n => n.is_relevant && priceMap.has(n.article.published_at.split('T')[0]))
+      .filter(n => n.is_relevant)
       .map(n => {
         const date = n.article.published_at.split('T')[0];
-        const pricePoint = priceMap.get(date)!;
+        // Use forward-filled chart data instead of raw history
+        const chartPoint = processedChartData.find(d => d.date === date);
+        if (!chartPoint || chartPoint.wti === null) return null;
+
         return {
-          timestamp: new Date(date).getTime(),
-          value: pricePoint.wti!,
+          timestamp: chartPoint.timestamp,
+          value: chartPoint.wti,
           article: n,
         };
-      });
+      })
+      .filter((n): n is NewsMarker => n !== null);
 
     // Add news articles to the main chart data for tooltip purposes
     const chartDataMap = new Map<number, ChartDataPoint>(processedChartData.map(d => [d.timestamp, d]));

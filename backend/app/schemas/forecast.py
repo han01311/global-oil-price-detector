@@ -52,6 +52,53 @@ class ForecastResult(BaseModel):
     generated_at: str
 
 
+# ──────────────────────────────────────────────
+# Method B: 펀더멘탈 분석 모델 스키마
+# ──────────────────────────────────────────────
+
+class FundamentalSignal(BaseModel):
+    """개별 시그널 결과"""
+    signal_id: str                    # "inventory" | "production" | "seasonal" | "mean_reversion" | "dollar"
+    name: str                         # 한국어 표시명
+    change: Optional[float] = None    # 예상 변동률 (0.01 = 1%)
+    confidence: float = 0.0           # 신뢰도 (0.0 ~ 1.0)
+    weight: float = 0.0              # 최종 합산 시 가중치 비율
+    detail: str = ""                  # 근거 설명 텍스트
+
+
+class FundamentalCrudeForecast(BaseModel):
+    """Method B 유종별 예측 결과"""
+    crude_type: str
+    current_price: float
+    estimated_7d: float
+    estimated_7d_high: float
+    estimated_7d_low: float
+    total_change_pct: float           # 총 변동률 (%)
+    signals: List[FundamentalSignal]   # 각 시그널의 기여도
+    confidence: float = Field(..., ge=0.0, le=1.0)
+
+
+class FundamentalForecastResult(BaseModel):
+    """Method B 전체 결과"""
+    forecasts_by_crude: dict[str, FundamentalCrudeForecast] = {}
+    method: str = "fundamental"
+    generated_at: str
+
+
+# ──────────────────────────────────────────────
+# 이중 방법론 비교 스키마
+# ──────────────────────────────────────────────
+
+class DualForecastResult(BaseModel):
+    """두 방법론의 예측 결과를 나란히 제공"""
+    method_a: ForecastResult                   # 기술적 분석 (XGBoost + 뉴스 보정)
+    method_b: FundamentalForecastResult         # 펀더멘탈 분석 (수급 기반)
+    consensus: bool = False                     # 두 방법이 같은 방향인지
+    generated_at: str
+
+
+
+
 class BriefingKeyFactor(BaseModel):
     category: str           # 6대 카테고리
     description: str        # 요인 설명

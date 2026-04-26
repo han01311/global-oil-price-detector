@@ -63,8 +63,9 @@ async def get_latest_prices() -> OilPrice:
             latest_valid = {"dubai": None, "wti": None, "brent": None}
             for row in db_rows:
                 for k in ["dubai", "wti", "brent"]:
-                    if latest_valid[k] is None and row.get(k) is not None:
-                        latest_valid[k] = row[k]
+                    val = row.get(k)
+                    if latest_valid[k] is None and val is not None and val != 0:
+                        latest_valid[k] = val
             
             # Combine into a single latest record using the date of the newest row
             latest = dict(db_rows[0])
