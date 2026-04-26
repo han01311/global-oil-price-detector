@@ -1,15 +1,16 @@
 """
 Pydantic 스키마 for Price Data
 """
+from typing import Optional
 from pydantic import BaseModel
 
 
 class OilPrice(BaseModel):
     """단일 시점의 유가 정보"""
     date: str  # YYYY-MM-DD
-    dubai: float | None = None  # Dubai 현물가 (USD/bbl)
-    wti: float | None = None  # WTI 현물가 (USD/bbl)
-    brent: float | None = None  # Brent 현물가 (USD/bbl)
+    dubai: Optional[float] = None  # Dubai 현물가 (USD/bbl)
+    wti: Optional[float] = None  # WTI 현물가 (USD/bbl)
+    brent: Optional[float] = None  # Brent 현물가 (USD/bbl)
 
 
 class PriceHistory(BaseModel):
@@ -22,11 +23,11 @@ class PriceHistory(BaseModel):
 class MacroIndicator(BaseModel):
     """단일 시점의 거시경제 지표"""
     date: str
-    fed_rate: float | None = None
-    dollar_index: float | None = None
-    cpi: float | None = None
-    industrial_prod: float | None = None
-    yield_spread: float | None = None
+    fed_rate: Optional[float] = None
+    dollar_index: Optional[float] = None
+    cpi: Optional[float] = None
+    industrial_prod: Optional[float] = None
+    yield_spread: Optional[float] = None
 
 
 class MacroHistory(BaseModel):

@@ -30,8 +30,8 @@ class Settings(BaseSettings):
     FRED_API_KEY: str = ""
 
     # 선택 API 키
-    NEWS_API_KEY: Optional[str] = None
-    GNEWS_API_KEY: Optional[str] = None
+    NYT_API_KEY: Optional[str] = None
+    GUARDIAN_API_KEY: Optional[str] = None
 
     # 스케줄러
     SCHEDULER_ENABLED: bool = True

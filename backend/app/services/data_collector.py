@@ -221,163 +221,60 @@ class FREDCollector(BaseCollector):
         return merged_df
 
 
-class NewsCollector:
-    """NewsAPI 뉴스 수집기"""
-    KEYWORDS = ["crude oil", "WTI", "Brent", "OPEC", "shale oil", "oil demand", "oil supply", "oil reserves", "geopolitics oil"]
-    cache_dir = os.path.join(settings.DATA_CACHE_DIR, "raw")
-
-    def __init__(self, news_api_key: str | None = None):
-        self.news_api_key = news_api_key or settings.NEWS_API_KEY
-        self.rate_limiter = RateLimiter()
-        os.makedirs(self.cache_dir, exist_ok=True)
-
-    def _get_cache_path(self, name: str) -> str:
-        today = datetime.now().strftime('%Y-%m-%d')
-        return os.path.join(self.cache_dir, f"{today}_{name}.json")
+class NYTCollector(BaseCollector):
+    """NYT Article Search API 수집기"""
+    def __init__(self, api_key: str | None = None):
+        api_key = api_key or settings.NYT_API_KEY
+        super().__init__(api_key, "https://api.nytimes.com/svc/search/v2")
 
     async def get_latest_news(self) -> List[Dict[str, Any]]:
-        if not self.news_api_key:
+        if not self.api_key:
             return []
         
-        cache_path = self._get_cache_path("newsapi")
-        if os.path.exists(cache_path):
-            with open(cache_path, 'r') as f:
-                return json.load(f).get("articles", [])
-
-        # Rate Limit 체크 (100회/일)
-        can_proceed = await self.rate_limiter.acquire("newsapi")
-        if not can_proceed:
-            logger.warning("NewsAPI daily limit reached. Skipping.")
-            return []
-
-        query = " OR ".join([f'"{k}"' for k in self.KEYWORDS])
         params = {
-            "q": query, "language": "en", "sortBy": "publishedAt", "apiKey": self.news_api_key, "pageSize": 50
+            "q": '("crude oil" OR "oil price" OR "OPEC")',
+            "sort": "newest",
+            "api-key": self.api_key
         }
-
-        async def do_fetch():
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get("https://newsapi.org/v2/everything", params=params)
-                response.raise_for_status()
-                return response.json()
-
+        
         try:
-            data = await with_backoff("newsapi", do_fetch)
-            with open(cache_path, 'w') as f:
-                json.dump(data, f)
-            return data.get("articles", [])
+            data = await self._fetch_api("/articlesearch.json", params, "nyt_news", rate_limit_source="nyt")
+            return data.get("response", {}).get("docs", [])
         except Exception as e:
-            logger.error(f"NewsAPI fetch failed: {e}")
+            logger.error(f"NYT fetch failed: {e}")
             return []
 
-    async def get_gdelt_events(self, start_date: str, end_date: str) -> List[Dict[str, Any]]:
-        cache_path = self._get_cache_path(f"gdelt_{start_date}_{end_date}")
-        if os.path.exists(cache_path):
-            with open(cache_path, 'r') as f:
-                return json.load(f).get("articles", [])
-
-        # Rate Limit 체크 (6초 간격)
-        can_proceed = await self.rate_limiter.acquire("gdelt")
-        if not can_proceed:
-            return []
-
-        query = " OR ".join([f'"{k}"' for k in self.KEYWORDS])
-        start = datetime.fromisoformat(start_date).strftime('%Y%m%d000000')
-        end = datetime.fromisoformat(end_date).strftime('%Y%m%d235959')
-        params = {
-            "query": query, "mode": "artlist", "format": "json", "maxrecords": 50,
-            "startdatetime": start, "enddatetime": end
-        }
-
-        async def do_fetch():
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                response = await client.get("https://api.gdeltproject.org/api/v2/doc/doc", params=params)
-                response.raise_for_status()
-                return response.json()
-
-        try:
-            data = await with_backoff("gdelt", do_fetch)
-            with open(cache_path, 'w') as f:
-                json.dump(data, f)
-            return data.get("articles", [])
-        except Exception as e:
-            logger.error(f"GDELT fetch failed: {e}")
-            return []
-
-
-class GNewsCollector:
-    """GNews API 뉴스 수집기 (NewsAPI 보완용)"""
-    KEYWORDS = ["crude oil price", "OPEC production", "oil market", "WTI Brent"]
-    cache_dir = os.path.join(settings.DATA_CACHE_DIR, "raw")
-
-    def __init__(self, gnews_api_key: str | None = None):
-        self.gnews_api_key = gnews_api_key or settings.GNEWS_API_KEY
-        self.rate_limiter = RateLimiter()
-        os.makedirs(self.cache_dir, exist_ok=True)
-
-    def _get_cache_path(self, name: str) -> str:
-        today = datetime.now().strftime('%Y-%m-%d')
-        return os.path.join(self.cache_dir, f"{today}_{name}.json")
+class GuardianCollector(BaseCollector):
+    """The Guardian Open Platform API 수집기"""
+    def __init__(self, api_key: str | None = None):
+        api_key = api_key or settings.GUARDIAN_API_KEY
+        super().__init__(api_key, "https://content.guardianapis.com")
 
     async def get_latest_news(self) -> List[Dict[str, Any]]:
-        """GNews에서 최신 유가 관련 뉴스를 수집한다."""
-        if not self.gnews_api_key:
-            logger.debug("GNews API key not configured. Skipping.")
+        if not self.api_key:
             return []
-
-        cache_path = self._get_cache_path("gnews")
-        if os.path.exists(cache_path):
-            with open(cache_path, 'r') as f:
-                return json.load(f).get("articles", [])
-
-        # Rate Limit 체크 (100회/일, 10건/요청)
-        can_proceed = await self.rate_limiter.acquire("gnews")
-        if not can_proceed:
-            logger.warning("GNews daily limit reached. Skipping.")
+        
+        params = {
+            "q": '"crude oil" OR "oil price" OR OPEC',
+            "order-by": "newest",
+            "show-fields": "trailText",
+            "api-key": self.api_key
+        }
+        
+        try:
+            data = await self._fetch_api("/search", params, "guardian_news", rate_limit_source="guardian")
+            return data.get("response", {}).get("results", [])
+        except Exception as e:
+            logger.error(f"Guardian fetch failed: {e}")
             return []
-
-        all_articles: List[Dict] = []
-        for keyword in self.KEYWORDS:
-            # 각 키워드마다 Rate Limit 체크
-            can_proceed = await self.rate_limiter.acquire("gnews")
-            if not can_proceed:
-                break
-
-            params = {
-                "q": keyword,
-                "lang": "en",
-                "max": 10,  # 무료 플랜 최대
-                "apikey": self.gnews_api_key,
-            }
-
-            try:
-                async def do_fetch():
-                    async with httpx.AsyncClient(timeout=30.0) as client:
-                        response = await client.get("https://gnews.io/api/v4/search", params=params)
-                        response.raise_for_status()
-                        return response.json()
-
-                data = await with_backoff("gnews", do_fetch)
-                articles = data.get("articles", [])
-                all_articles.extend(articles)
-            except Exception as e:
-                logger.error(f"GNews fetch failed for keyword '{keyword}': {e}")
-                continue
-
-        # 캐시 저장
-        if all_articles:
-            with open(cache_path, 'w') as f:
-                json.dump({"articles": all_articles}, f)
-
-        return all_articles
 
 
 class DataCollector:
     def __init__(self):
         self.eia = EIACollector() if settings.EIA_API_KEY else None
         self.fred = FREDCollector() if settings.FRED_API_KEY else None
-        self.news = NewsCollector()
-        self.gnews = GNewsCollector()
+        self.nyt = NYTCollector()
+        self.guardian = GuardianCollector()
         self.opinet = OpinetCollector()
         self.db = Database()
 
@@ -443,71 +340,75 @@ class DataCollector:
         return MacroHistory(indicators=indicators, source="fred", last_updated=datetime.now().isoformat())
 
     def _normalize_article(self, article: Dict, source: str) -> Dict:
-        if source == "newsapi":
-            content = article.get('content') or article.get('description') or ''
+        if source == "nyt":
+            title = article.get('headline', {}).get('main', '')
+            description = article.get('abstract', '') or article.get('snippet', '')
+            pub_date = article.get('pub_date', datetime.now().isoformat())
+            link = article.get('web_url', '')
+
             return {
-                "id": sha256(article['url'].encode()).hexdigest(),
-                "title": article['title'], "description": article.get('description'),
-                "source": article.get('source', {}).get('name'), "url": article['url'],
-                "published_at": article['publishedAt'], "content_snippet": content[:200] if content else None,
-                "data_source": "newsapi"
+                "id": sha256(link.encode()).hexdigest(),
+                "title": title, 
+                "description": description,
+                "source": "New York Times", 
+                "url": link,
+                "published_at": pub_date, 
+                "content_snippet": description[:200] if description else None,
+                "data_source": "nyt"
             }
-        elif source == "gdelt":
-            pub_date = datetime.strptime(article['seendate'], '%Y%m%d%H%M%S').isoformat() + "Z"
+            
+        elif source == "guardian":
+            title = article.get('webTitle', '')
+            description = article.get('fields', {}).get('trailText', '')
+            
+            import html
+            import re
+            def clean_html(raw_html):
+                cleanr = re.compile('<.*?>')
+                cleantext = re.sub(cleanr, '', raw_html)
+                return html.unescape(cleantext)
+                
+            description = clean_html(description)
+            
+            pub_date = article.get('webPublicationDate', datetime.now().isoformat())
+            link = article.get('webUrl', '')
+
             return {
-                "id": sha256(article['url'].encode()).hexdigest(),
-                "title": article['title'], "description": None,
-                "source": article.get('domain'), "url": article['url'],
-                "published_at": pub_date, "content_snippet": None,
-                "data_source": "gdelt"
-            }
-        elif source == "gnews":
-            content = article.get('content') or article.get('description') or ''
-            pub_date = article.get('publishedAt', '')
-            return {
-                "id": sha256(article['url'].encode()).hexdigest(),
-                "title": article['title'], "description": article.get('description'),
-                "source": article.get('source', {}).get('name'), "url": article['url'],
-                "published_at": pub_date, "content_snippet": content[:200] if content else None,
-                "data_source": "gnews"
+                "id": sha256(link.encode()).hexdigest(),
+                "title": title, 
+                "description": description,
+                "source": "The Guardian", 
+                "url": link,
+                "published_at": pub_date, 
+                "content_snippet": description[:200] if description else None,
+                "data_source": "guardian"
             }
         return {}
 
     async def collect_news(self) -> List[Dict[str, Any]]:
-        today = date.today().isoformat()
-        yesterday = (date.today() - timedelta(days=1)).isoformat()
+        nyt_task = self.nyt.get_latest_news()
+        guardian_task = self.guardian.get_latest_news()
         
-        newsapi_task = self.news.get_latest_news()
-        gdelt_task = self.news.get_gdelt_events(yesterday, today)
-        gnews_task = self.gnews.get_latest_news()
-        
-        newsapi_articles, gdelt_articles, gnews_articles = await asyncio.gather(
-            newsapi_task, gdelt_task, gnews_task
-        )
+        nyt_articles, guardian_articles = await asyncio.gather(nyt_task, guardian_task)
         
         all_articles = []
         seen_urls = set()
 
-        for article in (newsapi_articles or []):
-            if article.get('url') and article['url'] not in seen_urls:
-                normalized = self._normalize_article(article, "newsapi")
+        for article in (nyt_articles or []):
+            link = article.get('web_url')
+            if link and link not in seen_urls:
+                normalized = self._normalize_article(article, "nyt")
                 if normalized:
                     all_articles.append(normalized)
-                    seen_urls.add(article['url'])
-        
-        for article in (gdelt_articles or []):
-            if article.get('url') and article['url'] not in seen_urls:
-                normalized = self._normalize_article(article, "gdelt")
+                    seen_urls.add(link)
+                    
+        for article in (guardian_articles or []):
+            link = article.get('webUrl')
+            if link and link not in seen_urls:
+                normalized = self._normalize_article(article, "guardian")
                 if normalized:
                     all_articles.append(normalized)
-                    seen_urls.add(article['url'])
-
-        for article in (gnews_articles or []):
-            if article.get('url') and article['url'] not in seen_urls:
-                normalized = self._normalize_article(article, "gnews")
-                if normalized:
-                    all_articles.append(normalized)
-                    seen_urls.add(article['url'])
+                    seen_urls.add(link)
 
         # SQLite에 저장
         if all_articles:

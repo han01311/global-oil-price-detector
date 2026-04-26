@@ -61,6 +61,16 @@ POLICIES: dict[str, RateLimitPolicy] = {
         max_requests_per_day=None,
         min_interval_seconds=6.0,
     ),
+    "nyt": RateLimitPolicy(
+        name="nyt",
+        max_requests_per_day=500,
+        min_interval_seconds=12.5,  # 12초 (분당 5회 제한 고려, 여유있게)
+    ),
+    "guardian": RateLimitPolicy(
+        name="guardian",
+        max_requests_per_day=5000,
+        min_interval_seconds=1.0,
+    ),
 }
 
 
