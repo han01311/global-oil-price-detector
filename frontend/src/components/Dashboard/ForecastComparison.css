@@ -1,245 +1,168 @@
-.forecast-comparison {
+/* ──────────────────────────────────────────────
+ * ForecastComparison — Minimal flat table + Landing-page modal
+ * ────────────────────────────────────────────── */
+
+/* Sub-header */
+.fc-sub-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.fc-date-context {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.fc-sub-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fc-consensus {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 2px;
+}
+
+.fc-consensus.agree {
+  background: rgba(255, 107, 53, 0.12);
+  color: var(--color-bull);
+}
+
+.fc-consensus.disagree {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--color-warning);
+}
+
+.fc-info-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.fc-info-link:hover {
+  color: var(--color-primary);
+}
+
+/* ── Table ───────────────────────────────────── */
+.fc-table {
   display: flex;
   flex-direction: column;
-  margin-bottom: 24px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  overflow: hidden;
-  background-color: var(--color-card);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* Header */
-.fc-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.fc-header-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  letter-spacing: 0.02em;
-}
-
-.fc-consensus-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-}
-
-.fc-consensus-badge.agree {
-  background-color: rgba(16, 185, 129, 0.12);
-  color: #10B981;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.fc-consensus-badge.disagree {
-  background-color: rgba(251, 191, 36, 0.12);
-  color: var(--color-warning);
-  border: 1px solid rgba(251, 191, 36, 0.3);
-}
-
-/* Column Headers */
-.fc-column-headers {
+.fc-row {
   display: grid;
-  grid-template-columns: 160px 1fr;
-  padding: 10px 16px;
-  border-bottom: 1px solid var(--color-border);
-  background: rgba(255, 255, 255, 0.02);
+  grid-template-columns: 55px 95px 1fr 95px 1fr 95px 1fr;
+  align-items: baseline;
+  padding: 10px 0;
 }
 
-.fc-col-current {
-  font-size: 11px;
-  font-weight: 500;
+.fc-row + .fc-row {
+  border-top: 1px solid var(--color-border);
+}
+
+.fc-row-header {
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.fc-row-header .fc-cell {
+  font-size: 10px;
+  font-weight: 600;
   color: var(--color-text-muted);
-  display: flex;
-  align-items: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.fc-col-forecasts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
+.fc-cell {
+  display: flex;
+  align-items: baseline;
 }
 
-.fc-col-method {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
+.fc-cell-name {
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-secondary);
 }
 
-.fc-col-method-icon {
-  font-size: 12px;
+.fc-cell-price,
+.fc-cell-forecast,
+.fc-cell-change {
+  font-variant-numeric: tabular-nums;
 }
 
-/* Info Button */
-.fc-info-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  padding: 0;
-  border-radius: 50%;
-  transition: all 0.2s ease;
-  margin-left: 2px;
-  flex-shrink: 0;
-}
-
-.fc-info-btn:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--color-primary);
-}
-
-/* Crude Rows */
-.fc-crude-row {
-  display: grid;
-  grid-template-columns: 160px 1fr;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  transition: background 0.15s ease;
-}
-
-.fc-crude-row:last-of-type {
-  border-bottom: none;
-}
-
-.fc-crude-row:hover {
-  background: rgba(255, 255, 255, 0.02);
-}
-
-.fc-crude-current {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-}
-
-.fc-crude-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.fc-current-price {
-  font-size: 18px;
+/* Values */
+.fc-val-current {
+  font-size: 15px;
   font-weight: 700;
   color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
 }
 
-/* Forecast Cells */
-.fc-crude-forecasts {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
+.fc-val-current.bull { color: var(--color-bull); }
+.fc-val-current.bear { color: var(--color-bear); }
 
-.fc-forecast-cell {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 3px;
-  padding: 8px 12px;
-  background: var(--color-bg);
-  border: 1px solid var(--color-border);
-  border-radius: 6px;
-  transition: border-color 0.2s ease;
-}
-
-.fc-forecast-cell:hover {
-  border-color: rgba(255, 255, 255, 0.12);
-}
-
-.fc-forecast-price {
-  font-size: 16px;
+.fc-val-forecast {
+  font-size: 15px;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
 }
 
-.fc-forecast-price.bull { color: var(--color-bull); }
-.fc-forecast-price.bear { color: var(--color-bear); }
+.fc-val-forecast.bull { color: var(--color-bull); }
+.fc-val-forecast.bear { color: var(--color-bear); }
 
-.fc-forecast-pct {
-  font-size: 11px;
+.fc-val-change {
+  font-size: 12px;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 
-.fc-forecast-pct.bull { color: var(--color-bull); }
-.fc-forecast-pct.bear { color: var(--color-bear); }
+.fc-val-change.bull { color: var(--color-bull); }
+.fc-val-change.bear { color: var(--color-bear); }
 
-/* Signal Tag */
-.fc-signal-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 1px 5px;
-  border-radius: 3px;
+.fc-val-diff {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.6;
+}
+
+.fc-signal {
   font-size: 10px;
+  font-weight: 500;
   color: var(--color-text-muted);
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--color-border);
-  white-space: nowrap;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 1px;
+  opacity: 0.8;
 }
 
-/* Footer Note */
-.fc-footer-note {
-  padding: 8px 16px;
+/* Footer */
+.fc-footer {
+  margin-top: 12px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
   font-size: 10px;
   color: var(--color-text-muted);
   text-align: right;
-  border-top: 1px solid var(--color-border);
-}
-
-/* Skeletons */
-.fc-skeleton {
-  background: var(--color-skeleton-base);
-  border-radius: 4px;
-  animation: skeleton-pulse 1.5s ease-in-out infinite;
-}
-
-.fc-skeleton-lg { width: 90px; height: 24px; }
-.fc-skeleton-sm { width: 75px; height: 20px; }
-.fc-skeleton-xs { width: 55px; height: 14px; }
-
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
 }
 
 /* ──────────────────────────────────────────────
- * Info Modal
+ * Modal — Landing-page style (rendered via Portal)
+ * z-index 9990 ensures it's above ALL dashboard elements
  * ────────────────────────────────────────────── */
 
 .fc-modal-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
+  z-index: 9990;
+  background: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -250,50 +173,63 @@
 .fc-modal {
   background: var(--color-card);
   border: 1px solid var(--color-border);
-  border-radius: 12px;
+  border-radius: 6px;
   width: 100%;
-  max-width: 640px;
-  max-height: 80vh;
+  max-width: 680px;
+  max-height: 85vh;
   overflow-y: auto;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
   animation: slide-up 0.25s ease-out;
 }
 
-.fc-modal-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 20px 24px 0;
-  gap: 12px;
+/* Hero header */
+.fc-modal-hero {
+  position: relative;
+  padding: 28px 24px 20px;
+  border-bottom: 1px solid var(--color-border);
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+}
+
+.fc-modal-title-en {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0 0 4px;
 }
 
 .fc-modal-title {
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--color-text-primary);
   margin: 0;
+  line-height: 1.3;
 }
 
 .fc-modal-subtitle {
   font-size: 12px;
-  color: var(--color-primary);
+  color: var(--color-text-muted);
+  margin: 6px 0 0;
   font-weight: 500;
-  margin: 4px 0 0;
 }
 
 .fc-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text-muted);
-  border-radius: 6px;
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: all 0.15s ease;
+  transition: all 0.15s;
 }
 
 .fc-modal-close:hover {
@@ -302,82 +238,340 @@
   border-color: var(--color-text-muted);
 }
 
+/* Description */
 .fc-modal-desc {
-  padding: 12px 24px 0;
+  padding: 16px 24px 0;
   font-size: 13px;
   color: var(--color-text-body);
-  line-height: 1.6;
+  line-height: 1.7;
+  margin: 0;
 }
 
-.fc-modal-sections {
-  padding: 16px 24px 24px;
+/* ── Diagrams ─────────────────────────────────── */
+.fc-diagram {
+  margin: 16px 24px 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.fc-diagram-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
+}
+
+/* Pipeline flow (Technical) */
+.fc-pipeline {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.fc-pipe-node {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.fc-modal-section {
-  background: var(--color-bg);
+  align-items: center;
+  gap: 3px;
+  padding: 10px 8px;
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 14px 16px;
+  border-radius: 6px;
+  min-width: 72px;
+  transition: border-color 0.2s;
 }
 
-.fc-modal-section-title {
-  font-size: 12px;
+.fc-pipe-node:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.fc-pipe-result {
+  border-color: var(--color-primary);
+  background: rgba(96, 165, 250, 0.06);
+}
+
+.fc-pipe-icon {
+  font-size: 18px;
+}
+
+.fc-pipe-text {
+  font-size: 11px;
   font-weight: 700;
   color: var(--color-text-primary);
-  margin: 0 0 8px;
-  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
-.fc-modal-list {
+.fc-pipe-sub {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.fc-pipe-arrow {
+  font-size: 16px;
+  color: var(--color-primary);
+  padding: 0 4px;
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+/* Ensemble diagram (Fundamental) */
+.fc-ensemble {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.fc-ens-signals {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  justify-content: center;
+}
+
+.fc-ens-signal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  min-width: 56px;
+  transition: border-color 0.2s;
+}
+
+.fc-ens-signal:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.fc-ens-icon {
+  font-size: 18px;
+}
+
+.fc-ens-name {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.fc-ens-merge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0;
+  position: relative;
+}
+
+.fc-ens-merge-lines {
+  width: 240px;
+  height: 1px;
+  background: var(--color-border);
+  position: relative;
+}
+
+.fc-ens-merge-lines::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 1px;
+  height: 12px;
+  background: var(--color-border);
+}
+
+.fc-ens-merge-label {
+  margin-top: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-primary);
+  letter-spacing: 0.04em;
+  padding: 3px 10px;
+  border: 1px solid var(--color-primary);
+  border-radius: 3px;
+  opacity: 0.8;
+}
+
+.fc-ens-result {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 16px;
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  background: rgba(96, 165, 250, 0.06);
+}
+
+/* Formula box */
+.fc-formula-box {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fc-formula-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.fc-formula {
+  font-size: 12px;
+  color: var(--color-primary);
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  background: none;
+  padding: 0;
+}
+
+.fc-formula sub {
+  font-size: 9px;
+  opacity: 0.7;
+}
+
+/* Step cards grid */
+.fc-modal-steps {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fc-step-card {
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+
+.fc-step-card:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Step header: icon + meta */
+.fc-step-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.fc-step-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
+}
+
+.fc-step-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.fc-step-num {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.06em;
+}
+
+.fc-step-label {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+/* Step summary */
+.fc-step-summary {
+  font-size: 13px;
+  color: var(--color-text-body);
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+
+/* Step detail list */
+.fc-step-details {
   margin: 0;
   padding: 0 0 0 16px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
-.fc-modal-list li {
+.fc-step-details li {
   font-size: 12px;
-  color: var(--color-text-body);
-  line-height: 1.6;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 
-.fc-modal-list li::marker {
+.fc-step-details li::marker {
   color: var(--color-primary);
 }
 
-/* Scrollbar in modal */
-.fc-modal::-webkit-scrollbar {
-  width: 6px;
-}
+/* Scrollbar */
+.fc-modal::-webkit-scrollbar { width: 6px; }
+.fc-modal::-webkit-scrollbar-track { background: transparent; }
+.fc-modal::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 3px; }
 
-.fc-modal::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.fc-modal::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 3px;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .fc-column-headers,
-  .fc-crude-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
+/* ── Responsive ──────────────────────────────── */
+@media (max-width: 900px) {
+  .fc-row {
+    grid-template-columns: 50px 80px 1fr 80px 1fr 80px 1fr;
+    gap: 4px;
   }
 
-  .fc-col-forecasts,
-  .fc-crude-forecasts {
-    grid-template-columns: 1fr 1fr;
+  .fc-val-current,
+  .fc-val-forecast {
+    font-size: 13px;
+  }
+
+  .fc-sub-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+@media (max-width: 600px) {
+  .fc-row {
+    grid-template-columns: 50px 1fr 1fr 1fr;
+    gap: 4px;
+  }
+
+  .fc-cell-change {
+    display: none;
   }
 
   .fc-modal {
     max-width: 100%;
     max-height: 90vh;
+  }
+
+  .fc-modal-hero {
+    padding: 20px 16px 16px;
+  }
+
+  .fc-modal-steps {
+    padding: 16px;
   }
 }

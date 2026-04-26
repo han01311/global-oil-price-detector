@@ -1,261 +1,301 @@
 import React, { useEffect, useState } from 'react';
-import { fetchDualForecast } from '../../services/api';
+import ReactDOM from 'react-dom';
+import { Card } from '../common/Card';
+import { Skeleton } from '../common/Skeleton';
+import { EmptyState } from '../common/EmptyState';
+import { fetchDualForecast, fetchPriceHistory } from '../../services/api';
 import type { DualForecastResult, CrudeForecast, FundamentalCrudeForecast, FundamentalSignal } from '../../types/forecast';
+import type { OilPrice } from '../../types/price';
 import './ForecastComparison.css';
 
-const CRUDE_LABELS: Record<string, string> = {
-  dubai: 'Dubai',
-  wti: 'WTI',
-  brent: 'Brent',
-};
-
+const CRUDE_LABELS: Record<string, string> = { dubai: 'Dubai', wti: 'WTI', brent: 'Brent' };
 const CRUDE_ORDER = ['dubai', 'wti', 'brent'];
 
-function formatPrice(price: number | undefined): string {
-  if (price === undefined || isNaN(price)) return '—';
-  return `$${price.toFixed(2)}`;
+function formatPrice(p: number | undefined): string {
+  return p === undefined || isNaN(p) ? '—' : `$${p.toFixed(2)}`;
 }
 
-function formatPct(current: number, forecast: number): string {
-  if (!current || !forecast) return '';
-  const pct = ((forecast - current) / current) * 100;
-  const sign = pct >= 0 ? '+' : '';
-  return `${sign}${pct.toFixed(2)}%`;
-}
-
-function getPctClass(current: number, forecast: number): string {
-  if (!current || !forecast) return '';
-  return forecast >= current ? 'bull' : 'bear';
+function formatChange(from: number, to: number) {
+  const diff = to - from;
+  const pct = (diff / from) * 100;
+  return {
+    pct: `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`,
+    diff: `${diff >= 0 ? '+' : ''}$${Math.abs(diff).toFixed(2)}`,
+    isUp: diff >= 0,
+  };
 }
 
 function getTopSignal(signals?: FundamentalSignal[]): string {
-  if (!signals || signals.length === 0) return '';
+  if (!signals?.length) return '';
   const active = signals.filter(s => s.change !== null && s.weight > 0);
-  if (active.length === 0) return '';
-  const top = active.reduce((a, b) => (a.weight > b.weight ? a : b));
-  return top.name;
+  if (!active.length) return '';
+  return active.reduce((a, b) => (a.weight > b.weight ? a : b)).name;
 }
+
+function fmtDateShort(d: string) { const dt = new Date(d); return `${dt.getMonth() + 1}/${dt.getDate()}`; }
+function fmtTarget(d: string) { const dt = new Date(d); dt.setDate(dt.getDate() + 7); return `${dt.getMonth() + 1}/${dt.getDate()}`; }
 
 /* ──────────────────────────────────────────────
- * Methodology Info Modal
+ * Model info data (landing-page style with steps)
  * ────────────────────────────────────────────── */
 
-const METHOD_A_INFO = {
-  title: '기술적 분석 모델 (Technical Analysis)',
-  subtitle: 'XGBoost ML + 뉴스 감성 보정',
-  description: '과거 5년간의 가격 패턴과 거시경제 지표를 머신러닝(XGBoost)으로 학습하고, 최신 뉴스의 시장 영향을 학술 근거 기반으로 보정하여 최종 전망치를 산출합니다.',
-  sections: [
-    {
-      title: '1단계: XGBoost 베이스라인 예측',
-      items: [
-        '5년치 일별 유가 데이터로 학습된 Gradient Boosting 모델',
-        '이동평균(5/10/20/50일), 변동성(20일), RSI, MACD 등 기술적 지표 활용',
-        '유종 간 스프레드(Dubai-WTI, Brent-WTI) 반영',
-        'FRED 거시경제 데이터(달러 인덱스, 금리) 연동',
-        '7일/30일 독립 모델로 단기·중기 예측 분리',
-      ],
-    },
-    {
-      title: '2단계: 뉴스 감성 보정 (학술 근거 기반)',
-      items: [
-        '시간 감쇠 (Temporal Decay): 기사 발행일로부터 지수적으로 영향력 감소. 지정학 이슈는 반감기 5일, 일반 수급은 2.5일 적용 (arXiv 2024)',
-        '의미적 중복 제거 (Semantic Deduplication): 같은 사건의 반복 보도를 자카드 유사도로 클러스터링하여 이슈 과대평가 방지 (BERT/LLM 방법론)',
-        '변동성 국면 인식 (Volatility Regime): 고변동 시장에서는 뉴스 반응을 1.5배 확대, 저변동 시장에서는 0.7배 축소 (GARCH 개념, Bollerslev 1986)',
-        '시장 반영도 체크 (Price Absorption): 이미 가격에 반영된 뉴스 효과를 차감. 최소 20% 모멘텀 유지 (효율적 시장 가설 변형)',
-      ],
-    },
-    {
-      title: '3단계: 유사 사례 기반 보정 (Market Memory)',
-      items: [
-        '20년치 주요 이벤트와 실제 가격 반응을 ChromaDB에 벡터로 저장',
-        '현재 뉴스와 코사인 유사도가 높은 과거 사례 5건 검색',
-        '감성 분석 40% + 유사 사례 60% 가중 결합으로 최종 보정치 산출',
-      ],
-    },
-    {
-      title: '최종 공식',
-      items: [
-        '최종 전망 = 현재가 × (1 + XGBoost 예측 변화율 + 뉴스 보정치)',
-        '뉴스 보정치 = (감성 보정 × 0.4 + 유사사례 보정 × 0.6) × 변동성 배율 × 시장 반영도',
-      ],
-    },
-  ],
-};
-
-const METHOD_B_INFO = {
-  title: '펀더멘탈 분석 모델 (Fundamental Analysis)',
-  subtitle: '수급 균형 + 계절성 + 평균 회귀',
-  description: 'EIA(미국 에너지정보청)가 실제로 사용하는 Short-Term Energy Outlook 방법론을 참고하여, 실물 시장의 수급 상태를 읽고 예측합니다. 가격 차트가 아닌 실제 재고·생산·달러 데이터를 기반으로 합니다.',
-  sections: [
-    {
-      title: '시그널 1: 재고 변화 (Inventory Signal)',
-      items: [
-        'EIA 주간 원유 재고 데이터 활용 — 수급 균형의 대리 지표',
-        '최근 4주간 재고 변화 추세를 계산',
-        '과거 5년간 "재고가 이 속도로 줄었을 때, 7일 후 유가가 평균 몇 % 변했는가" 조회',
-        '재고 감소 → 수요 > 공급 → 가격 상승 압력',
-      ],
-    },
-    {
-      title: '시그널 2: 생산량 추세 (Production Signal)',
-      items: [
-        'EIA 주간 미국 원유 생산량 데이터 활용',
-        '미국 셰일오일 생산은 유가에 민감하게 반응 (EIA STEO 방법론)',
-        '최근 4주간 생산량 변화율 → 과거 유사 시기 유가 반응 조회',
-        '생산 증가 → 공급 증가 → 가격 하락 압력',
-      ],
-    },
-    {
-      title: '시그널 3: 계절적 패턴 (Seasonal Factor)',
-      items: [
-        '수요의 계절성: 여름 드라이빙 시즌, 겨울 난방유 시즌',
-        '과거 5년간 동일 월의 7일 수익률 분포를 통계적으로 분석',
-        '표준편차가 작을수록(패턴 일관적) 높은 신뢰도 부여',
-        '학술 근거: Seasonal Decomposition 방법론',
-      ],
-    },
-    {
-      title: '시그널 4: 평균 회귀 (Mean Reversion)',
-      items: [
-        '원자재 가격은 장기적으로 평균으로 회귀하는 성질 (Ornstein-Uhlenbeck process)',
-        '현재 가격의 50일 이동평균 대비 이탈도 계산',
-        '과거 5년간 "이 정도 이탈했을 때, 7일 후 얼마나 회귀했는가" 조회',
-        '과도하게 올랐으면 하락 압력, 과도하게 내렸으면 상승 압력',
-      ],
-    },
-    {
-      title: '시그널 5: 달러 영향 (Dollar Correlation)',
-      items: [
-        '유가-달러 역상관 관계는 학술적으로 검증된 사실',
-        '최근 7일간 달러 인덱스 변화율 확인',
-        '과거 5년간 "달러가 이만큼 움직였을 때, 유가가 어떻게 반응했는가" 조회',
-        '역사적 상관계수 기반 추정으로 폴백',
-      ],
-    },
-    {
-      title: '최종 합산',
-      items: [
-        '5개 시그널을 각각의 신뢰도(confidence)에 비례하여 가중 합산',
-        '활성 시그널이 많을수록, 방향이 일치할수록 종합 신뢰도 상승',
-        '극단값 ±10% 클리핑 적용',
-        '불확실성 밴드: 시그널 분산 기반으로 상·하한 범위 제공',
-      ],
-    },
-  ],
-};
-
-interface MethodInfoModalProps {
-  info: typeof METHOD_A_INFO;
-  onClose: () => void;
+interface StepData {
+  icon: string;
+  step: number;
+  label: string;
+  summary: string;
+  details: string[];
 }
 
-const MethodInfoModal: React.FC<MethodInfoModalProps> = ({ info, onClose }) => (
-  <div className="fc-modal-overlay" onClick={onClose}>
-    <div className="fc-modal" onClick={e => e.stopPropagation()}>
-      <div className="fc-modal-header">
-        <div>
+interface MethodData {
+  title: string;
+  titleEn: string;
+  subtitle: string;
+  description: string;
+  diagramType: 'pipeline' | 'ensemble';
+  steps: StepData[];
+}
+
+const METHOD_A: MethodData = {
+  title: '기술적 분석 모델',
+  titleEn: 'Technical Analysis',
+  subtitle: 'XGBoost Gradient Boosting + News Sentiment Adjustment',
+  description: '과거 5년간 멀티팩터 시계열 데이터를 XGBoost로 학습하고, 실시간 뉴스 감성 분석을 4단계 파이프라인으로 보정하여 최종 7일 전망치를 산출합니다.',
+  diagramType: 'pipeline',
+  steps: [
+    {
+      icon: '🧠', step: 1, label: 'XGBoost 베이스라인',
+      summary: '18개 기술적 지표 + 거시경제 데이터로 7일 후 가격을 예측합니다.',
+      details: [
+        '피처: SMA(5/10/20/50), EMA(12/26), Bollinger, RSI, MACD, Stochastic 등 18개 지표',
+        '스프레드: Dubai-WTI, Brent-WTI 스프레드 및 Z-score',
+        '거시: FRED API — DXY 달러인덱스, 금리, 장단기금리차',
+        '유종별 독립 모델 6개 학습 (Dubai/WTI/Brent × 7D/30D)',
+      ],
+    },
+    {
+      icon: '📰', step: 2, label: '뉴스 감성 보정',
+      summary: '학술 논문 기반 4단계 필터로 뉴스의 실질적 영향력만 추출합니다.',
+      details: [
+        '시간 감쇠: 지정학 τ=5일, 수급 τ=2.5일, 투기 τ=1.5일',
+        '중복 제거: 72h 내 Jaccard ≥0.4 클러스터링 → 대표 1건만 반영',
+        '변동성 국면: 고변동(Z>1) ×1.5 / 저변동(Z<-1) ×0.7',
+        '시장 반영도: 이미 반영된 효과 차감, 최소 20% 모멘텀 유지',
+      ],
+    },
+    {
+      icon: '🗂️', step: 3, label: '유사 사례 보정',
+      summary: '20년치 유가 이벤트 DB에서 유사 사례를 찾아 보정합니다.',
+      details: [
+        'ChromaDB에 2003~2024년 주요 이벤트 약 2,000건 임베딩',
+        '코사인 유사도 Top-5 과거 사례 검색 (임계값 ≥ 0.65)',
+        '감성 40% + 유사사례 60% 가중 결합',
+      ],
+    },
+    {
+      icon: '🎯', step: 4, label: '최종 전망',
+      summary: '베이스라인 + 뉴스 보정치를 합산하여 최종 가격을 산출합니다.',
+      details: [
+        'P = P_current × (1 + ΔBaseline + ΔNews)',
+        'ΔNews = (Sentiment×0.4 + Analog×0.6) × VolMult × (1-Absorption)',
+        '신뢰 밴드: RMSE 기반 ±1σ 구간',
+      ],
+    },
+  ],
+};
+
+const METHOD_B: MethodData = {
+  title: '펀더멘탈 분석 모델',
+  titleEn: 'Fundamental Analysis',
+  subtitle: 'EIA STEO Methodology + Multi-Signal Ensemble',
+  description: 'EIA 방법론을 재현하여 실물 수급 데이터로 유가를 전망합니다. 5개 독립 시그널을 신뢰도 기반 가중 합산합니다.',
+  diagramType: 'ensemble',
+  steps: [
+    {
+      icon: '🛢️', step: 1, label: '재고 변화',
+      summary: 'EIA 주간 원유 재고 변동으로 수급 균형을 파악합니다.',
+      details: [
+        '데이터: EIA Weekly Petroleum Status Report',
+        '4주 누적 재고 변화량 → 조건부 수익률 조회',
+        '재고 감소 = 상승 압력 / 재고 증가 = 하락 압력',
+      ],
+    },
+    {
+      icon: '⛏️', step: 2, label: '생산량',
+      summary: '미국 원유 생산량 움직임으로 공급 측 변화를 추적합니다.',
+      details: [
+        '데이터: EIA Weekly U.S. Field Production',
+        '최근 4주 vs 직전 4주 평균 생산량 변화율',
+        '셰일오일 생산은 2~4개월 시차로 유가에 반응',
+      ],
+    },
+    {
+      icon: '🌡️', step: 3, label: '계절성',
+      summary: '드라이빙/난방유 시즌 등 계절적 수요 패턴을 반영합니다.',
+      details: [
+        '5~8월 가솔린 수요 ↑ / 11~2월 난방유 수요 ↑',
+        '과거 5년 동일 월 7일 수익률 분포 통계',
+        '패턴 일관성 높을수록 높은 가중치',
+      ],
+    },
+    {
+      icon: '⚖️', step: 4, label: '평균 회귀',
+      summary: '50일 이동평균 대비 이탈도로 회귀 압력을 측정합니다.',
+      details: [
+        'Ornstein-Uhlenbeck process 기반 평균 회귀 이론',
+        'Z > +2σ → 하락 회귀 / Z < -2σ → 상승 회귀',
+        '극단적 이탈일수록 역사적 일관성 ↑',
+      ],
+    },
+    {
+      icon: '💵', step: 5, label: '달러 상관',
+      summary: 'USD 달러 인덱스와의 역상관 관계를 반영합니다.',
+      details: [
+        '유가-달러 역상관 r ≈ -0.4~-0.6',
+        'FRED DX-Y.NYB 최근 7일 변화율 기반',
+        '폴백: 역사적 β=-0.5 선형 추정',
+      ],
+    },
+  ],
+};
+
+/* ──────────────────────────────────────────────
+ * Landing-page style Modal (via Portal)
+ * ────────────────────────────────────────────── */
+
+const MethodInfoModal: React.FC<{ info: MethodData; onClose: () => void }> = ({ info, onClose }) => {
+  React.useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handleEsc);
+    return () => {
+      document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleEsc);
+    };
+  }, [onClose]);
+
+  return ReactDOM.createPortal(
+    <div className="fc-modal-overlay" onClick={onClose}>
+      <div className="fc-modal" onClick={e => e.stopPropagation()}>
+        {/* Hero */}
+        <div className="fc-modal-hero">
+          <button className="fc-modal-close" onClick={onClose} aria-label="Close">✕</button>
+          <p className="fc-modal-title-en">{info.titleEn}</p>
           <h3 className="fc-modal-title">{info.title}</h3>
           <p className="fc-modal-subtitle">{info.subtitle}</p>
         </div>
-        <button className="fc-modal-close" onClick={onClose} aria-label="Close">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-            <line x1="4" y1="4" x2="12" y2="12" />
-            <line x1="12" y1="4" x2="4" y2="12" />
-          </svg>
-        </button>
-      </div>
 
-      <p className="fc-modal-desc">{info.description}</p>
+        {/* Description */}
+        <p className="fc-modal-desc">{info.description}</p>
 
-      <div className="fc-modal-sections">
-        {info.sections.map((section, i) => (
-          <div key={i} className="fc-modal-section">
-            <h4 className="fc-modal-section-title">{section.title}</h4>
-            <ul className="fc-modal-list">
-              {section.items.map((item, j) => (
-                <li key={j}>{item}</li>
-              ))}
-            </ul>
+        {/* Flow Diagram */}
+        {info.diagramType === 'pipeline' && (
+          <div className="fc-diagram">
+            <div className="fc-diagram-title">Processing Pipeline</div>
+            <div className="fc-pipeline">
+              <div className="fc-pipe-node">
+                <span className="fc-pipe-icon">📊</span>
+                <span className="fc-pipe-text">가격 데이터</span>
+                <span className="fc-pipe-sub">5년 시계열</span>
+              </div>
+              <div className="fc-pipe-arrow">→</div>
+              <div className="fc-pipe-node">
+                <span className="fc-pipe-icon">🧠</span>
+                <span className="fc-pipe-text">XGBoost</span>
+                <span className="fc-pipe-sub">18개 피처</span>
+              </div>
+              <div className="fc-pipe-arrow">→</div>
+              <div className="fc-pipe-node">
+                <span className="fc-pipe-icon">📰</span>
+                <span className="fc-pipe-text">뉴스 보정</span>
+                <span className="fc-pipe-sub">4단계 필터</span>
+              </div>
+              <div className="fc-pipe-arrow">→</div>
+              <div className="fc-pipe-node">
+                <span className="fc-pipe-icon">🗂️</span>
+                <span className="fc-pipe-text">유사사례</span>
+                <span className="fc-pipe-sub">ChromaDB</span>
+              </div>
+              <div className="fc-pipe-arrow">→</div>
+              <div className="fc-pipe-node fc-pipe-result">
+                <span className="fc-pipe-icon">🎯</span>
+                <span className="fc-pipe-text">전망가</span>
+                <span className="fc-pipe-sub">7D Forecast</span>
+              </div>
+            </div>
+            <div className="fc-formula-box">
+              <span className="fc-formula-label">Final Formula</span>
+              <code className="fc-formula">P<sub>forecast</sub> = P<sub>current</sub> × (1 + Δ<sub>XGBoost</sub> + Δ<sub>News</sub>)</code>
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
-  </div>
-);
-
-/* ──────────────────────────────────────────────
- * Unified Crude Row — combines current price + both forecasts
- * ────────────────────────────────────────────── */
-
-interface CrudeRowProps {
-  crude: string;
-  methodA?: CrudeForecast;
-  methodB?: FundamentalCrudeForecast;
-  loading: boolean;
-}
-
-const CrudeRow: React.FC<CrudeRowProps> = ({ crude, methodA, methodB, loading }) => {
-  const currentPrice = methodA?.current_price ?? methodB?.current_price;
-
-  return (
-    <div className="fc-crude-row">
-      {/* Current Price Block */}
-      <div className="fc-crude-current">
-        <span className="fc-crude-label">{CRUDE_LABELS[crude] || crude}</span>
-        {loading || currentPrice === undefined ? (
-          <div className="fc-skeleton fc-skeleton-lg" />
-        ) : (
-          <span className="fc-current-price">{formatPrice(currentPrice)}</span>
         )}
-      </div>
 
-      {/* Forecast Columns */}
-      <div className="fc-crude-forecasts">
-        {/* Method A */}
-        <div className="fc-forecast-cell">
-          {loading || !methodA ? (
-            <>
-              <div className="fc-skeleton fc-skeleton-sm" />
-              <div className="fc-skeleton fc-skeleton-xs" />
-            </>
-          ) : (
-            <>
-              <span className={`fc-forecast-price ${getPctClass(methodA.current_price, methodA.estimated_7d)}`}>
-                {formatPrice(methodA.estimated_7d)}
-              </span>
-              <span className={`fc-forecast-pct ${getPctClass(methodA.current_price, methodA.estimated_7d)}`}>
-                {formatPct(methodA.current_price, methodA.estimated_7d)}
-              </span>
-            </>
-          )}
-        </div>
+        {info.diagramType === 'ensemble' && (
+          <div className="fc-diagram">
+            <div className="fc-diagram-title">Signal Ensemble</div>
+            <div className="fc-ensemble">
+              <div className="fc-ens-signals">
+                <div className="fc-ens-signal">
+                  <span className="fc-ens-icon">🛢️</span>
+                  <span className="fc-ens-name">재고</span>
+                </div>
+                <div className="fc-ens-signal">
+                  <span className="fc-ens-icon">⛏️</span>
+                  <span className="fc-ens-name">생산</span>
+                </div>
+                <div className="fc-ens-signal">
+                  <span className="fc-ens-icon">🌡️</span>
+                  <span className="fc-ens-name">계절</span>
+                </div>
+                <div className="fc-ens-signal">
+                  <span className="fc-ens-icon">⚖️</span>
+                  <span className="fc-ens-name">회귀</span>
+                </div>
+                <div className="fc-ens-signal">
+                  <span className="fc-ens-icon">💵</span>
+                  <span className="fc-ens-name">달러</span>
+                </div>
+              </div>
+              <div className="fc-ens-merge">
+                <div className="fc-ens-merge-lines"></div>
+                <div className="fc-ens-merge-label">∑ Weighted Average</div>
+              </div>
+              <div className="fc-ens-result">
+                <span className="fc-pipe-icon">🎯</span>
+                <span className="fc-pipe-text">전망가</span>
+                <span className="fc-pipe-sub">7D Forecast</span>
+              </div>
+            </div>
+            <div className="fc-formula-box">
+              <span className="fc-formula-label">Ensemble Formula</span>
+              <code className="fc-formula">Δ<sub>price</sub> = Σ(signal<sub>i</sub> × weight<sub>i</sub>) / Σ(weight<sub>i</sub>), clip ±10%</code>
+            </div>
+          </div>
+        )}
 
-        {/* Method B */}
-        <div className="fc-forecast-cell">
-          {loading || !methodB ? (
-            <>
-              <div className="fc-skeleton fc-skeleton-sm" />
-              <div className="fc-skeleton fc-skeleton-xs" />
-            </>
-          ) : (
-            <>
-              <span className={`fc-forecast-price ${getPctClass(methodB.current_price, methodB.estimated_7d)}`}>
-                {formatPrice(methodB.estimated_7d)}
-              </span>
-              <span className={`fc-forecast-pct ${getPctClass(methodB.current_price, methodB.estimated_7d)}`}>
-                {methodB.total_change_pct >= 0 ? '+' : ''}{methodB.total_change_pct.toFixed(2)}%
-              </span>
-              {getTopSignal(methodB.signals) && (
-                <span className="fc-signal-tag">{getTopSignal(methodB.signals)}</span>
-              )}
-            </>
-          )}
+        {/* Step cards */}
+        <div className="fc-modal-steps">
+          {info.steps.map((step, i) => (
+            <div key={i} className="fc-step-card">
+              <div className="fc-step-head">
+                <span className="fc-step-icon">{step.icon}</span>
+                <div className="fc-step-meta">
+                  <span className="fc-step-num">STEP {step.step}</span>
+                  <span className="fc-step-label">{step.label}</span>
+                </div>
+              </div>
+              <p className="fc-step-summary">{step.summary}</p>
+              <ul className="fc-step-details">
+                {step.details.map((d, j) => <li key={j}>{d}</li>)}
+              </ul>
+            </div>
+          ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
-
 
 /* ──────────────────────────────────────────────
  * Main Component
@@ -263,117 +303,168 @@ const CrudeRow: React.FC<CrudeRowProps> = ({ crude, methodA, methodB, loading })
 
 export const ForecastComparison: React.FC = () => {
   const [dualData, setDualData] = useState<DualForecastResult | null>(null);
+  const [prevPrices, setPrevPrices] = useState<OilPrice | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [infoModal, setInfoModal] = useState<'A' | 'B' | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-
     const load = async () => {
       try {
         setLoading(true);
         setError(null);
-        const result = await fetchDualForecast();
+        const endDate = new Date().toISOString().split('T')[0];
+        const startDate = new Date(Date.now() - 14 * 86400000).toISOString().split('T')[0];
+        const [result, historyData] = await Promise.all([
+          fetchDualForecast(),
+          fetchPriceHistory(startDate, endDate),
+        ]);
         if (!cancelled) {
           setDualData(result);
+          const prices = historyData.prices;
+          if (prices.length >= 2) setPrevPrices(prices[prices.length - 2]);
         }
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : '예측 데이터를 불러올 수 없습니다.');
-        }
+        if (!cancelled) setError(err instanceof Error ? err.message : '예측 데이터를 불러올 수 없습니다.');
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
-
     load();
     return () => { cancelled = true; };
   }, []);
 
   const methodACrudes = dualData?.method_a?.forecasts_by_crude || {};
   const methodBCrudes = dualData?.method_b?.forecasts_by_crude || {};
+  const generatedAt = dualData?.generated_at || '';
+  const baseDateLabel = generatedAt ? fmtDateShort(generatedAt) : '';
+  const targetDateLabel = generatedAt ? fmtTarget(generatedAt) : '';
+
+  if (error) {
+    return (
+      <Card title="Crude Oil Price Forecast">
+        <div className="error-fallback-partial">
+          <div className="error-fallback-icon">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="10" cy="10" r="8.5" />
+              <line x1="7" y1="7" x2="13" y2="13" />
+              <line x1="13" y1="7" x2="7" y2="13" />
+            </svg>
+          </div>
+          <p className="error-fallback-title">예측 데이터를 불러올 수 없습니다</p>
+          <p className="error-fallback-module">{error}</p>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!loading && !dualData) {
+    return (
+      <Card title="Crude Oil Price Forecast">
+        <EmptyState icon="chart" title="전망 데이터가 없습니다" description="예측 모델이 아직 실행되지 않았습니다." />
+      </Card>
+    );
+  }
 
   return (
     <>
-      <div className="forecast-comparison fade-in" id="forecast-comparison">
-        {/* Header */}
-        <div className="fc-header">
-          <h3 className="fc-header-title">Crude Oil Price Forecast</h3>
-          {dualData && (
-            <span className={`fc-consensus-badge ${dualData.consensus ? 'agree' : 'disagree'}`}>
-              {dualData.consensus ? '✓ 방향 일치' : '⚠ 방향 불일치'}
-            </span>
-          )}
+      <Card title="Crude Oil Price Forecast">
+        <div className="fc-sub-header">
+          <span className="fc-date-context">
+            {baseDateLabel ? `${baseDateLabel} 현재가 기준 → ${targetDateLabel} 전망 (7D)` : '데이터 로딩 중…'}
+          </span>
+          <div className="fc-sub-right">
+            {dualData && (
+              <span className={`fc-consensus ${dualData.consensus ? 'agree' : 'disagree'}`}>
+                {dualData.consensus ? '✓ 방향 일치' : '⚠ 불일치'}
+              </span>
+            )}
+            <button className="fc-info-link" onClick={() => setInfoModal('A')}>⚡ 기술적</button>
+            <button className="fc-info-link" onClick={() => setInfoModal('B')}>📊 펀더멘탈</button>
+          </div>
         </div>
 
-        {error && (
-          <div style={{ padding: '16px', textAlign: 'center' }}>
-            <p style={{ color: 'var(--color-text-muted)', fontSize: '12px' }}>{error}</p>
+        <div className="fc-table">
+          <div className="fc-row fc-row-header">
+            <div className="fc-cell fc-cell-name"></div>
+            <div className="fc-cell fc-cell-price">현재가</div>
+            <div className="fc-cell fc-cell-change">전일비</div>
+            <div className="fc-cell fc-cell-forecast">⚡ 기술적 7D</div>
+            <div className="fc-cell fc-cell-change">변동</div>
+            <div className="fc-cell fc-cell-forecast">📊 펀더멘탈 7D</div>
+            <div className="fc-cell fc-cell-change">변동</div>
+          </div>
+
+          {CRUDE_ORDER.map(crude => {
+            const mA = methodACrudes[crude];
+            const mB = methodBCrudes[crude];
+            const currentPrice = mA?.current_price ?? mB?.current_price;
+            const chgA = mA && currentPrice ? formatChange(currentPrice, mA.estimated_7d) : null;
+            const chgB = mB && currentPrice ? formatChange(currentPrice, mB.estimated_7d) : null;
+            const signal = getTopSignal(mB?.signals);
+            const prevPrice = prevPrices ? (prevPrices as any)[crude] as number | null : null;
+            const dayChg = currentPrice && prevPrice ? formatChange(prevPrice, currentPrice) : null;
+
+            return (
+              <div key={crude} className="fc-row">
+                <div className="fc-cell fc-cell-name">{CRUDE_LABELS[crude]}</div>
+
+                <div className="fc-cell fc-cell-price">
+                  {loading || currentPrice === undefined
+                    ? <Skeleton height="20px" width="70px" />
+                    : <span className={`fc-val-current ${dayChg ? (dayChg.isUp ? 'bull' : 'bear') : ''}`}>{formatPrice(currentPrice)}</span>
+                  }
+                </div>
+
+                <div className="fc-cell fc-cell-change">
+                  {loading || !dayChg
+                    ? <Skeleton height="14px" width="50px" />
+                    : <span className={`fc-val-change ${dayChg.isUp ? 'bull' : 'bear'}`}>{dayChg.pct}<span className="fc-val-diff">{dayChg.diff}</span></span>
+                  }
+                </div>
+
+                <div className="fc-cell fc-cell-forecast">
+                  {loading || !mA
+                    ? <Skeleton height="20px" width="70px" />
+                    : <span className={`fc-val-forecast ${chgA?.isUp ? 'bull' : 'bear'}`}>{formatPrice(mA.estimated_7d)}</span>
+                  }
+                </div>
+
+                <div className="fc-cell fc-cell-change">
+                  {loading || !chgA
+                    ? <Skeleton height="14px" width="50px" />
+                    : <span className={`fc-val-change ${chgA.isUp ? 'bull' : 'bear'}`}>{chgA.pct}<span className="fc-val-diff">{chgA.diff}</span></span>
+                  }
+                </div>
+
+                <div className="fc-cell fc-cell-forecast">
+                  {loading || !mB
+                    ? <Skeleton height="20px" width="70px" />
+                    : <span className={`fc-val-forecast ${chgB?.isUp ? 'bull' : 'bear'}`}>{formatPrice(mB.estimated_7d)}</span>
+                  }
+                </div>
+
+                <div className="fc-cell fc-cell-change">
+                  {loading || !chgB
+                    ? <Skeleton height="14px" width="50px" />
+                    : <span className={`fc-val-change ${chgB?.isUp ? 'bull' : 'bear'}`}>{chgB?.pct}<span className="fc-val-diff">{chgB?.diff}</span>{signal && <span className="fc-signal">{signal}</span>}</span>
+                  }
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {generatedAt && (
+          <div className="fc-footer">
+            매시간 갱신 · {new Date(generatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </div>
         )}
+      </Card>
 
-        {/* Column Headers */}
-        <div className="fc-column-headers">
-          <div className="fc-col-current">현재가</div>
-          <div className="fc-col-forecasts">
-            <div className="fc-col-method">
-              <span className="fc-col-method-icon">⚡</span>
-              <span>기술적 분석</span>
-              <button
-                className="fc-info-btn"
-                onClick={() => setInfoModal('A')}
-                title="기술적 분석 모델 상세 정보"
-                aria-label="기술적 분석 모델 정보"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <circle cx="7" cy="7" r="6" />
-                  <line x1="7" y1="6.5" x2="7" y2="10" />
-                  <circle cx="7" cy="4.5" r="0.5" fill="currentColor" stroke="none" />
-                </svg>
-              </button>
-            </div>
-            <div className="fc-col-method">
-              <span className="fc-col-method-icon">📊</span>
-              <span>펀더멘탈 분석</span>
-              <button
-                className="fc-info-btn"
-                onClick={() => setInfoModal('B')}
-                title="펀더멘탈 분석 모델 상세 정보"
-                aria-label="펀더멘탈 분석 모델 정보"
-              >
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                  <circle cx="7" cy="7" r="6" />
-                  <line x1="7" y1="6.5" x2="7" y2="10" />
-                  <circle cx="7" cy="4.5" r="0.5" fill="currentColor" stroke="none" />
-                </svg>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Crude Rows */}
-        {CRUDE_ORDER.map(crude => (
-          <CrudeRow
-            key={crude}
-            crude={crude}
-            methodA={methodACrudes[crude]}
-            methodB={methodBCrudes[crude]}
-            loading={loading}
-          />
-        ))}
-
-        {/* 7-Day Label */}
-        <div className="fc-footer-note">7일 전망 기준 · 매시간 갱신</div>
-      </div>
-
-      {/* Info Modals */}
-      {infoModal === 'A' && (
-        <MethodInfoModal info={METHOD_A_INFO} onClose={() => setInfoModal(null)} />
-      )}
-      {infoModal === 'B' && (
-        <MethodInfoModal info={METHOD_B_INFO} onClose={() => setInfoModal(null)} />
-      )}
+      {infoModal === 'A' && <MethodInfoModal info={METHOD_A} onClose={() => setInfoModal(null)} />}
+      {infoModal === 'B' && <MethodInfoModal info={METHOD_B} onClose={() => setInfoModal(null)} />}
     </>
   );
 };
