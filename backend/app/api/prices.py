@@ -16,7 +16,7 @@ async def get_price_history(
         from datetime import datetime
         db = Database()
         await db.connect()
-        db_rows = await db.get_oil_prices(start_date, end_date, limit=5000)
+        db_rows = await db.get_oil_prices(start_date, end_date, limit=15000)
         
         sd = datetime.strptime(start_date, "%Y-%m-%d")
         ed = datetime.strptime(end_date, "%Y-%m-%d")

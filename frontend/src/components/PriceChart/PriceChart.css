@@ -1,124 +1,235 @@
+/* ── 등락 헤더 ── */
+.price-change-header {
+  display: flex;
+  gap: 20px;
+  padding: 10px 0;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.price-change-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pci-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.pci-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.pci-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pci-change {
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+}
+
+.pci-change.chg-up { color: #FF3B30; }
+.pci-change.chg-down { color: #007AFF; }
+
+/* ── Controls ── */
 .price-chart-controls {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 6px;
 }
 
-.period-selector {
+.controls-right {
   display: flex;
-  gap: 4px;
-  background-color: var(--color-card-hover);
-  padding: 4px;
-  border-radius: 4px;
+  gap: 8px;
+  align-items: center;
 }
 
-.period-selector button {
+/* ── Interval selector (일/주/월/년) ── */
+.interval-selector {
+  display: flex;
+  gap: 2px;
+  background: var(--color-card-hover);
+  padding: 3px;
+  border-radius: 6px;
+}
+
+.interval-selector button {
   background: transparent;
   border: none;
   color: var(--color-text-secondary);
-  padding: 4px 12px;
-  border-radius: 2px;
+  padding: 5px 14px;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
-  font-weight: 500;
-  transition: all 0.2s ease-in-out;
-}
-
-.period-selector button:hover {
-  background-color: var(--color-border);
-  color: var(--color-text-primary);
-}
-
-.period-selector button.active {
-  background-color: var(--color-neutral);
-  color: var(--color-text-primary);
-}
-
-.chart-tooltip-content {
-  background-color: var(--color-card-hover);
-  border: 1px solid var(--color-border);
-  padding: 12px;
-  border-radius: 4px;
-  font-size: 12px;
-}
-
-.chart-tooltip-content .tooltip-label {
-  color: var(--color-text-primary);
   font-weight: 600;
-  margin-bottom: 8px;
+  transition: all 0.15s ease;
 }
 
-.chart-tooltip-content .tooltip-item {
-  margin-bottom: 4px;
+.interval-selector button:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
 }
 
-.chart-tooltip-content .tooltip-news-item {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px solid var(--color-border);
-  max-width: 300px;
+.interval-selector button.active {
+  background: var(--color-primary);
+  color: var(--color-bg);
 }
 
-.chart-tooltip-content .tooltip-news-item .badge {
-  margin-right: 4px;
-}
-
-.tooltip-news-impact {
-  margin-top: 6px;
-  font-weight: 600;
+/* ── Zoom controls ── */
+.zoom-reset-btn {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.tooltip-crude-impact {
-  font-size: 11px;
-  background-color: rgba(255, 255, 255, 0.05);
-  padding: 2px 4px;
-  border-radius: 2px;
-}
-
-.tooltip-bull { color: var(--color-bull); }
-.tooltip-bear { color: var(--color-bear); }
-
-.tooltip-news-snippet {
-  margin-top: 4px;
+  align-items: center;
+  gap: 4px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--color-border);
   color: var(--color-text-secondary);
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
   font-size: 11px;
-  line-height: 1.4;
-  max-width: 280px;
+  transition: all 0.15s ease;
 }
 
-/* 
-  Remove annoying white/blue focus borders when clicking the chart.
-  Recharts applies tabindex and SVG focus rings that cause borders. 
-*/
-.recharts-wrapper, 
-.recharts-surface, 
-.recharts-wrapper:focus, 
-.recharts-surface:focus,
-.recharts-layer,
-.recharts-layer:focus,
-.recharts-wrapper * {
-  outline: none !important;
+.zoom-reset-btn:hover {
+  background: rgba(255,255,255,0.08);
+  color: var(--color-text-primary);
 }
 
+.zoom-range-indicator {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.zoom-hint { opacity: 0.5; }
+
+/* ── Legend ── */
+.chart-legend-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  padding: 4px 8px;
+  background: rgba(255,159,107,0.06);
+  border: 1px solid rgba(255,159,107,0.12);
+  border-radius: 4px;
+}
+
+.legend-diamond { color: #FF9F6B; font-size: 9px; }
+
+/* ── Chart container ── */
 .chart-container {
   flex: 1;
-  min-height: 340px;
+  min-height: 360px;
   position: relative;
   width: 100%;
-  margin-top: 16px;
-  padding-bottom: 40px;
+  margin-top: 4px;
+  padding-bottom: 30px;
+  user-select: none;
+  touch-action: none;
 }
 
 .chart-wrapper {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
+  pointer-events: none;
+}
+
+/* Let Recharts SVG receive pointer events for tooltip */
+.chart-wrapper .recharts-wrapper {
+  pointer-events: auto !important;
+}
+
+/* ── Tooltip ── */
+.chart-tooltip-content {
+  background: var(--color-card-hover);
+  border: 1px solid var(--color-border);
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+}
+
+.tooltip-label {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.tooltip-item {
+  margin-bottom: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-db-news {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #FF9F6B;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.tooltip-news-item {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border);
+  max-width: 280px;
+}
+
+.tooltip-news-impact {
+  margin-top: 4px;
+  font-weight: 600;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tooltip-crude-impact {
+  font-size: 10px;
+  background: rgba(255,255,255,.05);
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.tooltip-bull { color: #FF3B30; }
+.tooltip-bear { color: #007AFF; }
+
+.tooltip-news-snippet {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+/* ── Recharts overrides ── */
+.recharts-wrapper, .recharts-surface, .recharts-layer,
+.recharts-wrapper *, .recharts-wrapper:focus, .recharts-surface:focus {
+  outline: none !important;
 }
 
 .recharts-cartesian-grid-horizontal line,
@@ -130,39 +241,4 @@
 .recharts-text.recharts-cartesian-axis-tick-value {
   font-family: inherit;
   fill: var(--color-text-muted);
-}
-
-/* ── Chart Legend Hint ── */
-.chart-legend-hint {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  color: var(--color-text-muted);
-  padding: 4px 10px;
-  background: rgba(255, 159, 107, 0.06);
-  border: 1px solid rgba(255, 159, 107, 0.12);
-  border-radius: 4px;
-}
-
-.legend-diamond {
-  color: #FF9F6B;
-  font-size: 10px;
-}
-
-/* ── Tooltip DB News ── */
-.tooltip-db-news {
-  margin-top: 8px;
-  padding-top: 6px;
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: #FF9F6B;
-  font-weight: 600;
-  font-size: 12px;
-}
-
-.tooltip-db-icon {
-  font-size: 14px;
 }
