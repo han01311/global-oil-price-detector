@@ -4,6 +4,8 @@ import json
 import logging
 from datetime import datetime, timezone
 import httpx
+import re
+from bs4 import BeautifulSoup
 
 from pydantic import ValidationError
 
@@ -26,6 +28,20 @@ class NewsClassifier:
         self.ollama_url = (ollama_url or settings.LOCAL_LLM_URL).rstrip("/")
         self.model_name = "gemma4:e4b"
         self.semaphore = asyncio.Semaphore(self.CONCURRENCY_LIMIT)
+
+    async def _fetch_title_from_url(self, url: str) -> str | None:
+        """Fetch the original title from the article URL using BeautifulSoup."""
+        if not url: return None
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url, headers={"User-Agent": "Mozilla/5.0"}, timeout=10.0, follow_redirects=True)
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.text, "html.parser")
+                    if soup.title and soup.title.string:
+                        return soup.title.string.strip()
+        except Exception as e:
+            logger.warning(f"Failed to fetch title from {url}: {e}")
+        return None
 
     def _build_classification_prompt(self, article_content: str) -> str:
         """분류용 프롬프트 생성 — 유종별 독립 영향도 평가 포함"""
@@ -80,9 +96,9 @@ Use this guide for crude-specific sensitivity:
 {crude_sensitivity_guide}
 
 6.  Set the overall `impact_score` to the maximum absolute score among the three crude types.
-7.  Write a highly insightful `impact_summary` in Korean (1-2 sentences). Do not just summarize the article. Instead, specifically analyze HOW and WHY the events described in the article will affect global oil prices or market dynamics, providing professional market insights.
+7.  Write a highly insightful `impact_summary` in Korean (1-2 sentences). Do not just summarize the article. Instead, specifically analyze HOW and WHY the events described in the article will affect global oil prices or market dynamics. You MUST write this summary in Korean regardless of the original article's language.
 8.  Provide a `confidence` score (0.0 to 1.0) for your overall classification.
-9.  Translate the original article title into natural Korean and provide it as `translated_title`.
+9.  If the original article is in a foreign language (e.g., English), translate the title into natural Korean and provide it as `translated_title`. If the original article is ALREADY in Korean, you MUST set `translated_title` to `null`.
 10. You MUST respond ONLY with a valid JSON object in the specified format. Do not include any other text, explanations, or markdown formatting.
 
 Article Content to Analyze:
@@ -100,10 +116,10 @@ JSON Output Format:
     "brent": {{"direction": "string", "score": integer, "rationale": "string (in Korean)"}},
     "wti": {{"direction": "string", "score": integer, "rationale": "string (in Korean)"}}
   }},
-  "impact_score": integer (-5 to 5),
+  "impact_score": integer,
   "impact_summary": "string (in Korean)",
-  "confidence": float (0.0 to 1.0),
-  "translated_title": "string (in Korean)"
+  "confidence": float,
+  "translated_title": "string or null"
 }}
 """
 
@@ -115,6 +131,20 @@ JSON Output Format:
             except ValidationError as e:
                 logger.error(f"Invalid article format: {e}")
                 return None
+
+            # Title Validation
+            bad_titles = ["untitled", "no title", ""]
+            current_title_clean = article_model.title.strip().lower()
+            if not current_title_clean or current_title_clean in bad_titles or len(current_title_clean) < 5:
+                fetched_title = await self._fetch_title_from_url(article_model.url)
+                if fetched_title:
+                    article_model.title = fetched_title
+                    logger.info(f"Re-fetched 'Untitled' article title from URL: {fetched_title}")
+                else:
+                    # Fallback to snippet/description
+                    fallback_text = article_model.content_snippet or article_model.description or "알 수 없는 기사"
+                    article_model.title = fallback_text.split('.')[0][:100] + "..."
+                    logger.info(f"Fallback title used: {article_model.title}")
 
             content_to_analyze = f"Title: {article_model.title}\nDescription: {article_model.description or ''}\nContent Snippet: {article_model.content_snippet or ''}"
             prompt = self._build_classification_prompt(content_to_analyze)
@@ -133,6 +163,35 @@ JSON Output Format:
                     )
                     response.raise_for_status()
                     response_json = json.loads(response.json()["response"])
+
+                # Translation Validation (Retry if English)
+                def is_korean(text):
+                    if not text: return False
+                    return len(re.findall(r'[가-힣]', text)) > 3
+
+                original_is_kor = is_korean(article_model.title)
+                if not original_is_kor:
+                    tt = response_json.get("translated_title", "")
+                    if not tt or not is_korean(tt) or (len(re.findall(r'[a-zA-Z]', tt)) > len(re.findall(r'[가-힣]', tt))):
+                        logger.warning(f"Translation failed for '{article_model.title}'. Retrying translation only.")
+                        retry_prompt = f"Translate the following news title into natural Korean. Output ONLY the translated Korean string, nothing else. Title: {article_model.title}"
+                        try:
+                            async with httpx.AsyncClient() as client:
+                                retry_res = await client.post(
+                                    f"{self.ollama_url}/api/generate",
+                                    json={
+                                        "model": self.model_name,
+                                        "prompt": retry_prompt,
+                                        "stream": False
+                                    },
+                                    timeout=15.0
+                                )
+                                retry_res.raise_for_status()
+                                new_title = retry_res.json()["response"].strip().strip('"').strip()
+                                if is_korean(new_title):
+                                    response_json["translated_title"] = new_title
+                        except Exception as e:
+                            logger.error(f"Retry translation failed: {e}")
 
                 # Parse impact_by_crude from response
                 raw_impact = response_json.pop("impact_by_crude", {})

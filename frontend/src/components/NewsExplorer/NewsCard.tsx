@@ -80,6 +80,8 @@ const getTimeAgo = (dateString: string): string => {
   return `${Math.floor(seconds)}초 전`;
 };
 
+const isKorean = (text: string) => /[가-힣]/.test(text);
+
 export const NewsCard: React.FC<NewsCardProps> = ({ article, activeCrudeType }) => {
   const [showSimilar, setShowSimilar] = useState(false);
 
@@ -96,7 +98,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({ article, activeCrudeType }) 
         </div>
         <a href={article.article.url} target="_blank" rel="noopener noreferrer" className="news-card-title-container">
           <h3 className="news-card-title">{article.translated_title || article.article.title}</h3>
-          {article.translated_title && (
+          {article.translated_title && article.translated_title !== article.article.title && !isKorean(article.article.title) && (
             <span className="news-card-original-title">{article.article.title}</span>
           )}
         </a>

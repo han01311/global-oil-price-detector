@@ -7,7 +7,7 @@ import { Badge } from '../common/Badge';
 import { EmptyState } from '../common/EmptyState';
 import { useDashboardContext } from '../../context/DashboardContext';
 import { fetchNewsByDate } from '../../services/api';
-import type { DBNewsArticle } from '../../services/api';
+import type { ClassifiedArticle } from '../../types/news';
 import './NewsExplorer.css';
 
 type SortOrder = 'time' | 'impact';
@@ -25,7 +25,7 @@ export const NewsExplorer: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>('time');
 
   // DB 기사 (차트 날짜 클릭 시 로드)
-  const [dbArticles, setDbArticles] = useState<DBNewsArticle[]>([]);
+  const [dbArticles, setDbArticles] = useState<ClassifiedArticle[]>([]);
   const [dbLoading, setDbLoading] = useState(false);
 
   // 차트에서 날짜 클릭 시 DB에서 해당 날짜 기사를 로드
@@ -88,16 +88,6 @@ export const NewsExplorer: React.FC = () => {
     refetch?.();
   }, [refetch]);
 
-  // 데이터소스 뱃지 컬러
-  const getSourceColor = (source: string) => {
-    switch (source) {
-      case 'nyt': return { bg: 'rgba(255, 255, 255, 0.08)', color: '#e4e8ef', label: 'NYT' };
-      case 'guardian': return { bg: 'rgba(0, 90, 160, 0.15)', color: '#00A3CC', label: 'Guardian' };
-      case 'naver_news': return { bg: 'rgba(0, 200, 80, 0.1)', color: '#00C850', label: 'Naver' };
-      default: return { bg: 'rgba(255, 107, 53, 0.1)', color: '#FF6B35', label: source };
-    }
-  };
-
   const renderContent = () => {
     // 날짜가 선택된 경우: DB 기사 표시
     if (selectedDate) {
@@ -121,41 +111,15 @@ export const NewsExplorer: React.FC = () => {
 
       return (
         <div className="news-grid">
-          {dbArticles.map((article, index) => {
-            const sc = getSourceColor(article.data_source);
-            return (
-              <div
-                key={article.id}
-                className="news-card-container"
-                style={{ animationDelay: `${index * 0.03}s` }}
-              >
-                <a
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="db-news-card"
-                >
-                  <div className="db-news-card-header">
-                    <span className="db-news-source-badge" style={{ background: sc.bg, color: sc.color }}>
-                      {sc.label}
-                    </span>
-                    <span className="db-news-date">
-                      {new Date(article.published_at).toLocaleDateString('ko-KR', {
-                        year: 'numeric', month: 'short', day: 'numeric'
-                      })}
-                    </span>
-                  </div>
-                  <h4 className="db-news-title">{article.title}</h4>
-                  {article.description && (
-                    <p className="db-news-description">{article.description}</p>
-                  )}
-                  {article.source_name && (
-                    <span className="db-news-source-name">{article.source_name}</span>
-                  )}
-                </a>
-              </div>
-            );
-          })}
+          {dbArticles.map((article, index) => (
+            <div
+              key={article.article.id}
+              className="news-card-container"
+              style={{ animationDelay: `${index * 0.03}s` }}
+            >
+              <NewsCard article={article} activeCrudeType={activeCrudeType} />
+            </div>
+          ))}
         </div>
       );
     }

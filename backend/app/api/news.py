@@ -42,17 +42,64 @@ async def get_news_date_counts(
     return list(merged.values())
 
 
-@router.get("/by-date")
+@router.get("/by-date", response_model=List[ClassifiedArticle])
 async def get_news_by_date(
     date: str = Query(..., description="날짜 YYYY-MM-DD"),
     limit: int = Query(default=30, le=100),
-):
+) -> List[ClassifiedArticle]:
     """특정 날짜의 기사 목록 (News Explorer 날짜 필터용)"""
     from app.core.database import Database
     db = Database()
     await db.connect()
-    articles = await db.get_news_by_date(date, limit)
-    return articles
+    raw_articles = await db.get_news_by_date(date, limit)
+    
+    classified_articles = []
+    for raw in raw_articles:
+        base_article = NewsArticle(
+            id=raw["id"],
+            title=raw["title"],
+            description=raw.get("description", ""),
+            source=raw.get("source_name", "Unknown"),
+            source_name=raw.get("source_name", "Unknown"),
+            url=raw["url"],
+            published_at=raw.get("published_at", ""),
+            collected_at=raw.get("collected_at", ""),
+            content_snippet=raw.get("content_snippet", " "),
+            data_source=raw.get("data_source", "Unknown")
+        )
+        
+        c_result = raw.get("classification_result")
+        if raw.get("is_classified") == 1 and c_result:
+            # Parse classification_result into ClassifiedArticle
+            from datetime import datetime, timezone
+            classified_articles.append(ClassifiedArticle(
+                article=base_article,
+                translated_title=c_result.get("translated_title"),
+                impact_summary=c_result.get("impact_summary") or "",
+                impact_score=c_result.get("impact_score", 0),
+                confidence=c_result.get("confidence", 1.0),
+                is_relevant=c_result.get("is_relevant", True),
+                category=c_result.get("category", "unknown"),
+                sub_categories=c_result.get("sub_categories", []),
+                impact_by_crude=c_result.get("impact_by_crude", {}),
+                classified_at=c_result.get("classified_at") or datetime.now(timezone.utc).isoformat()
+            ))
+        else:
+            from datetime import datetime, timezone
+            # Create a mock ClassifiedArticle for unclassified ones
+            classified_articles.append(ClassifiedArticle(
+                article=base_article,
+                is_relevant=True,
+                category="unknown",
+                sub_categories=[],
+                impact_score=0,
+                impact_summary="",
+                confidence=1.0,
+                classified_at=datetime.now(timezone.utc).isoformat(),
+                impact_by_crude={}
+            ))
+            
+    return classified_articles
 
 
 async def _classify_articles_payload(
