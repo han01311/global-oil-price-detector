@@ -140,7 +140,7 @@
 /* ── Chart container ── */
 .chart-container {
   flex: 1;
-  min-height: 360px;
+  min-height: 420px; /* 독립적인 최소 수직 길이 보장 */
   position: relative;
   width: 100%;
   margin-top: 4px;
@@ -151,7 +151,9 @@
 
 .chart-wrapper {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0; left: 0; right: 0; 
+  height: 100%;
+  max-height: 500px; /* 옆 섹션 크기 증가 시 그래프 자체의 무한 확장을 막고 하단 여백 형성 */
   pointer-events: none;
 }
 
