@@ -71,29 +71,7 @@
   gap: 16px;
 }
 
-.date-filter-indicator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  background-color: var(--color-card-hover);
-  padding: 6px 10px;
-  border-radius: 4px;
-}
 
-.date-filter-indicator button {
-  background: none;
-  border: none;
-  color: var(--color-text-muted);
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0;
-}
-.date-filter-indicator button:hover {
-  color: var(--color-text-primary);
-}
 
 .crude-filter-pills {
   display: flex;
@@ -166,11 +144,60 @@
   opacity: 0;
 }
 
-/* ── Date Filter Diamond ── */
-.date-filter-diamond {
-  color: #FF9F6B;
-  font-size: 10px;
-  margin-right: 2px;
+/* ── Date Filter Container ── */
+.date-filter-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--color-card-hover);
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.today-button {
+  background: transparent;
+  border: 1px solid var(--color-primary);
+  color: var(--color-primary);
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.today-button:hover {
+  background: rgba(255, 159, 107, 0.1);
+}
+
+.today-button.active {
+  background: var(--color-primary);
+  color: #000;
+}
+
+.date-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  padding-left: 8px;
+  border-left: 1px solid var(--color-border);
+}
+
+.date-badge-close {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 4px;
+}
+.date-badge-close:hover {
+  color: #ff6b6b;
 }
 
 /* ── DB News Card (from chart date click) ── */

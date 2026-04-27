@@ -4,7 +4,7 @@ import { Card } from '../common/Card';
 import { Skeleton } from '../common/Skeleton';
 import { EmptyState } from '../common/EmptyState';
 import { fetchDualForecast, fetchPriceHistory } from '../../services/api';
-import type { DualForecastResult, CrudeForecast, FundamentalCrudeForecast, FundamentalSignal } from '../../types/forecast';
+import type { DualForecastResult, FundamentalSignal } from '../../types/forecast';
 import type { OilPrice } from '../../types/price';
 import './ForecastComparison.css';
 

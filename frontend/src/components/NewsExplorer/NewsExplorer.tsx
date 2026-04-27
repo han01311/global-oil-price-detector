@@ -233,24 +233,21 @@ export const NewsExplorer: React.FC = () => {
           ))}
         </div>
         <div className="sort-and-filter">
-          <button 
-            className="crude-pill"
-            style={{ marginRight: '12px', background: 'var(--color-primary)', color: '#000', fontWeight: 'bold' }}
-            onClick={() => {
-              const d = new Date();
-              const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-              setSelectedDate(todayStr);
-            }}
-          >
-            오늘
-          </button>
-          {selectedDate && (
-            <div className="date-filter-indicator">
-              <span className="date-filter-diamond">◆</span>
-              <span>{selectedDate} · {dbArticles.length}건의 기사</span>
-              <button onClick={() => setSelectedDate(null)}>&times;</button>
-            </div>
-          )}
+          <div className="date-filter-container">
+            <button 
+              className={`today-button ${selectedDate === null ? 'active' : ''}`}
+              onClick={() => setSelectedDate(null)}
+            >
+              최신 뉴스
+            </button>
+            {selectedDate && (
+              <div className="date-badge">
+                🗓 {selectedDate} 
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>({dbArticles.length}건)</span>
+                <button className="date-badge-close" onClick={() => setSelectedDate(null)}>&times;</button>
+              </div>
+            )}
+          </div>
           {!selectedDate && (
             <>
               <div className="crude-filter-pills">

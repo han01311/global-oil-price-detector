@@ -17,6 +17,7 @@ export interface ChartDataPoint {
   forecastBand?: [number, number];
   article?: ClassifiedArticle;
   dbArticleCount?: number;
+  filterDate?: string;
 }
 
 export interface NewsMarker {

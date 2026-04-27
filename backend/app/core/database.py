@@ -344,7 +344,7 @@ class Database:
         async with session_factory() as session:
             stmt = (
                 select(NewsArticleModel)
-                .where(func.substr(NewsArticleModel.published_at, 1, 10) == target_date)
+                .where(NewsArticleModel.published_at.startswith(target_date))
                 .order_by(NewsArticleModel.published_at.desc())
                 .limit(limit)
             )

@@ -3,12 +3,12 @@ import {
   ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis,
   CartesianGrid, Tooltip, Bar, LabelList
 } from 'recharts';
-import type { DotProps } from 'recharts';
+
 import { Card } from '../common/Card';
 import { Skeleton } from '../common/Skeleton';
 import { EmptyState } from '../common/EmptyState';
-import { usePriceData, getCategoryColor } from '../../hooks/usePriceData';
-import type { ChartDataPoint, NewsMarker, DBNewsMarker } from '../../hooks/usePriceData';
+import { usePriceData } from '../../hooks/usePriceData';
+import type { ChartDataPoint } from '../../hooks/usePriceData';
 import { useDashboardContext } from '../../context/DashboardContext';
 import './PriceChart.css';
 
@@ -37,10 +37,17 @@ function aggregate(data: ChartDataPoint[], iv: Interval): ChartDataPoint[] {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(d);
   }
-  return Array.from(groups.values()).map(pts => {
+  return Array.from(groups.entries()).map(([k, pts]) => {
+    const first = pts[0];
     const last = pts[pts.length - 1];
     const sumCount = pts.reduce((acc, curr) => acc + (curr.dbArticleCount || 0), 0);
-    return { ...last, dbArticleCount: sumCount || undefined };
+    return { 
+      ...last, 
+      dbArticleCount: sumCount || undefined, 
+      filterDate: k,
+      groupStartDate: first.date,
+      groupEndDate: last.date
+    };
   });
 }
 
@@ -50,7 +57,7 @@ function chg(curr: number | null | undefined, prev: number | null | undefined) {
   return { d, p, up: d > 0, dn: d < 0 };
 }
 
-const ChartTooltip: React.FC<any> = ({ active, payload, label }) => {
+const ChartTooltip: React.FC<any> = ({ active, payload, label, interval }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
@@ -59,8 +66,17 @@ const ChartTooltip: React.FC<any> = ({ active, payload, label }) => {
       {d.dubai != null && <p className="tooltip-item" style={{ color: 'var(--color-primary)' }}>Dubai: ${d.dubai?.toFixed(2)}</p>}
       {d.wti != null && <p className="tooltip-item" style={{ color: '#34C759' }}>WTI: ${d.wti?.toFixed(2)}</p>}
       {d.brent != null && <p className="tooltip-item" style={{ color: '#FF9F0A' }}>Brent: ${d.brent?.toFixed(2)}</p>}
-      {d.dbArticleCount > 0 && (
-        <div className="tooltip-db-news"><span>📰</span> {d.dbArticleCount}건의 기사</div>
+      {d.dbArticleCount && d.dbArticleCount > 0 && (
+        <>
+          <div className="tooltip-db-news">
+            <span style={{ fontSize: '13px' }}>📰</span> 관련 기사 {d.dbArticleCount}건 수집됨
+          </div>
+          {interval !== 'day' && d.groupStartDate && d.groupEndDate && (
+            <div className="tooltip-news-range" style={{ fontSize: '10px', color: 'var(--color-text-muted)', marginTop: '4px' }}>
+              수집 범위: {d.groupStartDate} ~ {d.groupEndDate}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -70,8 +86,8 @@ const ChartTooltip: React.FC<any> = ({ active, payload, label }) => {
 
 export const PriceChart: React.FC = () => {
   const [interval, setIv] = useState<Interval>('day');
-  const { chartData, newsMarkers, dbNewsMarkers, forecast, loading, error } = usePriceData('ALL');
-  const { selectedDate, setSelectedDate, highlightedCategory } = useDashboardContext();
+  const { chartData, forecast, loading, error } = usePriceData('ALL');
+  const { setSelectedDate } = useDashboardContext();
 
   const aggData = useMemo(() => aggregate(chartData, interval), [chartData, interval]);
 
@@ -205,15 +221,15 @@ export const PriceChart: React.FC = () => {
     return () => el.removeEventListener('wheel', handleWheelNative);
   }, [loading]);
 
-  // ── Drag Pan ──
+  // ── Drag Pan & Robust Click ──
   const dragState = useRef({ isDragging: false, startX: 0, s: 0, e: 0 });
-  const [isDragging, setIsDragging] = useState(false);
+  const activePayloadRef = useRef<any>(null);
 
-  const handlePointerDown = (e: React.PointerEvent) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     dragState.current = { isDragging: true, startX: e.clientX, s: sr.current.s, e: sr.current.e };
-    setIsDragging(true);
+    if (chartRef.current) chartRef.current.style.cursor = 'grabbing';
   };
-  const handlePointerMove = (e: React.PointerEvent) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!dragState.current.isDragging) return;
     const dx = e.clientX - dragState.current.startX;
     const w = e.currentTarget.getBoundingClientRect().width;
@@ -226,19 +242,48 @@ export const PriceChart: React.FC = () => {
     if (ne >= len) { ns -= ne - len + 1; ne = len - 1; }
     setXStart(Math.max(0, ns)); setXEnd(ne);
   };
-  const handlePointerUp = (e: React.PointerEvent) => {
+  const handleMouseUp = (e: React.MouseEvent) => {
+    const wasDragging = Math.abs(e.clientX - dragState.current.startX) > 5;
     dragState.current.isDragging = false;
-    setIsDragging(false);
+    if (chartRef.current) chartRef.current.style.cursor = 'crosshair';
+
+    // Drag-resistant click detection
+    if (!wasDragging && activePayloadRef.current) {
+      const data = activePayloadRef.current;
+      if (data && (data.filterDate || data.date)) {
+        setSelectedDate(data.filterDate || data.date);
+        setTimeout(() => document.querySelector('.news-explorer-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+      }
+    }
+  };
+
+
+  const handleChartMouseMove = (e: any) => {
+    if (e && e.activePayload && e.activePayload.length > 0) {
+      activePayloadRef.current = e.activePayload[0].payload;
+    }
   };
 
   const resetZoom = useCallback(() => { setXStart(0); setXEnd(aggData.length - 1); }, [aggData.length]);
-  
+
   // ── Click Chart to View News ──
+  // Click detection combines container onMouseUp and ComposedChart onClick for maximum compatibility
   const handleChartClick = (e: any) => {
+    // If Recharts provides the payload directly, use it
     if (e && e.activePayload && e.activePayload.length > 0) {
       const data = e.activePayload[0].payload;
-      if (data && data.date) {
-        setSelectedDate(data.date);
+      if (data && (data.filterDate || data.date)) {
+        setSelectedDate(data.filterDate || data.date);
+        setTimeout(() => document.querySelector('.news-explorer-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+        return;
+      }
+    }
+    
+    // Fallback to our activePayloadRef
+    if (activePayloadRef.current) {
+      const data = activePayloadRef.current;
+      if (data && (data.filterDate || data.date)) {
+        setSelectedDate(data.filterDate || data.date);
         setTimeout(() => document.querySelector('.news-explorer-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
       }
     }
@@ -255,17 +300,17 @@ export const PriceChart: React.FC = () => {
 
     return (
       <div 
-        className="chart-container" 
-        ref={chartRef} 
-        style={{ cursor: isDragging ? 'grabbing' : 'crosshair' }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        className="chart-container"
+        ref={chartRef}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ cursor: 'crosshair' }}
       >
         <div className="chart-wrapper">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={visibleData} margin={{ top: 10, right: 55, left: 10, bottom: 30 }} onClick={handleChartClick}>
+            <ComposedChart data={visibleData} margin={{ top: 10, right: 55, left: 10, bottom: 30 }} onClick={handleChartClick} onMouseMove={handleChartMouseMove}>
               <defs>
                 <linearGradient id="fc-bull" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bull)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--color-bull)" stopOpacity={0}/></linearGradient>
                 <linearGradient id="fc-bear" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bear)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--color-bear)" stopOpacity={0}/></linearGradient>
@@ -309,7 +354,7 @@ export const PriceChart: React.FC = () => {
               />
               <YAxis yAxisId="news" orientation="left" domain={[0, maxNewsCount * 4]} hide />
               
-              <Tooltip content={<ChartTooltip />} isAnimationActive={false} />
+              <Tooltip content={<ChartTooltip interval={interval} />} isAnimationActive={false} />
               {vis.news && (
                 <Bar yAxisId="news" dataKey="dbArticleCount" fill="rgba(255,159,107,0.4)" isAnimationActive={false} maxBarSize={20}>
                   {interval !== 'day' && visibleData.length <= 75 && <LabelList dataKey="dbArticleCount" position="top" fill="rgba(255,159,107,0.9)" fontSize={10} fontWeight={700} offset={2} />}
