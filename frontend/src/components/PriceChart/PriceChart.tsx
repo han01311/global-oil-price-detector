@@ -221,17 +221,24 @@ export const PriceChart: React.FC = () => {
     return () => el.removeEventListener('wheel', handleWheelNative);
   }, [loading]);
 
-  // ── Drag Pan & Robust Click ──
-  const dragState = useRef({ isDragging: false, startX: 0, s: 0, e: 0 });
+  // ── Drag Pan ──
+  const dragState = useRef({ isDragging: false, isPanning: false, startX: 0, s: 0, e: 0 });
   const activePayloadRef = useRef<any>(null);
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    dragState.current = { isDragging: true, startX: e.clientX, s: sr.current.s, e: sr.current.e };
-    if (chartRef.current) chartRef.current.style.cursor = 'grabbing';
+    dragState.current = { isDragging: true, isPanning: false, startX: e.clientX, s: sr.current.s, e: sr.current.e };
   };
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!dragState.current.isDragging) return;
     const dx = e.clientX - dragState.current.startX;
+    
+    if (!dragState.current.isPanning && Math.abs(dx) > 5) {
+      dragState.current.isPanning = true;
+      if (chartRef.current) chartRef.current.style.cursor = 'grabbing';
+    }
+    
+    if (!dragState.current.isPanning) return;
+
     const w = e.currentTarget.getBoundingClientRect().width;
     const rng = dragState.current.e - dragState.current.s;
     const shift = Math.round(-dx / w * rng * 1.5);
@@ -243,19 +250,26 @@ export const PriceChart: React.FC = () => {
     setXStart(Math.max(0, ns)); setXEnd(ne);
   };
   const handleMouseUp = (e: React.MouseEvent) => {
-    const wasDragging = Math.abs(e.clientX - dragState.current.startX) > 5;
     dragState.current.isDragging = false;
+    dragState.current.isPanning = false;
     if (chartRef.current) chartRef.current.style.cursor = 'crosshair';
+  };
 
-    // Drag-resistant click detection
-    if (!wasDragging && activePayloadRef.current) {
-      const data = activePayloadRef.current;
-      if (data && (data.filterDate || data.date)) {
-        setSelectedDate(data.filterDate || data.date);
-        setTimeout(() => document.querySelector('.news-explorer-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-      }
+  const handleElementClick = (data: any) => {
+    if (dragState.current.isPanning) return;
+    if (data && (data.filterDate || data.date)) {
+      setSelectedDate(data.filterDate || data.date);
+      setTimeout(() => document.querySelector('.news-explorer-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     }
   };
+
+  const handleChartClick = (state: any) => {
+    if (dragState.current.isPanning) return;
+    if (state && state.activePayload && state.activePayload.length > 0) {
+      handleElementClick(state.activePayload[0].payload);
+    }
+  };
+
 
 
   const handleChartMouseMove = (e: any) => {
@@ -266,28 +280,7 @@ export const PriceChart: React.FC = () => {
 
   const resetZoom = useCallback(() => { setXStart(0); setXEnd(aggData.length - 1); }, [aggData.length]);
 
-  // ── Click Chart to View News ──
-  // Click detection combines container onMouseUp and ComposedChart onClick for maximum compatibility
-  const handleChartClick = (e: any) => {
-    // If Recharts provides the payload directly, use it
-    if (e && e.activePayload && e.activePayload.length > 0) {
-      const data = e.activePayload[0].payload;
-      if (data && (data.filterDate || data.date)) {
-        setSelectedDate(data.filterDate || data.date);
-        setTimeout(() => document.querySelector('.news-explorer-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-        return;
-      }
-    }
-    
-    // Fallback to our activePayloadRef
-    if (activePayloadRef.current) {
-      const data = activePayloadRef.current;
-      if (data && (data.filterDate || data.date)) {
-        setSelectedDate(data.filterDate || data.date);
-        setTimeout(() => document.querySelector('.news-explorer-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-      }
-    }
-  };
+
 
   const upT = forecast ? forecast.estimated_7d > forecast.current_price : true;
   const cc = (c: ReturnType<typeof chg>) => !c ? '' : c.up ? 'chg-up' : c.dn ? 'chg-down' : '';
@@ -356,13 +349,13 @@ export const PriceChart: React.FC = () => {
               
               <Tooltip content={<ChartTooltip interval={interval} />} isAnimationActive={false} />
               {vis.news && (
-                <Bar yAxisId="news" dataKey="dbArticleCount" fill="rgba(255,159,107,0.4)" isAnimationActive={false} maxBarSize={20}>
+                <Bar yAxisId="news" dataKey="dbArticleCount" fill="rgba(255,159,107,0.4)" isAnimationActive={false} maxBarSize={20} onClick={(d: any) => d && handleElementClick(d.payload || d)}>
                   {interval !== 'day' && visibleData.length <= 75 && <LabelList dataKey="dbArticleCount" position="top" fill="rgba(255,159,107,0.9)" fontSize={10} fontWeight={700} offset={2} />}
                 </Bar>
               )}
-              {vis.dubai && <Line yAxisId="0" type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />}
-              {vis.wti && <Line yAxisId="0" type="monotone" dataKey="wti" stroke="#34C759" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />}
-              {vis.brent && <Line yAxisId="0" type="monotone" dataKey="brent" stroke="#FF9F0A" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />}
+              {vis.dubai && <Line yAxisId="0" type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} activeDot={{ onClick: (_e: any, p: any) => p?.payload && handleElementClick(p.payload) }} onClick={(_e: any, p: any) => p?.payload && handleElementClick(p.payload)} />}
+              {vis.wti && <Line yAxisId="0" type="monotone" dataKey="wti" stroke="#34C759" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} activeDot={{ onClick: (_e: any, p: any) => p?.payload && handleElementClick(p.payload) }} onClick={(_e: any, p: any) => p?.payload && handleElementClick(p.payload)} />}
+              {vis.brent && <Line yAxisId="0" type="monotone" dataKey="brent" stroke="#FF9F0A" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} activeDot={{ onClick: (_e: any, p: any) => p?.payload && handleElementClick(p.payload) }} onClick={(_e: any, p: any) => p?.payload && handleElementClick(p.payload)} />}
               <Line yAxisId="0" type="monotone" dataKey="forecastLine" stroke={upT ? 'var(--color-bull)' : 'var(--color-bear)'} strokeWidth={2} strokeDasharray="5 5" dot={false} />
               <Area yAxisId="0" type="monotone" dataKey="forecastBand" fill={`url(#${upT?'fc-bull':'fc-bear'})`} stroke="none" />
             </ComposedChart>
