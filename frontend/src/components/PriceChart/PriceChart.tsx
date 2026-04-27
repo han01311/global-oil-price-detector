@@ -12,6 +12,26 @@ import type { ChartDataPoint } from '../../hooks/usePriceData';
 import { useDashboardContext } from '../../context/DashboardContext';
 import './PriceChart.css';
 
+const CustomCursor = (props: any) => {
+  if (!props || props.points == null || props.points.length === 0) return null;
+  const { points, height, payload } = props;
+  const x = points[0].x;
+  const y = points[0].y;
+  
+  const handleCursorClick = () => {
+    if (payload && payload.length > 0 && props.onCursorClick) {
+      props.onCursorClick(payload[0].payload);
+    }
+  };
+
+  return (
+    <g style={{ cursor: 'pointer' }} onClick={handleCursorClick}>
+      <line x1={x} y1={y} x2={x} y2={y + height} stroke="rgba(255,255,255,0.7)" strokeWidth={1} strokeDasharray="3 3" />
+      <rect x={x - 15} y={y} width={30} height={height} fill="transparent" style={{ pointerEvents: 'auto' }} />
+    </g>
+  );
+};
+
 type Interval = 'day' | 'week' | 'month' | 'year';
 const INTERVALS: { key: Interval; label: string }[] = [
   { key: 'day', label: '일' },
@@ -249,7 +269,7 @@ export const PriceChart: React.FC = () => {
     if (ne >= len) { ns -= ne - len + 1; ne = len - 1; }
     setXStart(Math.max(0, ns)); setXEnd(ne);
   };
-  const handleMouseUp = (e: React.MouseEvent) => {
+  const handleMouseUp = () => {
     dragState.current.isDragging = false;
     dragState.current.isPanning = false;
     if (chartRef.current) chartRef.current.style.cursor = 'crosshair';
@@ -347,7 +367,11 @@ export const PriceChart: React.FC = () => {
               />
               <YAxis yAxisId="news" orientation="left" domain={[0, maxNewsCount * 4]} hide />
               
-              <Tooltip content={<ChartTooltip interval={interval} />} isAnimationActive={false} />
+              <Tooltip 
+                content={<ChartTooltip interval={interval} />} 
+                isAnimationActive={false} 
+                cursor={<CustomCursor onCursorClick={handleElementClick} />}
+              />
               {vis.news && (
                 <Bar yAxisId="news" dataKey="dbArticleCount" fill="rgba(255,159,107,0.4)" isAnimationActive={false} maxBarSize={20} onClick={(d: any) => d && handleElementClick(d.payload || d)}>
                   {interval !== 'day' && visibleData.length <= 75 && <LabelList dataKey="dbArticleCount" position="top" fill="rgba(255,159,107,0.9)" fontSize={10} fontWeight={700} offset={2} />}
