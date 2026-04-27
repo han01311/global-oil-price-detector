@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchPriceHistory, fetchForecastEstimate, fetchAndClassifyNews } from '../services/api';
+import { fetchPriceHistory, fetchForecastEstimate, fetchAndClassifyNews, fetchNewsDateCounts } from '../services/api';
 import type { OilPrice } from '../types/price';
 import type { ForecastResult } from '../types/forecast';
 import type { ClassifiedArticle } from '../types/news';
+import type { NewsDateCount } from '../services/api';
 
 export type Period = '1M' | '3M' | '6M' | '1Y' | 'ALL';
 
@@ -14,7 +15,8 @@ export interface ChartDataPoint {
   brent: number | null;
   forecastLine?: number;
   forecastBand?: [number, number];
-  article?: ClassifiedArticle; // For tooltip
+  article?: ClassifiedArticle;
+  dbArticleCount?: number;
 }
 
 export interface NewsMarker {
@@ -23,9 +25,17 @@ export interface NewsMarker {
   article: ClassifiedArticle;
 }
 
+export interface DBNewsMarker {
+  timestamp: number;
+  value: number;
+  date: string;
+  count: number;
+}
+
 interface PriceData {
   chartData: ChartDataPoint[];
   newsMarkers: NewsMarker[];
+  dbNewsMarkers: DBNewsMarker[];
   forecast: ForecastResult | null;
   loading: boolean;
   error: Error | null;
@@ -47,6 +57,7 @@ export function usePriceData(period: Period): PriceData {
   const [history, setHistory] = useState<OilPrice[]>([]);
   const [forecast, setForecast] = useState<ForecastResult | null>(null);
   const [news, setNews] = useState<ClassifiedArticle[]>([]);
+  const [newsDateCounts, setNewsDateCounts] = useState<NewsDateCount[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
@@ -60,7 +71,7 @@ export function usePriceData(period: Period): PriceData {
         case '3M': startDate.setMonth(endDate.getMonth() - 3); break;
         case '6M': startDate.setMonth(endDate.getMonth() - 6); break;
         case '1Y': startDate.setFullYear(endDate.getFullYear() - 1); break;
-        case 'ALL': startDate.setFullYear(endDate.getFullYear() - 5); break; // Max 5 years for 'ALL'
+        case 'ALL': startDate.setFullYear(endDate.getFullYear() - 30); break; // Max 30 years for 'ALL'
       }
       return startDate.toISOString().split('T')[0];
     };
@@ -71,15 +82,17 @@ export function usePriceData(period: Period): PriceData {
         const startDate = getStartDate(period);
         const endDate = new Date().toISOString().split('T')[0];
 
-        const [historyData, forecastData, newsData] = await Promise.all([
+        const [historyData, forecastData, newsData, dateCountsData] = await Promise.all([
           fetchPriceHistory(startDate, endDate),
           fetchForecastEstimate(),
-          fetchAndClassifyNews(),
+          fetchAndClassifyNews().catch(() => []),
+          fetchNewsDateCounts(startDate, endDate).catch(() => []),
         ]);
 
         setHistory(historyData.prices);
         setForecast(forecastData);
         setNews(newsData);
+        setNewsDateCounts(dateCountsData);
         setError(null);
       } catch (err) {
         setError(err instanceof Error ? err : new Error('Failed to fetch price data'));
@@ -92,33 +105,35 @@ export function usePriceData(period: Period): PriceData {
     loadData();
   }, [period]);
 
-  const { chartData, newsMarkers } = useMemo(() => {
+  const { chartData, newsMarkers, dbNewsMarkers } = useMemo(() => {
     if (!history.length) {
-      return { chartData: [], newsMarkers: [] };
+      return { chartData: [], newsMarkers: [], dbNewsMarkers: [] };
     }
 
-    const priceMap = new Map<string, OilPrice>(history.map(p => [p.date, p]));
+    const dateCountMap = new Map<string, number>();
+    newsDateCounts.forEach(dc => dateCountMap.set(dc.date, dc.count));
 
     const processedChartData: ChartDataPoint[] = [];
     const lastValid = { dubai: null as number | null, wti: null as number | null, brent: null as number | null };
 
     history.forEach(p => {
-      // 값이 없거나 0인 경우 이전의 유효한 값을 사용 (Forward-fill)
       const dubai = (p.dubai && p.dubai !== 0) ? p.dubai : lastValid.dubai;
       const wti = (p.wti && p.wti !== 0) ? p.wti : lastValid.wti;
       const brent = (p.brent && p.brent !== 0) ? p.brent : lastValid.brent;
 
-      // 현재 값이 유효하다면 캐시 업데이트
       if (dubai && dubai !== 0) lastValid.dubai = dubai;
       if (wti && wti !== 0) lastValid.wti = wti;
       if (brent && brent !== 0) lastValid.brent = brent;
 
+      const dbCount = dateCountMap.get(p.date) || 0;
+
       processedChartData.push({
         date: p.date,
         timestamp: new Date(p.date).getTime(),
-        dubai: dubai,
-        wti: wti,
-        brent: brent,
+        dubai,
+        wti,
+        brent,
+        dbArticleCount: dbCount > 0 ? dbCount : undefined,
       });
     });
 
@@ -126,7 +141,6 @@ export function usePriceData(period: Period): PriceData {
       const lastDataPoint = processedChartData[processedChartData.length - 1];
       const lastDate = new Date(lastDataPoint.date);
 
-      // Anchor the forecast band to the last known price
       lastDataPoint.forecastBand = [lastDataPoint.wti!, lastDataPoint.wti!];
       lastDataPoint.forecastLine = lastDataPoint.wti!;
 
@@ -144,23 +158,31 @@ export function usePriceData(period: Period): PriceData {
       });
     }
 
+    // Classified 뉴스 마커 (LLM 분류)
     const processedNewsMarkers: NewsMarker[] = news
       .filter(n => n.is_relevant)
       .map(n => {
         const date = n.article.published_at.split('T')[0];
-        // Use forward-filled chart data instead of raw history
         const chartPoint = processedChartData.find(d => d.date === date);
         if (!chartPoint || chartPoint.wti === null) return null;
-
-        return {
-          timestamp: chartPoint.timestamp,
-          value: chartPoint.wti,
-          article: n,
-        };
+        return { timestamp: chartPoint.timestamp, value: chartPoint.wti, article: n };
       })
       .filter((n): n is NewsMarker => n !== null);
 
-    // Add news articles to the main chart data for tooltip purposes
+    // DB 기사 마커 (날짜에 기사가 있는 포인트)
+    const processedDBMarkers: DBNewsMarker[] = [];
+    processedChartData.forEach(point => {
+      if (point.dbArticleCount && point.dbArticleCount > 0 && point.wti !== null) {
+        processedDBMarkers.push({
+          timestamp: point.timestamp,
+          value: point.wti,
+          date: point.date,
+          count: point.dbArticleCount,
+        });
+      }
+    });
+
+    // Add classified articles to chart data for tooltip
     const chartDataMap = new Map<number, ChartDataPoint>(processedChartData.map(d => [d.timestamp, d]));
     processedNewsMarkers.forEach(marker => {
       if (chartDataMap.has(marker.timestamp)) {
@@ -168,10 +190,14 @@ export function usePriceData(period: Period): PriceData {
       }
     });
 
-    return { chartData: Array.from(chartDataMap.values()), newsMarkers: processedNewsMarkers };
-  }, [history, forecast, news]);
+    return {
+      chartData: Array.from(chartDataMap.values()),
+      newsMarkers: processedNewsMarkers,
+      dbNewsMarkers: processedDBMarkers,
+    };
+  }, [history, forecast, news, newsDateCounts]);
 
-  return { chartData, newsMarkers, forecast, loading, error };
+  return { chartData, newsMarkers, dbNewsMarkers, forecast, loading, error };
 }
 
 export { getCategoryColor };

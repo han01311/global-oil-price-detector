@@ -148,15 +148,22 @@ class Database:
     # ──────────────────────────────────────────────
 
     async def upsert_oil_prices(self, rows: list[dict]) -> int:
-        """유가 데이터를 upsert (date+source 기준 중복 무시)"""
+        """유가 데이터를 upsert (기존 값 보존, 새 값만 업데이트)"""
         conn = await self.get_conn()
         now = datetime.utcnow().isoformat()
         count = 0
         for row in rows:
             try:
+                # 기존 레코드가 있으면 NULL이 아닌 값만 업데이트
                 await conn.execute(
-                    "INSERT OR REPLACE INTO oil_prices (date, dubai, wti, brent, source, collected_at) "
-                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    """INSERT INTO oil_prices (date, dubai, wti, brent, source, collected_at)
+                       VALUES (?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(date, source) DO UPDATE SET
+                         dubai = COALESCE(excluded.dubai, oil_prices.dubai),
+                         wti = COALESCE(excluded.wti, oil_prices.wti),
+                         brent = COALESCE(excluded.brent, oil_prices.brent),
+                         collected_at = excluded.collected_at
+                    """,
                     (row["date"], row.get("dubai"), row.get("wti"), row.get("brent"), row.get("source", "opinet"), now),
                 )
                 count += 1
@@ -362,6 +369,38 @@ class Database:
         async with conn.execute(query, params) as cursor:
             row = await cursor.fetchone()
         return row["cnt"] if row else 0
+
+    async def get_news_date_counts(self, start_date: str, end_date: str) -> list[dict]:
+        """날짜별 기사 건수 반환 (차트 마커용, 경량 쿼리)"""
+        conn = await self.get_conn()
+        query = """
+            SELECT 
+                SUBSTR(published_at, 1, 10) as date,
+                COUNT(*) as count,
+                data_source
+            FROM news_articles
+            WHERE SUBSTR(published_at, 1, 10) BETWEEN ? AND ?
+            GROUP BY date, data_source
+            ORDER BY date ASC
+        """
+        async with conn.execute(query, [start_date, end_date]) as cursor:
+            rows = await cursor.fetchall()
+        return [dict(r) for r in rows]
+
+    async def get_news_by_date(self, target_date: str, limit: int = 50) -> list[dict]:
+        """특정 날짜의 기사 목록 반환"""
+        conn = await self.get_conn()
+        query = """
+            SELECT id, title, description, source_name, url, published_at, 
+                   content_snippet, data_source, collected_at
+            FROM news_articles
+            WHERE SUBSTR(published_at, 1, 10) = ?
+            ORDER BY published_at DESC
+            LIMIT ?
+        """
+        async with conn.execute(query, [target_date, limit]) as cursor:
+            rows = await cursor.fetchall()
+        return [dict(r) for r in rows]
 
     async def get_news_source_stats(self) -> list[dict]:
         """뉴스 기사 소스별 통계 (건수, 최초/최근 수집일)"""

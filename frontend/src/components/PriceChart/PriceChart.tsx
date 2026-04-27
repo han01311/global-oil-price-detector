@@ -15,7 +15,7 @@ import { Card } from '../common/Card';
 import { Skeleton } from '../common/Skeleton';
 import { EmptyState } from '../common/EmptyState';
 import { usePriceData, getCategoryColor } from '../../hooks/usePriceData';
-import type { Period, NewsMarker } from '../../hooks/usePriceData';
+import type { Period, NewsMarker, DBNewsMarker } from '../../hooks/usePriceData';
 import { Badge } from '../common/Badge';
 import { useDashboardContext } from '../../context/DashboardContext';
 import './PriceChart.css';
@@ -33,6 +33,12 @@ const CustomTooltip: React.FC<any> = ({ active, payload, label }) => {
         {data.wti && <p className="tooltip-item" style={{ color: 'var(--color-bull)' }}>WTI: ${data.wti.toFixed(2)}</p>}
         {data.brent && <p className="tooltip-item" style={{ color: 'var(--color-bear)' }}>Brent: ${data.brent.toFixed(2)}</p>}
         {data.forecastLine && <p className="tooltip-item">Forecast: ${data.forecastLine.toFixed(2)}</p>}
+        {data.dbArticleCount && (
+          <div className="tooltip-db-news">
+            <span className="tooltip-db-icon">📰</span>
+            <span>{data.dbArticleCount}건의 기사</span>
+          </div>
+        )}
         {data.article && (
           <div className="tooltip-news-item">
             <Badge category={data.article.category as any} />
@@ -104,14 +110,84 @@ const CustomNewsDot: React.FC<CustomDotProps> = (props) => {
   );
 };
 
+// DB 기사 마커 — 작은 다이아몬드 점
+interface DBNewsDotProps extends DotProps {
+  payload?: DBNewsMarker;
+  onClick?: (marker: DBNewsMarker) => void;
+  selectedDate: string | null;
+}
+
+const DBNewsDot: React.FC<DBNewsDotProps> = (props) => {
+  const { cx, cy, payload, onClick, selectedDate } = props;
+  if (!payload || !cx || !cy) return null;
+
+  const isSelected = selectedDate === payload.date;
+  const size = isSelected ? 7 : 4;
+  const opacity = isSelected ? 1 : 0.7;
+
+  return (
+    <g
+      onClick={() => onClick?.(payload)}
+      style={{ cursor: 'pointer' }}
+    >
+      {/* 외곽 글로우 (선택 시) */}
+      {isSelected && (
+        <circle
+          cx={cx}
+          cy={cy}
+          r={12}
+          fill="none"
+          stroke="rgba(255, 159, 107, 0.3)"
+          strokeWidth={2}
+        />
+      )}
+      {/* 다이아몬드 형태 */}
+      <rect
+        x={Number(cx) - size}
+        y={Number(cy) - size}
+        width={size * 2}
+        height={size * 2}
+        rx={2}
+        fill={isSelected ? '#FF9F6B' : 'rgba(255, 159, 107, 0.75)'}
+        stroke="var(--color-bg)"
+        strokeWidth={1.5}
+        opacity={opacity}
+        transform={`rotate(45, ${cx}, ${cy})`}
+        style={{ transition: 'all 0.2s ease' }}
+      />
+      {/* 기사 수 (3건 이상이면 표시) */}
+      {payload.count >= 3 && (
+        <text
+          x={Number(cx)}
+          y={Number(cy) - size - 6}
+          textAnchor="middle"
+          fontSize={9}
+          fontWeight={600}
+          fill="rgba(255, 159, 107, 0.9)"
+        >
+          {payload.count}
+        </text>
+      )}
+    </g>
+  );
+};
+
 export const PriceChart: React.FC = () => {
   const [activePeriod, setActivePeriod] = useState<Period>('6M');
-  const { chartData, newsMarkers, forecast, loading, error } = usePriceData(activePeriod);
-  const { setSelectedDate, highlightedCategory } = useDashboardContext();
+  const { chartData, newsMarkers, dbNewsMarkers, forecast, loading, error } = usePriceData(activePeriod);
+  const { selectedDate, setSelectedDate, highlightedCategory } = useDashboardContext();
 
   const handleMarkerClick = (marker: NewsMarker) => {
     const dateStr = new Date(marker.timestamp).toISOString().split('T')[0];
     setSelectedDate(dateStr);
+  };
+
+  const handleDBMarkerClick = (marker: DBNewsMarker) => {
+    setSelectedDate(marker.date);
+    // 부드럽게 News Explorer로 스크롤
+    setTimeout(() => {
+      document.querySelector('.news-explorer-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const isUpwardTrend = forecast ? forecast.estimated_7d > forecast.current_price : true;
@@ -190,9 +266,27 @@ export const PriceChart: React.FC = () => {
           <Line type="monotone" dataKey="forecastLine" stroke={forecastStrokeColor} strokeWidth={2} strokeDasharray="5 5" dot={false} name="Forecast" />
           <Area type="monotone" dataKey="forecastBand" fill={`url(#${forecastColorId})`} stroke="none" name="Forecast Range" />
 
+          {/* DB 기사 마커 (다이아몬드) */}
+          {dbNewsMarkers.map((marker, index) => (
+            <ReferenceDot 
+              key={`db-${index}`} 
+              x={marker.timestamp} 
+              y={marker.value} 
+              ifOverflow="extendDomain"
+              shape={
+                <DBNewsDot 
+                  payload={marker} 
+                  onClick={handleDBMarkerClick}
+                  selectedDate={selectedDate}
+                />
+              }
+            />
+          ))}
+
+          {/* Classified 뉴스 마커 (원형) */}
           {newsMarkers.map((marker, index) => (
             <ReferenceDot 
-              key={index} 
+              key={`news-${index}`} 
               x={marker.timestamp} 
               y={marker.value} 
               ifOverflow="extendDomain"
@@ -227,6 +321,12 @@ export const PriceChart: React.FC = () => {
             </button>
           ))}
         </div>
+        {dbNewsMarkers.length > 0 && (
+          <div className="chart-legend-hint">
+            <span className="legend-diamond">◆</span>
+            <span>기사 보유 ({dbNewsMarkers.length}일)</span>
+          </div>
+        )}
       </div>
       {renderChart()}
     </Card>

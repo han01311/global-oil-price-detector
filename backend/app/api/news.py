@@ -17,6 +17,44 @@ _news_cache = {"data": None, "expires_at": 0}
 _news_cache_lock = asyncio.Lock()
 
 
+# ──────────────────────────────────────────────
+# DB 기사 조회 (차트 마커 + 날짜 필터용)
+# ──────────────────────────────────────────────
+
+@router.get("/date-counts")
+async def get_news_date_counts(
+    start_date: str = Query(..., description="시작일 YYYY-MM-DD"),
+    end_date: str = Query(..., description="종료일 YYYY-MM-DD"),
+):
+    """날짜별 기사 건수 (Price Chart 마커용)"""
+    from app.core.database import Database
+    db = Database()
+    await db.connect()
+    counts = await db.get_news_date_counts(start_date, end_date)
+    # 날짜별로 합산: {date: total_count}
+    merged: dict = {}
+    for row in counts:
+        d = row["date"]
+        if d not in merged:
+            merged[d] = {"date": d, "count": 0, "sources": []}
+        merged[d]["count"] += row["count"]
+        merged[d]["sources"].append({"source": row["data_source"], "count": row["count"]})
+    return list(merged.values())
+
+
+@router.get("/by-date")
+async def get_news_by_date(
+    date: str = Query(..., description="날짜 YYYY-MM-DD"),
+    limit: int = Query(default=30, le=100),
+):
+    """특정 날짜의 기사 목록 (News Explorer 날짜 필터용)"""
+    from app.core.database import Database
+    db = Database()
+    await db.connect()
+    articles = await db.get_news_by_date(date, limit)
+    return articles
+
+
 async def _classify_articles_payload(
     articles_to_classify: list[dict],
     *,

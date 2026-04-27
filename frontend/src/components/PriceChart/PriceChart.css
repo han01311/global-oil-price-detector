@@ -1,6 +1,7 @@
 .price-chart-controls {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 24px;
 }
 
@@ -129,4 +130,39 @@
 .recharts-text.recharts-cartesian-axis-tick-value {
   font-family: inherit;
   fill: var(--color-text-muted);
+}
+
+/* ── Chart Legend Hint ── */
+.chart-legend-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding: 4px 10px;
+  background: rgba(255, 159, 107, 0.06);
+  border: 1px solid rgba(255, 159, 107, 0.12);
+  border-radius: 4px;
+}
+
+.legend-diamond {
+  color: #FF9F6B;
+  font-size: 10px;
+}
+
+/* ── Tooltip DB News ── */
+.tooltip-db-news {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #FF9F6B;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.tooltip-db-icon {
+  font-size: 14px;
 }

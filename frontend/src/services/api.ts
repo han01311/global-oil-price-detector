@@ -103,3 +103,30 @@ export async function fetchBriefingHistory(days: number): Promise<Briefing[]> {
   return apiFetch(`/api/briefing/history?days=${days}`);
 }
 
+// --- DB News APIs (for chart markers & date filtering) ---
+export interface NewsDateCount {
+  date: string;
+  count: number;
+  sources: { source: string; count: number }[];
+}
+
+export async function fetchNewsDateCounts(startDate: string, endDate: string): Promise<NewsDateCount[]> {
+  return apiFetch(`/api/news/date-counts?start_date=${startDate}&end_date=${endDate}`);
+}
+
+export interface DBNewsArticle {
+  id: string;
+  title: string;
+  description: string | null;
+  source_name: string | null;
+  url: string;
+  published_at: string;
+  content_snippet: string | null;
+  data_source: string;
+  collected_at: string;
+}
+
+export async function fetchNewsByDate(date: string): Promise<DBNewsArticle[]> {
+  return apiFetch(`/api/news/by-date?date=${date}`);
+}
+
