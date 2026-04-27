@@ -103,12 +103,19 @@ export const PriceChart: React.FC = () => {
     return aggData.slice(s, e + 1);
   }, [aggData, xStart, xEnd]);
 
+  const [vis, setVis] = useState({ dubai: true, wti: true, brent: true, news: true });
+  const toggleVis = (k: keyof typeof vis) => setVis(p => ({ ...p, [k]: !p[k] }));
+
   const yDomain = useMemo((): [number, number] => {
-    const v = visibleData.flatMap(d => [d.wti, d.brent, d.dubai].filter((x): x is number => x != null && x !== 0));
+    const v = visibleData.flatMap(d => [
+      vis.wti ? d.wti : null, 
+      vis.brent ? d.brent : null, 
+      vis.dubai ? d.dubai : null
+    ].filter((x): x is number => x != null && x !== 0));
     if (!v.length) return [0, 100];
     const mn = Math.min(...v), mx = Math.max(...v), pad = (mx - mn) * 0.08 || 5;
     return [Math.floor((mn - pad) * 100) / 100, Math.ceil((mx + pad) * 100) / 100];
-  }, [visibleData]);
+  }, [visibleData, vis]);
 
   const tsR = useMemo(() => {
     if (!visibleData.length) return { mn: 0, mx: Infinity };
@@ -303,12 +310,14 @@ export const PriceChart: React.FC = () => {
               <YAxis yAxisId="news" orientation="left" domain={[0, maxNewsCount * 4]} hide />
               
               <Tooltip content={<ChartTooltip />} isAnimationActive={false} />
-              <Bar yAxisId="news" dataKey="dbArticleCount" fill="rgba(255,159,107,0.4)" isAnimationActive={false} maxBarSize={20}>
-                {interval !== 'day' && visibleData.length <= 75 && <LabelList dataKey="dbArticleCount" position="top" fill="rgba(255,159,107,0.9)" fontSize={10} fontWeight={700} offset={2} />}
-              </Bar>
-              <Line yAxisId="0" type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
-              <Line yAxisId="0" type="monotone" dataKey="wti" stroke="#34C759" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
-              <Line yAxisId="0" type="monotone" dataKey="brent" stroke="#FF9F0A" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+              {vis.news && (
+                <Bar yAxisId="news" dataKey="dbArticleCount" fill="rgba(255,159,107,0.4)" isAnimationActive={false} maxBarSize={20}>
+                  {interval !== 'day' && visibleData.length <= 75 && <LabelList dataKey="dbArticleCount" position="top" fill="rgba(255,159,107,0.9)" fontSize={10} fontWeight={700} offset={2} />}
+                </Bar>
+              )}
+              {vis.dubai && <Line yAxisId="0" type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />}
+              {vis.wti && <Line yAxisId="0" type="monotone" dataKey="wti" stroke="#34C759" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />}
+              {vis.brent && <Line yAxisId="0" type="monotone" dataKey="brent" stroke="#FF9F0A" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />}
               <Line yAxisId="0" type="monotone" dataKey="forecastLine" stroke={upT ? 'var(--color-bull)' : 'var(--color-bear)'} strokeWidth={2} strokeDasharray="5 5" dot={false} />
               <Area yAxisId="0" type="monotone" dataKey="forecastBand" fill={`url(#${upT?'fc-bull':'fc-bear'})`} stroke="none" />
             </ComposedChart>
@@ -345,7 +354,20 @@ export const PriceChart: React.FC = () => {
         </div>
         <div className="controls-right">
           {isZoomed && <button className="zoom-reset-btn" onClick={resetZoom}>⟲ 전체보기</button>}
-          <div className="chart-legend-hint"><span className="legend-diamond" style={{color:'rgba(255,159,107,0.8)'}}>■</span> 기사 건수</div>
+          <div className="chart-legend-toggles">
+            <div className={`legend-toggle ${vis.dubai ? 'active' : ''}`} onClick={() => toggleVis('dubai')}>
+              <span className="legend-dot" style={{ background: 'var(--color-primary)' }} /> Dubai
+            </div>
+            <div className={`legend-toggle ${vis.wti ? 'active' : ''}`} onClick={() => toggleVis('wti')}>
+              <span className="legend-dot" style={{ background: '#34C759' }} /> WTI
+            </div>
+            <div className={`legend-toggle ${vis.brent ? 'active' : ''}`} onClick={() => toggleVis('brent')}>
+              <span className="legend-dot" style={{ background: '#FF9F0A' }} /> Brent
+            </div>
+            <div className={`legend-toggle ${vis.news ? 'active' : ''}`} onClick={() => toggleVis('news')}>
+              <span className="legend-dot" style={{ background: 'rgba(255,159,107,0.8)', borderRadius: '2px' }} /> 기사 건수
+            </div>
+          </div>
         </div>
       </div>
 

@@ -122,20 +122,49 @@
 
 .zoom-hint { opacity: 0.5; }
 
-/* ── Legend ── */
-.chart-legend-hint {
+/* ── Legend Toggles ── */
+.chart-legend-toggles {
   display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10px;
-  color: var(--color-text-muted);
-  padding: 4px 8px;
-  background: rgba(255,159,107,0.06);
-  border: 1px solid rgba(255,159,107,0.12);
-  border-radius: 4px;
+  gap: 6px;
 }
 
-.legend-diamond { color: #FF9F6B; font-size: 9px; }
+.legend-toggle {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  padding: 4px 8px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  opacity: 0.4;
+}
+
+.legend-toggle.active {
+  opacity: 1;
+  background: rgba(255,255,255,0.04);
+  color: var(--color-text-primary);
+  border-color: rgba(255,255,255,0.1);
+}
+
+.legend-toggle:hover {
+  opacity: 0.8;
+}
+
+.legend-toggle.active:hover {
+  opacity: 1;
+  background: rgba(255,255,255,0.08);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
 
 /* ── Chart container ── */
 .chart-container {
