@@ -166,6 +166,23 @@ class CollectionScheduler:
         interval_hours = settings.COLLECTION_INTERVAL_HOURS
         self._scheduler = AsyncIOScheduler()
 
+        # 최신 데이터 누락 여부 점검 후 필요 시 즉시 실행
+        cursor = await db.conn.execute("SELECT date FROM oil_prices ORDER BY date DESC LIMIT 1")
+        row = await cursor.fetchone()
+        
+        run_now = None
+        if not row:
+            run_now = datetime.now()
+            logger.info("[Scheduler] DB에 유가 데이터가 없습니다. 즉시 수집을 시작합니다.")
+        else:
+            try:
+                latest_date = datetime.strptime(row[0], "%Y-%m-%d").date()
+                if (date.today() - latest_date).days > 1:
+                    run_now = datetime.now()
+                    logger.info(f"[Scheduler] 최신 데이터({latest_date})가 지연되었습니다. 즉시 수집을 시작합니다.")
+            except Exception as e:
+                logger.error(f"[Scheduler] 최신 데이터 날짜 파싱 오류: {e}")
+
         # Opinet 수집 (유가) — 매 interval 시간마다
         self._scheduler.add_job(
             collect_opinet_prices,
@@ -173,6 +190,7 @@ class CollectionScheduler:
             id="opinet_prices",
             name="Opinet 유가 수집",
             replace_existing=True,
+            next_run_time=run_now,
         )
         self._scheduler.add_job(
             collect_eia_inventory,
@@ -180,6 +198,7 @@ class CollectionScheduler:
             id="eia_inventory",
             name="EIA 재고 수집",
             replace_existing=True,
+            next_run_time=run_now,
         )
         self._scheduler.add_job(
             collect_eia_production,
@@ -187,6 +206,7 @@ class CollectionScheduler:
             id="eia_production",
             name="EIA 생산량 수집",
             replace_existing=True,
+            next_run_time=run_now,
         )
 
         # FRED 수집 — 12시간마다 (거시경제 데이터는 자주 변하지 않음)
@@ -196,6 +216,7 @@ class CollectionScheduler:
             id="fred_macro",
             name="FRED 거시경제 수집",
             replace_existing=True,
+            next_run_time=run_now,
         )
 
         # 뉴스 수집 — 매 interval 시간마다
@@ -205,6 +226,7 @@ class CollectionScheduler:
             id="news_collect",
             name="뉴스 수집 (NewsAPI + GNews + GDELT)",
             replace_existing=True,
+            next_run_time=run_now,
         )
 
         self._scheduler.start()

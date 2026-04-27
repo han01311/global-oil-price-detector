@@ -60,7 +60,7 @@ const METHOD_A: MethodData = {
   title: '기술적 분석 모델',
   titleEn: 'Technical Analysis',
   subtitle: 'XGBoost Gradient Boosting + News Sentiment Adjustment',
-  description: '과거 5년간 멀티팩터 시계열 데이터를 XGBoost로 학습하고, 실시간 뉴스 감성 분석을 4단계 파이프라인으로 보정하여 최종 7일 전망치를 산출합니다.',
+  description: '과거 5년간 멀티팩터 시계열 데이터를 XGBoost로 학습하고, 실시간 뉴스 감성 분석을 5단계 파이프라인으로 보정하여 최종 7일 전망치를 산출합니다.',
   diagramType: 'pipeline',
   steps: [
     {
@@ -75,12 +75,13 @@ const METHOD_A: MethodData = {
     },
     {
       icon: '📰', step: 2, label: '뉴스 감성 보정',
-      summary: '학술 논문 기반 4단계 필터로 뉴스의 실질적 영향력만 추출합니다.',
+      summary: '학술 논문 기반 5단계 필터로 뉴스의 실질적 영향력만 추출합니다.',
       details: [
-        '시간 감쇠: 지정학 τ=5일, 수급 τ=2.5일, 투기 τ=1.5일',
-        '중복 제거: 72h 내 Jaccard ≥0.4 클러스터링 → 대표 1건만 반영',
-        '변동성 국면: 고변동(Z>1) ×1.5 / 저변동(Z<-1) ×0.7',
-        '시장 반영도: 이미 반영된 효과 차감, 최소 20% 모멘텀 유지',
+        '시간 감쇠: 거래일(Trading Day) 기준 지수 감쇠 (휴장일 제외)',
+        '시장 공백 인식: 주말/휴장 기간 기사 누적 합산 및 자동 상쇄',
+        '중복 제거: Jaccard 클러스터링 기반 의미적 중복 1건으로 통합',
+        '변동성 국면: 고변동 시장 시 뉴스 민감도(×1.5배) 확대',
+        '시장 반영도: 실제 가격에 이미 선반영된 뉴스 효과 차감',
       ],
     },
     {
@@ -208,7 +209,7 @@ const MethodInfoModal: React.FC<{ info: MethodData; onClose: () => void }> = ({ 
               <div className="fc-pipe-node">
                 <span className="fc-pipe-icon">📰</span>
                 <span className="fc-pipe-text">뉴스 보정</span>
-                <span className="fc-pipe-sub">4단계 필터</span>
+                <span className="fc-pipe-sub">5단계 필터</span>
               </div>
               <div className="fc-pipe-arrow">→</div>
               <div className="fc-pipe-node">

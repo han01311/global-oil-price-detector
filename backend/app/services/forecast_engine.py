@@ -206,99 +206,223 @@ class ForecastEngine:
 
 
 class NewsAdjuster:
-    """뉴스 기반 유가 보정 로직 — 학술 근거 기반 개선 (v2)
+    """뉴스 기반 유가 보정 로직 — 학술 근거 기반 개선 (v3)
 
     개선사항:
-    1. Temporal Decay: 뉴스 시간 감쇠 (지수 감쇠, arXiv 2024)
-    2. Semantic Deduplication: 의미적 중복 제거 (임베딩 유사도 기반)
-    3. Volatility Regime: 변동성 국면 인식 (GARCH 개념 차용)
-    4. Price Absorption: 시장 반영도 체크 (EMH 실증적 변형)
+    1. Temporal Decay: 거래일(Trading Day) 기반 시간 감쇠
+    2. Semantic Deduplication: 의미적 중복 제거
+    3. Volatility Regime: 변동성 국면 인식
+    4. Price Absorption: 시장 반영도 체크
+    5. Market Gap Awareness: 휴장 기간 기사 누적/상쇄 처리
     """
 
-    # 시간 감쇠 반감기 (일 단위) — 카테고리별 차등 적용
+    # 시간 감쇠 반감기 (거래일 단위) — 카테고리별 차등 적용
     DECAY_HALF_LIFE = {
-        "geopolitics": 5.0,    # 지정학: 느리게 감쇠 (영향 오래 지속)
-        "supply": 3.0,         # 공급: 보통
-        "demand": 3.0,         # 수요: 보통
-        "macro": 4.0,          # 거시경제: 약간 느리게
-        "policy": 4.0,         # 정책: 약간 느리게
-        "default": 2.5,        # 기본: 빠르게 감쇠
+        "geopolitics": 5.0,
+        "supply": 3.0,
+        "demand": 3.0,
+        "macro": 4.0,
+        "policy": 4.0,
+        "default": 2.5,
     }
 
-    # 변동성 국면 임계값 (백분위)
     VOL_LOW_PCTILE = 0.30
     VOL_HIGH_PCTILE = 0.70
 
-    # 변동성 국면별 보정 배율
     VOL_REGIME_MULTIPLIER = {
-        "low": 0.7,      # 저변동 국면: 시장이 둔감 → 보정 축소
-        "normal": 1.0,   # 보통 국면: 그대로
-        "high": 1.5,     # 고변동 국면: 시장이 민감 → 보정 확대
+        "low": 0.7,
+        "normal": 1.0,
+        "high": 1.5,
     }
 
-    # 의미적 중복 판정 유사도 임계값
     DEDUP_SIMILARITY_THRESHOLD = 0.85
+
+    # ──────────────────────────────────────────────
+    # 보완 5: 시장 공백 인식 (Market Gap Awareness)
+    # ──────────────────────────────────────────────
+
+    @staticmethod
+    def _count_trading_days(start_dt: datetime, end_dt: datetime) -> float:
+        """두 시점 사이의 거래일(주말 제외) 수를 계산.
+        주말에 시장이 닫혀있는 동안의 시간은 경과일에서 제외하여
+        비거래일 기사의 영향력이 부당하게 감쇠되지 않도록 합니다.
+        """
+        if end_dt <= start_dt:
+            return 0.0
+
+        from datetime import timedelta
+        trading_seconds = 0.0
+        current = start_dt
+
+        while current < end_dt:
+            # 하루 단위로 순회
+            next_day = min(current + timedelta(days=1), end_dt)
+            if current.weekday() < 5:  # 월(0)~금(4)만 거래일
+                trading_seconds += (next_day - current).total_seconds()
+            current = next_day
+
+        return trading_seconds / 86400
+
+    @staticmethod
+    def _is_market_open(dt: datetime) -> bool:
+        """해당 시점이 거래일(월~금)인지 판별."""
+        return dt.weekday() < 5
+
+    def _classify_market_gap_articles(self, articles: List[Dict]) -> tuple:
+        """기사를 '거래일 발행'과 '시장 공백(비거래일) 발행'으로 분류.
+
+        비거래일 기사들은 다음 거래일에 일괄 반영되어야 하며,
+        같은 공백 기간 내에서 상반된 방향의 기사는 서로 상쇄됩니다.
+        """
+        trading_articles = []
+        gap_articles = []
+
+        for a in articles:
+            pub_at = a.get("article", {}).get("published_at", "") or a.get("published_at", "")
+            try:
+                pub_date = datetime.fromisoformat(pub_at.replace("Z", "+00:00"))
+                if self._is_market_open(pub_date):
+                    trading_articles.append(a)
+                else:
+                    gap_articles.append(a)
+            except (ValueError, TypeError):
+                trading_articles.append(a)  # 파싱 실패 시 거래일 기사로 취급
+
+        return trading_articles, gap_articles
+
+    def _calculate_gap_net_score(self, gap_articles: List[Dict],
+                                 crude_type: str) -> Dict:
+        """시장 공백 기간 기사들의 순(Net) 영향도를 계산.
+
+        경우의 수:
+        1. 모두 같은 방향 → 누적 합산 (강화 효과)
+        2. 상반된 방향 → 상쇄 후 순 효과만 반영
+        3. 완전 상쇄 → 영향도 0 (시장에 실제 변동 없을 것으로 예측)
+
+        추가로, 같은 공백 내 늦게 나온 기사가 앞 기사를 '덮어쓰는' 효과도 반영합니다.
+        (예: 토요일에 전쟁 위기설 → 일요일에 협상 타결 → 월요일엔 안정)
+        """
+        if not gap_articles:
+            return {"net_score": 0, "net_weight": 0, "gap_count": 0,
+                    "bullish_count": 0, "bearish_count": 0, "cancelled_ratio": 0.0}
+
+        # 발행 시간순 정렬 (늦은 기사가 더 최신 상황 반영)
+        sorted_articles = sorted(gap_articles, key=lambda a: (
+            a.get("article", {}).get("published_at", "") or a.get("published_at", "")
+        ))
+
+        bullish_score = 0.0
+        bearish_score = 0.0
+        bullish_weight = 0.0
+        bearish_weight = 0.0
+        bullish_count = 0
+        bearish_count = 0
+
+        for idx, a in enumerate(sorted_articles):
+            score = self._extract_crude_score(a, crude_type)
+            confidence = a.get("confidence", 0.8)
+
+            # 시간순 가중: 공백 내 늦은 기사일수록 더 최신 상황 반영
+            recency_boost = 1.0 + (idx / max(len(sorted_articles), 1)) * 0.3
+
+            w = confidence * recency_boost
+
+            if score > 0:
+                bullish_score += score * w
+                bullish_weight += w
+                bullish_count += 1
+            elif score < 0:
+                bearish_score += abs(score) * w
+                bearish_weight += w
+                bearish_count += 1
+
+        # 상쇄 계산: 강한 쪽에서 약한 쪽을 차감
+        total_magnitude = bullish_score + bearish_score
+        if total_magnitude == 0:
+            cancelled_ratio = 1.0
+            net_score = 0
+            net_weight = 0
+        else:
+            net_score = (bullish_score - bearish_score)
+            # 상쇄율: 약한 쪽이 강한 쪽을 얼마나 깎았는지 (0=상쇄 없음, 1=완전 상쇄)
+            cancelled_ratio = min(bullish_score, bearish_score) / (total_magnitude / 2)
+            net_weight = max(bullish_weight, bearish_weight) - min(bullish_weight, bearish_weight) * 0.5
+
+        return {
+            "net_score": net_score,
+            "net_weight": max(net_weight, 0.001),
+            "gap_count": len(gap_articles),
+            "bullish_count": bullish_count,
+            "bearish_count": bearish_count,
+            "cancelled_ratio": cancelled_ratio,
+        }
+
+    def _extract_crude_score(self, article: Dict, crude_type: str) -> float:
+        """기사에서 특정 유종의 영향 점수를 추출."""
+        impact_by_crude = article.get("impact_by_crude", {})
+        if crude_type in impact_by_crude:
+            crude_impact = impact_by_crude[crude_type]
+            if isinstance(crude_impact, dict):
+                return crude_impact.get("score", 0)
+            return crude_impact.score if hasattr(crude_impact, 'score') else 0
+        return article.get("impact_score", 0)
 
     async def calculate_adjustment(self, classified_articles: List[Dict],
                                     similar_events: List[Dict],
                                     crude_type: str = "wti",
                                     recent_prices: Optional[List[float]] = None,
                                     historical_volatilities: Optional[List[float]] = None) -> Dict:
-        """뉴스 분석 결과를 기반으로 특정 유종의 보정값 산출 (학술 근거 기반 v2)"""
+        """뉴스 분석 결과를 기반으로 특정 유종의 보정값 산출 (v3 — 시장 공백 인식)"""
         relevant_articles = [a for a in classified_articles if a.get("is_relevant")]
 
-        # 보완 1: 의미적 중복 제거 (Semantic Deduplication)
+        # 보완 1: 의미적 중복 제거
         deduped_articles = self._deduplicate_articles(relevant_articles)
         dedup_ratio = len(deduped_articles) / max(len(relevant_articles), 1)
 
-        # 보완 2: 시간 감쇠 적용 (Temporal Decay)
-        # 1. 유종별 뉴스 감성 점수 계산 (시간 가중)
-        weighted_score = 0
-        total_weight = 0
-        article_count = len(deduped_articles)
+        # 보완 5: 거래일/비거래일 기사 분류
+        trading_articles, gap_articles = self._classify_market_gap_articles(deduped_articles)
+        gap_result = self._calculate_gap_net_score(gap_articles, crude_type)
 
-        for a in deduped_articles:
-            # 시간 감쇠 가중치
+        # ── 거래일 기사: 거래일 기반 시간 감쇠 적용 ──
+        weighted_score = 0.0
+        total_weight = 0.0
+
+        for a in trading_articles:
             decay_weight = self._temporal_decay_weight(a)
-
-            impact_by_crude = a.get("impact_by_crude", {})
-            if crude_type in impact_by_crude:
-                crude_impact = impact_by_crude[crude_type]
-                if isinstance(crude_impact, dict):
-                    score = crude_impact.get("score", 0)
-                else:
-                    score = crude_impact.score if hasattr(crude_impact, 'score') else 0
-            else:
-                score = a.get("impact_score", 0)
-
+            score = self._extract_crude_score(a, crude_type)
             confidence = a.get("confidence", 0.8)
             w = confidence * decay_weight
             weighted_score += score * w
             total_weight += w
 
+        # ── 비거래일 기사: 상쇄/누적 후 순 효과를 감쇠 없이 합산 ──
+        if gap_result["gap_count"] > 0:
+            weighted_score += gap_result["net_score"]
+            total_weight += gap_result["net_weight"]
+
+        article_count = len(deduped_articles)
         avg_sentiment = weighted_score / max(total_weight, 0.001)
 
-        # 2. 유사 과거 사례 기반 보정 (유종별)
+        # 2. 유사 과거 사례 기반 보정
         similar_adjustment = self._calculate_similar_adjustment(similar_events, crude_type)
 
-        # 3. 최종 보정값 = 감성 기반 + 유사 사례 기반 (가중 결합)
+        # 3. 최종 보정값 = 감성 + 유사 사례
         sentiment_adjustment = self._sentiment_to_pct(avg_sentiment)
-        raw_adjustment = (
-            0.4 * sentiment_adjustment +
-            0.6 * similar_adjustment
-        )
+        raw_adjustment = 0.4 * sentiment_adjustment + 0.6 * similar_adjustment
 
-        # 보완 3: 변동성 국면 보정 (Volatility Regime Detection)
+        # 보완 3: 변동성 국면 보정
         vol_regime = self._detect_volatility_regime(historical_volatilities)
         vol_multiplier = self.VOL_REGIME_MULTIPLIER.get(vol_regime, 1.0)
         regime_adjusted = raw_adjustment * vol_multiplier
 
-        # 보완 4: 시장 반영도 보정 (Price Absorption Check)
+        # 보완 4: 시장 반영도 보정
         absorption_factor = self._calculate_absorption(recent_prices, regime_adjusted)
         news_adjustment = regime_adjusted * absorption_factor
 
-        # 4. 불확실성
+        # 4. 불확실성 — 상쇄율이 높으면 불확실성 증가
         uncertainty = self._calculate_uncertainty(deduped_articles, crude_type)
+        if gap_result["cancelled_ratio"] > 0.3:
+            uncertainty *= (1 + gap_result["cancelled_ratio"] * 0.5)
 
         return {
             "news_adjustment_pct": news_adjustment,
@@ -311,43 +435,45 @@ class NewsAdjuster:
             "vol_multiplier": vol_multiplier,
             "absorption_factor": absorption_factor,
             "dominant_category": self._get_dominant_category(deduped_articles, crude_type),
+            "market_gap_info": {
+                "gap_article_count": gap_result["gap_count"],
+                "bullish_count": gap_result["bullish_count"],
+                "bearish_count": gap_result["bearish_count"],
+                "net_score": gap_result["net_score"],
+                "cancelled_ratio": round(gap_result["cancelled_ratio"], 2),
+            },
         }
 
     # ──────────────────────────────────────────────
-    # 보완 1: 시간 감쇠 (Temporal Decay)
-    # 학술 근거: Exponential Decay — arXiv 2024, Duration-Aware Sentiment Analysis
+    # 보완 1: 시간 감쇠 (거래일 기반 Temporal Decay)
+    # 학술 근거: Exponential Decay + Trading Day Calendar
     # ──────────────────────────────────────────────
 
     def _temporal_decay_weight(self, article: Dict) -> float:
         """기사의 발행 시점에 따른 시간 감쇠 가중치 계산.
-        
-        w(t) = exp(-lambda * days_ago)
-        lambda = ln(2) / half_life
-        
-        카테고리별 반감기를 다르게 적용:
-        - 지정학적 이슈: 반감기 5일 (영향 오래 지속)
-        - 일반 수급 이슈: 반감기 2.5일 (빠르게 소화)
+
+        v3 개선: 달력일이 아닌 거래일(Trading Day) 기준으로 경과일을 계산.
+        주말/공휴일에 시장이 닫혀있는 시간은 경과일에서 제외되므로,
+        금요일 밤~일요일에 나온 기사도 월요일에 감쇠 없이 온전한 가중치를 유지.
         """
-        # 기사 발행일 파싱
         published_at = article.get("article", {}).get("published_at", "")
         if not published_at:
             published_at = article.get("published_at", "")
-        
+
         try:
             pub_date = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
-            days_ago = (datetime.now(timezone.utc) - pub_date).total_seconds() / 86400
+            now = datetime.now(timezone.utc)
+            trading_days_ago = self._count_trading_days(pub_date, now)
         except (ValueError, TypeError):
-            days_ago = 0  # 파싱 실패 시 오늘 기사로 취급
+            trading_days_ago = 0
 
-        days_ago = max(0, days_ago)
+        trading_days_ago = max(0, trading_days_ago)
 
-        # 카테고리에 따른 반감기 선택
         category = article.get("category", "default")
         half_life = self.DECAY_HALF_LIFE.get(category, self.DECAY_HALF_LIFE["default"])
 
-        # 지수 감쇠: w = exp(-ln(2)/half_life * days_ago)
         decay_lambda = np.log(2) / half_life
-        return float(np.exp(-decay_lambda * days_ago))
+        return float(np.exp(-decay_lambda * trading_days_ago))
 
     # ──────────────────────────────────────────────
     # 보완 2: 의미적 중복 제거 (Semantic Deduplication)
