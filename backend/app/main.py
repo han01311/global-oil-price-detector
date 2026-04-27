@@ -74,4 +74,5 @@ async def health_check():
         "version": settings.VERSION,
         "config_status": config_status,
         "scheduler_running": scheduler.is_running,
+        "database": "postgresql",
     }

@@ -11,11 +11,16 @@ class Settings(BaseSettings):
 
     # 프로젝트 기본 정보
     PROJECT_NAME: str = "Petro-AX"
-    VERSION: str = "0.1.0"
+    VERSION: str = "0.2.0"
     DEBUG: bool = True
     APP_ENV: str = "development"
     LOG_LEVEL: str = "INFO"
     DATA_CACHE_DIR: str = "data"
+
+    # PostgreSQL (primary)
+    DATABASE_URL: str = "postgresql+asyncpg://petroax:petroax_dev_2026@localhost:5432/petroax"
+
+    # Legacy — SQLite 경로 (마이그레이션 스크립트 전용)
     DATABASE_PATH: str = "data/petro_ax.db"
 
     # CORS
@@ -36,9 +41,6 @@ class Settings(BaseSettings):
     # 스케줄러
     SCHEDULER_ENABLED: bool = True
     COLLECTION_INTERVAL_HOURS: int = 6
-
-    # 데이터베이스 (추후 설정)
-    DATABASE_URL: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

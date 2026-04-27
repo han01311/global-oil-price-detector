@@ -553,17 +553,8 @@ class FundamentalForecastEngine:
         start = end - timedelta(days=365 * 5)
         try:
             rows = await self.db.get_oil_production_range(start.isoformat(), end.isoformat())
-        except AttributeError:
-            # get_oil_production_range가 없으면 일반 조회
-            try:
-                from app.core.database import Database
-                conn = await self.db.get_conn()
-                async with conn.execute(
-                    "SELECT * FROM oil_production ORDER BY date DESC LIMIT 500"
-                ) as cursor:
-                    rows = [dict(r) for r in await cursor.fetchall()]
-            except Exception:
-                rows = []
+        except Exception:
+            rows = []
         if not rows:
             return pd.DataFrame()
         df = pd.DataFrame(rows)

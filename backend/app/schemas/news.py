@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 Pydantic 스키마 for News Data
 """

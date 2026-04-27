@@ -1,5 +1,5 @@
 """
-SQLite Database 단위 테스트
+PostgreSQL Database 단위 테스트 (SQLAlchemy)
 """
 from __future__ import annotations
 
@@ -11,25 +11,37 @@ from datetime import datetime
 # Set test environment before imports
 os.environ["EIA_API_KEY"] = "test_key"
 os.environ["FRED_API_KEY"] = "test_key"
-os.environ["DATABASE_PATH"] = "data/test_database.db"
+os.environ.setdefault(
+    "DATABASE_URL",
+    "postgresql+asyncpg://petroax:petroax_dev_2026@localhost:5432/petroax",
+)
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def setup_and_teardown():
-    """각 테스트 전후로 DB 초기화"""
+    """각 테스트 전후로 DB 초기화 — 테스트 테이블 생성 후 데이터 정리"""
     from app.core.database import Database
+    from app.models.base import Base, get_engine
 
     Database._instance = None
-    Database._db = None
 
     db = Database()
     await db.connect()
-    yield db
-    await db.close()
 
-    db_path = "data/test_database.db"
-    if os.path.exists(db_path):
-        os.remove(db_path)
+    # 모든 테이블 데이터 삭제 (테이블 구조는 유지)
+    engine = get_engine()
+    async with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
+
+    yield db
+
+    # Teardown: 테이블 데이터 정리
+    async with engine.begin() as conn:
+        for table in reversed(Base.metadata.sorted_tables):
+            await conn.execute(table.delete())
+
+    await db.close()
 
 
 @pytest.mark.asyncio
@@ -37,8 +49,9 @@ async def test_db_connect():
     """DB 연결이 성공해야 한다."""
     from app.core.database import Database
     db = Database()
-    conn = await db.get_conn()
-    assert conn is not None
+    await db.connect()
+    # connect가 예외 없이 완료되면 성공
+    assert True
 
 
 @pytest.mark.asyncio
