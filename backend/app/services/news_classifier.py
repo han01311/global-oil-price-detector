@@ -24,7 +24,7 @@ class NewsClassifier:
 
     def __init__(self, ollama_url: str | None = None):
         self.ollama_url = (ollama_url or settings.LOCAL_LLM_URL).rstrip("/")
-        self.model_name = "gemma"
+        self.model_name = "gemma4:e4b"
         self.semaphore = asyncio.Semaphore(self.CONCURRENCY_LIMIT)
 
     def _build_classification_prompt(self, article_content: str) -> str:

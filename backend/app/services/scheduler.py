@@ -73,6 +73,7 @@ async def _log_collection(source: str, task_type: str, func, *args, **kwargs):
         logger.error(f"[Scheduler] {source}/{task_type}: {status} — {error_msg}")
 
     await db.insert_collection_log(log_entry)
+    return result if 'result' in locals() else None
 
 
 async def collect_opinet_prices():
@@ -128,13 +129,20 @@ async def collect_fred_macro():
 
 
 async def collect_all_news():
-    """뉴스 수집 (NewsAPI + GNews + GDELT)"""
+    """뉴스 수집 (NewsAPI + GNews + GDELT) 및 백그라운드 AI 분류"""
     from app.services.data_collector import DataCollector
+    from app.services.news_classifier import NewsClassifier
+    
     collector = DataCollector()
-    await _log_collection(
+    articles = await _log_collection(
         "news", "news",
         collector.collect_news,
     )
+    
+    # 수집 완료 후 백그라운드에서 AI 분류 진행
+    if articles:
+        classifier = NewsClassifier()
+        asyncio.create_task(classifier.classify_batch(articles))
 
 
 class CollectionScheduler:

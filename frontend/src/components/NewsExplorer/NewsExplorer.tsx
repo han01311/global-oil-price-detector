@@ -233,6 +233,17 @@ export const NewsExplorer: React.FC = () => {
           ))}
         </div>
         <div className="sort-and-filter">
+          <button 
+            className="crude-pill"
+            style={{ marginRight: '12px', background: 'var(--color-primary)', color: '#000', fontWeight: 'bold' }}
+            onClick={() => {
+              const d = new Date();
+              const todayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+              setSelectedDate(todayStr);
+            }}
+          >
+            오늘
+          </button>
           {selectedDate && (
             <div className="date-filter-indicator">
               <span className="date-filter-diamond">◆</span>
