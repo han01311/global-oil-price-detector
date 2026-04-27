@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
   ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis,
-  CartesianGrid, Tooltip, ReferenceDot,
+  CartesianGrid, Tooltip, Bar, LabelList
 } from 'recharts';
 import type { DotProps } from 'recharts';
 import { Card } from '../common/Card';
@@ -37,7 +37,11 @@ function aggregate(data: ChartDataPoint[], iv: Interval): ChartDataPoint[] {
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(d);
   }
-  return Array.from(groups.values()).map(pts => ({ ...pts[pts.length - 1] }));
+  return Array.from(groups.values()).map(pts => {
+    const last = pts[pts.length - 1];
+    const sumCount = pts.reduce((acc, curr) => acc + (curr.dbArticleCount || 0), 0);
+    return { ...last, dbArticleCount: sumCount || undefined };
+  });
 }
 
 function chg(curr: number | null | undefined, prev: number | null | undefined) {
@@ -62,34 +66,7 @@ const ChartTooltip: React.FC<any> = ({ active, payload, label }) => {
   );
 };
 
-/* ── Marker dots (Removed Text for Readability) ── */
-const NewsDot: React.FC<DotProps & { payload?: NewsMarker; onClick?: any; isHighlighted: boolean; isDimmed: boolean }> = (
-  { cx, cy, payload, onClick, isHighlighted, isDimmed }
-) => !payload ? null : (
-  <g><circle cx={cx} cy={cy} r={isHighlighted ? 8 : 4}
-    fill={getCategoryColor(payload.article.category)} stroke="var(--color-bg)" strokeWidth={1.5}
-    onClick={() => onClick?.(payload)}
-    style={{ cursor: 'pointer', opacity: isDimmed ? 0.3 : 1 }}
-  /></g>
-);
-
-const DBDot: React.FC<DotProps & { payload?: DBNewsMarker; onClick?: (m: DBNewsMarker) => void; selectedDate: string | null }> = (
-  { cx, cy, payload, onClick, selectedDate }
-) => {
-  if (!payload || !cx || !cy) return null;
-  const s = selectedDate === payload.date;
-  // Make size slightly vary by count, but remove the text to avoid clutter
-  const baseSize = payload.count > 5 ? 5 : 3; 
-  const sz = s ? 7 : baseSize;
-  return (
-    <g onClick={() => onClick?.(payload)} style={{ cursor: 'pointer' }}>
-      {s && <circle cx={cx} cy={cy} r={12} fill="none" stroke="rgba(255,159,107,.3)" strokeWidth={2} />}
-      <rect x={Number(cx)-sz} y={Number(cy)-sz} width={sz*2} height={sz*2} rx={1}
-        fill={s ? '#FF9F6B' : 'rgba(255,159,107,.75)'} stroke="var(--color-bg)" strokeWidth={1}
-        opacity={s?1:.7} transform={`rotate(45,${cx},${cy})`} />
-    </g>
-  );
-};
+/* ── Marker dots (NewsDot for single articles is kept if needed, but db counts are now bars) ── */
 
 export const PriceChart: React.FC = () => {
   const [interval, setIv] = useState<Interval>('day');
@@ -109,10 +86,10 @@ export const PriceChart: React.FC = () => {
   useEffect(() => {
     const n = aggData.length;
     if (n === 0) return;
-    if (interval === 'day' && n > 180) {
-      setXStart(n - 180);
-    } else if (interval === 'week' && n > 104) {
-      setXStart(n - 104);
+    
+    // 일/주/월 클릭 시 최신 100개의 데이터를 기본으로 보여줌 (년은 100개가 안 되므로 전체 표시)
+    if (n > 100) {
+      setXStart(n - 100);
     } else {
       setXStart(0);
     }
@@ -138,8 +115,11 @@ export const PriceChart: React.FC = () => {
     return { mn: visibleData[0].timestamp, mx: visibleData[visibleData.length - 1].timestamp };
   }, [visibleData]);
   
-  const vNews = useMemo(() => newsMarkers.filter(m => m.timestamp >= tsR.mn && m.timestamp <= tsR.mx), [newsMarkers, tsR]);
-  const vDB = useMemo(() => dbNewsMarkers.filter(m => m.timestamp >= tsR.mn && m.timestamp <= tsR.mx), [dbNewsMarkers, tsR]);
+  const maxNewsCount = useMemo(() => {
+    let m = 0;
+    for (const d of visibleData) { if (d.dbArticleCount && d.dbArticleCount > m) m = d.dbArticleCount; }
+    return m || 10;
+  }, [visibleData]);
   const isZoomed = xStart > 0 || xEnd < aggData.length - 1;
 
   const priceInfo = useMemo(() => {
@@ -148,33 +128,75 @@ export const PriceChart: React.FC = () => {
     return { wti: { v: l.wti, c: chg(l.wti, p.wti) }, brent: { v: l.brent, c: chg(l.brent, p.brent) }, dubai: { v: l.dubai, c: chg(l.dubai, p.dubai) } };
   }, [chartData]);
 
-  // ── Mouse Wheel Zoom ──
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    // Stop scrolling the page if we are zooming the chart
-    if (e.deltaY !== 0) {
-      const { s, e: xe, len } = sr.current;
-      if (len === 0) return;
-      const rect = e.currentTarget.getBoundingClientRect();
-      const rel = Math.max(0, Math.min(1, (e.clientX - rect.left - 10) / (rect.width - 60)));
-      const cur = xe - s, f = e.deltaY > 0 ? 1.15 : 0.87;
-      const nr = Math.max(3, Math.min(len - 1, Math.round(cur * f)));
-      const c = s + rel * cur;
-      let ns = Math.round(c - rel * nr), ne = ns + nr;
-      if (ns < 0) { ne -= ns; ns = 0; }
-      if (ne >= len) { ns -= ne - len + 1; ne = len - 1; }
-      setXStart(Math.max(0, ns));
-      setXEnd(ne);
-    }
-  }, []);
-
-  // Use a passive=false event listener for wheel to allow preventDefault
+  // ── Mouse Wheel Zoom (Native Event for e.preventDefault) ──
   useEffect(() => {
     const el = chartRef.current;
     if (!el) return;
-    const preventScroll = (e: WheelEvent) => e.preventDefault();
-    el.addEventListener('wheel', preventScroll, { passive: false });
-    return () => el.removeEventListener('wheel', preventScroll);
-  }, []);
+    
+    let panAcc = 0;
+
+    const handleWheelNative = (e: WheelEvent) => {
+      e.preventDefault(); // 페이지 스크롤 완벽 차단
+      e.stopPropagation();
+      
+      const { s, e: xe, len } = sr.current;
+      if (len === 0) return;
+
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+        // 트랙패드 가로 스크롤 (패닝)
+        const w = el.getBoundingClientRect().width;
+        const rng = xe - s;
+        
+        panAcc += e.deltaX;
+        const shift = Math.round((panAcc / w) * rng * 1.5);
+        
+        if (shift !== 0) {
+          panAcc -= (shift / (rng * 1.5)) * w; // 이동한 만큼 픽셀 소모
+          
+          let ns = s + shift, ne = xe + shift;
+          if (ns < 0) { ne -= ns; ns = 0; }
+          if (ne >= len) { ns -= ne - len + 1; ne = len - 1; }
+          
+          if (ns !== s || ne !== xe) {
+            sr.current.s = Math.max(0, ns);
+            sr.current.e = ne;
+            setXStart(sr.current.s);
+            setXEnd(sr.current.e);
+          }
+        }
+      } else if (e.deltaY !== 0) {
+        // 기존 마우스 휠 세로 스크롤 (줌인/줌아웃)
+        const rect = el.getBoundingClientRect();
+        const rel = Math.max(0, Math.min(1, (e.clientX - rect.left - 10) / (rect.width - 60)));
+        const cur = xe - s;
+        
+        const zoomSensitivity = 0.003;
+        const f = Math.exp(Math.abs(e.deltaY) * zoomSensitivity);
+        
+        let nr = e.deltaY > 0 ? Math.round(cur * f) : Math.round(cur / f);
+        
+        if (e.deltaY > 0 && nr <= cur) nr = cur + 1; 
+        if (e.deltaY < 0 && nr >= cur) nr = cur - 1;
+        
+        nr = Math.max(5, Math.min(len - 1, nr));
+        const c = s + rel * cur;
+        let ns = Math.round(c - rel * nr), ne = ns + nr;
+        
+        if (ns < 0) { ne -= ns; ns = 0; }
+        if (ne >= len) { ns -= ne - len + 1; ne = len - 1; }
+        
+        if (ns !== s || ne !== xe) {
+          sr.current.s = Math.max(0, ns);
+          sr.current.e = ne;
+          setXStart(sr.current.s);
+          setXEnd(sr.current.e);
+        }
+      }
+    };
+    
+    el.addEventListener('wheel', handleWheelNative, { passive: false });
+    return () => el.removeEventListener('wheel', handleWheelNative);
+  }, [loading]);
 
   // ── Drag Pan ──
   const dragState = useRef({ isDragging: false, startX: 0, s: 0, e: 0 });
@@ -183,7 +205,6 @@ export const PriceChart: React.FC = () => {
   const handlePointerDown = (e: React.PointerEvent) => {
     dragState.current = { isDragging: true, startX: e.clientX, s: sr.current.s, e: sr.current.e };
     setIsDragging(true);
-    e.currentTarget.setPointerCapture(e.pointerId);
   };
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragState.current.isDragging) return;
@@ -201,7 +222,6 @@ export const PriceChart: React.FC = () => {
   const handlePointerUp = (e: React.PointerEvent) => {
     dragState.current.isDragging = false;
     setIsDragging(false);
-    e.currentTarget.releasePointerCapture(e.pointerId);
   };
 
   const resetZoom = useCallback(() => { setXStart(0); setXEnd(aggData.length - 1); }, [aggData.length]);
@@ -231,7 +251,6 @@ export const PriceChart: React.FC = () => {
         className="chart-container" 
         ref={chartRef} 
         style={{ cursor: isDragging ? 'grabbing' : 'crosshair' }}
-        onWheel={handleWheel}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -244,29 +263,54 @@ export const PriceChart: React.FC = () => {
                 <linearGradient id="fc-bull" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bull)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--color-bull)" stopOpacity={0}/></linearGradient>
                 <linearGradient id="fc-bear" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bear)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--color-bear)" stopOpacity={0}/></linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+              <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
               <XAxis dataKey="timestamp" stroke="var(--color-text-muted)" fontSize={11} axisLine={false} tickLine={false} dy={15} minTickGap={50}
-                tickFormatter={(t) => {
+                tickFormatter={(t, index) => {
                   const d = new Date(t);
-                  if (interval === 'year') return d.getFullYear().toString();
-                  if (interval === 'month') return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}`;
-                  return d.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+                  const y = d.getFullYear();
+                  const m = d.getMonth() + 1;
+                  const day = d.getDate();
+                  
+                  if (interval === 'year') return y.toString();
+                  
+                  const spanDays = (tsR.mx - tsR.mn) / (1000 * 60 * 60 * 24);
+                  
+                  // 1. 아주 넓은 범위 (5년 이상) -> 1월이면 연도, 아니면 YYYY.MM
+                  if (spanDays > 365 * 5) {
+                    return m === 1 ? y.toString() : `${y}.${String(m).padStart(2, '0')}`;
+                  }
+                  
+                  // 2. 중간 범위 (1년 ~ 5년) -> 1월 눈금이 스킵되더라도 연도를 알 수 있도록 모든 틱에 연도 포함
+                  if (spanDays >= 365) {
+                    return `${y}.${String(m).padStart(2, '0')}`;
+                  }
+                  
+                  // 3. 좁은 범위 (1년 미만)
+                  if (interval === 'day' && spanDays < 90) {
+                    // 첫 번째 눈금이거나 연초인 경우 연도 포함
+                    if (index === 0 || (m === 1 && day <= 15)) return `${y}.${String(m).padStart(2, '0')}.${String(day).padStart(2, '0')}`;
+                    return `${m}.${day}`;
+                  }
+                  
+                  // 그 외 (1년 미만의 주/월 단위)
+                  if (index === 0 || m === 1) return `${y}년 ${m}월`;
+                  return `${m}월`;
                 }}
               />
-              <YAxis orientation="right" domain={yDomain} stroke="var(--color-text-muted)" fontSize={11} axisLine={false} tickLine={false} dx={5}
+              <YAxis yAxisId="0" orientation="right" domain={yDomain} stroke="var(--color-text-muted)" fontSize={11} axisLine={false} tickLine={false} dx={5}
                 tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
               />
+              <YAxis yAxisId="news" orientation="left" domain={[0, maxNewsCount * 4]} hide />
+              
               <Tooltip content={<ChartTooltip />} isAnimationActive={false} />
-              <Line type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
-              <Line type="monotone" dataKey="wti" stroke="#34C759" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
-              <Line type="monotone" dataKey="brent" stroke="#FF9F0A" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
-              <Line type="monotone" dataKey="forecastLine" stroke={upT ? 'var(--color-bull)' : 'var(--color-bear)'} strokeWidth={2} strokeDasharray="5 5" dot={false} />
-              <Area type="monotone" dataKey="forecastBand" fill={`url(#${upT?'fc-bull':'fc-bear'})`} stroke="none" />
-
-              {interval === 'day' && vDB.map((m, i) => (
-                <ReferenceDot key={`d${i}`} x={m.timestamp} y={m.value} ifOverflow="extendDomain"
-                  shape={<DBDot payload={m} onClick={() => {}} selectedDate={selectedDate} />} />
-              ))}
+              <Bar yAxisId="news" dataKey="dbArticleCount" fill="rgba(255,159,107,0.4)" isAnimationActive={false} maxBarSize={20}>
+                {interval !== 'day' && visibleData.length <= 75 && <LabelList dataKey="dbArticleCount" position="top" fill="rgba(255,159,107,0.9)" fontSize={10} fontWeight={700} offset={2} />}
+              </Bar>
+              <Line yAxisId="0" type="monotone" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+              <Line yAxisId="0" type="monotone" dataKey="wti" stroke="#34C759" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} />
+              <Line yAxisId="0" type="monotone" dataKey="brent" stroke="#FF9F0A" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} />
+              <Line yAxisId="0" type="monotone" dataKey="forecastLine" stroke={upT ? 'var(--color-bull)' : 'var(--color-bear)'} strokeWidth={2} strokeDasharray="5 5" dot={false} />
+              <Area yAxisId="0" type="monotone" dataKey="forecastBand" fill={`url(#${upT?'fc-bull':'fc-bear'})`} stroke="none" />
             </ComposedChart>
           </ResponsiveContainer>
         </div>
@@ -301,7 +345,7 @@ export const PriceChart: React.FC = () => {
         </div>
         <div className="controls-right">
           {isZoomed && <button className="zoom-reset-btn" onClick={resetZoom}>⟲ 전체보기</button>}
-          {vDB.length > 0 && <div className="chart-legend-hint"><span className="legend-diamond">◆</span> 기사 보유 날짜</div>}
+          <div className="chart-legend-hint"><span className="legend-diamond" style={{color:'rgba(255,159,107,0.8)'}}>■</span> 기사 건수</div>
         </div>
       </div>
 
