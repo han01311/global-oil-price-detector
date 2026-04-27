@@ -113,3 +113,52 @@ export async function fetchSchedulerStatus(): Promise<SchedulerStatus> {
 export async function toggleScheduler(): Promise<SchedulerStatus> {
   return apiFetch('/api/admin/scheduler/toggle', { method: 'POST' });
 }
+
+// --- Crawl Control ---
+export async function startCrawl(target: number, startYear?: number): Promise<{ status: string; message: string }> {
+  const params = new URLSearchParams();
+  params.set('target', String(target));
+  if (startYear) params.set('start_year', String(startYear));
+  return apiFetch(`/api/admin/crawl/start?${params.toString()}`, { method: 'POST' });
+}
+
+export async function stopCrawl(): Promise<{ status: string; message: string }> {
+  return apiFetch('/api/admin/crawl/stop', { method: 'POST' });
+}
+
+export interface CrawlStatus {
+  is_running: boolean;
+  started_at: string | null;
+  target: number;
+  collected: number;
+  current_year: number | null;
+  recent_logs: string[];
+}
+
+export async function fetchCrawlStatus(): Promise<CrawlStatus> {
+  return apiFetch('/api/admin/crawl/status');
+}
+
+export interface SourceStat {
+  data_source: string;
+  count: number;
+  oldest_date: string | null;
+  newest_date: string | null;
+  source_count: number;
+}
+
+export interface YearlyStat {
+  year: string;
+  data_source: string;
+  count: number;
+}
+
+export interface CrawlStats {
+  total_count: number;
+  by_source: SourceStat[];
+  by_year: YearlyStat[];
+}
+
+export async function fetchCrawlStats(): Promise<CrawlStats> {
+  return apiFetch('/api/admin/crawl/stats');
+}

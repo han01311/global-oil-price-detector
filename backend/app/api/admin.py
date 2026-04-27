@@ -169,3 +169,135 @@ async def toggle_scheduler() -> SchedulerStatus:
         await scheduler.start()
     status = scheduler.get_status()
     return SchedulerStatus(**status)
+
+
+# ──────────────────────────────────────────────
+# Crawl Control (History Crawl)
+# ──────────────────────────────────────────────
+
+import asyncio
+import subprocess
+import signal
+import sys
+import os
+
+# 크롤링 프로세스 상태를 메모리에 관리
+_crawl_state = {
+    "is_running": False,
+    "process": None,
+    "output_lines": [],
+    "started_at": None,
+    "target": 0,
+    "current_year": None,
+    "collected": 0,
+}
+
+
+@router.post("/crawl/start")
+async def start_crawl(target: int = 2000, start_year: int | None = None):
+    """과거 기사 크롤링 시작"""
+    global _crawl_state
+    if _crawl_state["is_running"]:
+        return {"status": "already_running", "message": "크롤러가 이미 실행 중입니다."}
+
+    # 상태 파일 초기화 (새로 시작 시)
+    state_file = os.path.join(os.path.dirname(__file__), "..", "..", "data", "history_crawl_state.json")
+    
+    script_path = os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "crawl_history.py")
+    cmd = [sys.executable, script_path, "--target", str(target)]
+    if start_year:
+        cmd.extend(["--start", str(start_year)])
+
+    import threading
+    from datetime import datetime
+
+    _crawl_state["is_running"] = True
+    _crawl_state["output_lines"] = []
+    _crawl_state["started_at"] = datetime.utcnow().isoformat()
+    _crawl_state["target"] = target
+    _crawl_state["collected"] = 0
+    _crawl_state["current_year"] = start_year or 2000
+    
+    def run_crawl():
+        global _crawl_state
+        import re
+        try:
+            proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True,
+                cwd=os.path.join(os.path.dirname(__file__), "..", ".."),
+            )
+            _crawl_state["process"] = proc
+            
+            for line in iter(proc.stdout.readline, ''):
+                line = line.strip()
+                if line:
+                    _crawl_state["output_lines"].append(line)
+                    # 최근 50줄만 유지
+                    if len(_crawl_state["output_lines"]) > 50:
+                        _crawl_state["output_lines"] = _crawl_state["output_lines"][-50:]
+                    
+                    # 진행 상황 파싱: "📰 2005년: 10건 수집 완료 (누적 58/50)"
+                    year_match = re.search(r'📰\s*(\d{4})년.*누적\s*(\d+)', line)
+                    if year_match:
+                        _crawl_state["current_year"] = int(year_match.group(1))
+                        _crawl_state["collected"] = int(year_match.group(2))
+            
+            proc.wait()
+        except Exception as e:
+            _crawl_state["output_lines"].append(f"ERROR: {str(e)}")
+        finally:
+            _crawl_state["is_running"] = False
+            _crawl_state["process"] = None
+    
+    thread = threading.Thread(target=run_crawl, daemon=True)
+    thread.start()
+
+    return {"status": "started", "message": f"크롤링 시작됨 (목표: {target}건)"}
+
+
+@router.post("/crawl/stop")
+async def stop_crawl():
+    """크롤링 중지"""
+    global _crawl_state
+    proc = _crawl_state.get("process")
+    if proc and _crawl_state["is_running"]:
+        try:
+            proc.terminate()
+            proc.wait(timeout=5)
+        except Exception:
+            proc.kill()
+        _crawl_state["is_running"] = False
+        _crawl_state["process"] = None
+        return {"status": "stopped", "message": "크롤링이 중지되었습니다."}
+    return {"status": "not_running", "message": "실행 중인 크롤러가 없습니다."}
+
+
+@router.get("/crawl/status")
+async def get_crawl_status():
+    """크롤링 진행 상황"""
+    return {
+        "is_running": _crawl_state["is_running"],
+        "started_at": _crawl_state.get("started_at"),
+        "target": _crawl_state.get("target", 0),
+        "collected": _crawl_state.get("collected", 0),
+        "current_year": _crawl_state.get("current_year"),
+        "recent_logs": _crawl_state.get("output_lines", [])[-15:],
+    }
+
+
+@router.get("/crawl/stats")
+async def get_crawl_stats():
+    """수집된 뉴스 데이터 통계"""
+    db = Database()
+    source_stats = await db.get_news_source_stats()
+    yearly_stats = await db.get_news_yearly_stats()
+    total_count = await db.get_news_articles_count()
+    return {
+        "total_count": total_count,
+        "by_source": source_stats,
+        "by_year": yearly_stats,
+    }
+

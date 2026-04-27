@@ -363,6 +363,41 @@ class Database:
             row = await cursor.fetchone()
         return row["cnt"] if row else 0
 
+    async def get_news_source_stats(self) -> list[dict]:
+        """뉴스 기사 소스별 통계 (건수, 최초/최근 수집일)"""
+        conn = await self.get_conn()
+        query = """
+            SELECT 
+                data_source,
+                COUNT(*) as count,
+                MIN(published_at) as oldest_date,
+                MAX(published_at) as newest_date,
+                COUNT(DISTINCT source_name) as source_count
+            FROM news_articles
+            GROUP BY data_source
+            ORDER BY count DESC
+        """
+        async with conn.execute(query) as cursor:
+            rows = await cursor.fetchall()
+        return [dict(r) for r in rows]
+
+    async def get_news_yearly_stats(self) -> list[dict]:
+        """뉴스 기사 연도별 통계"""
+        conn = await self.get_conn()
+        query = """
+            SELECT 
+                SUBSTR(published_at, 1, 4) as year,
+                data_source,
+                COUNT(*) as count
+            FROM news_articles
+            WHERE published_at IS NOT NULL
+            GROUP BY year, data_source
+            ORDER BY year ASC
+        """
+        async with conn.execute(query) as cursor:
+            rows = await cursor.fetchall()
+        return [dict(r) for r in rows]
+
     # ──────────────────────────────────────────────
     # 수집 로그 CRUD
     # ──────────────────────────────────────────────

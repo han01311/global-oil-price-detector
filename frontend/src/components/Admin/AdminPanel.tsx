@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   fetchAdminOverview,
@@ -11,6 +11,10 @@ import {
   fetchAdminMacro,
   fetchAdminNews,
   fetchAdminInventory,
+  startCrawl,
+  stopCrawl,
+  fetchCrawlStatus,
+  fetchCrawlStats,
 } from '../../services/adminApi';
 import type {
   OverviewResponse,
@@ -19,9 +23,10 @@ import type {
   SchedulerStatus,
   PaginatedDataResponse,
 } from '../../types/admin';
+import type { CrawlStatus, CrawlStats } from '../../services/adminApi';
 import './AdminPanel.css';
 
-type TabId = 'overview' | 'logs' | 'data' | 'trigger';
+type TabId = 'overview' | 'logs' | 'data' | 'trigger' | 'crawl';
 type DataTab = 'prices' | 'macro' | 'news' | 'inventory';
 
 // ═══════════════════════════════════════════════
@@ -437,7 +442,7 @@ const TriggerSection: React.FC = () => {
     { id: 'eia_inventory', label: 'EIA Inventory', desc: '미국 원유 재고' },
     { id: 'eia_production', label: 'EIA Production', desc: '미국 원유 생산량' },
     { id: 'fred_macro', label: 'FRED Macro', desc: '금리, 달러 인덱스' },
-    { id: 'news', label: 'All News', desc: 'NewsAPI + GNews + GDELT' },
+    { id: 'news', label: 'All News', desc: 'NYT + Guardian' },
   ];
 
   const handleTrigger = async (source: string) => {
@@ -475,6 +480,252 @@ const TriggerSection: React.FC = () => {
 };
 
 // ═══════════════════════════════════════════════
+// Crawl Center Section
+// ═══════════════════════════════════════════════
+
+const CrawlCenterSection: React.FC = () => {
+  const [status, setStatus] = useState<CrawlStatus | null>(null);
+  const [stats, setStats] = useState<CrawlStats | null>(null);
+  const [target, setTarget] = useState(2000);
+  const [startYear, setStartYear] = useState(2000);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const logEndRef = useRef<HTMLDivElement>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadAll = useCallback(async () => {
+    try {
+      const [s, st] = await Promise.all([fetchCrawlStatus(), fetchCrawlStats()]);
+      setStatus(s);
+      setStats(st);
+    } catch (e) {
+      console.error('Failed to load crawl data:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadAll();
+  }, [loadAll]);
+
+  // 크롤링 중이면 2초마다 상태 폴링
+  useEffect(() => {
+    if (status?.is_running) {
+      pollRef.current = setInterval(async () => {
+        try {
+          const [s, st] = await Promise.all([fetchCrawlStatus(), fetchCrawlStats()]);
+          setStatus(s);
+          setStats(st);
+        } catch { /* silent */ }
+      }, 2000);
+    } else {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [status?.is_running]);
+
+  // 로그 자동 스크롤
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [status?.recent_logs]);
+
+  const handleStart = async () => {
+    setActionLoading(true);
+    setMessage('');
+    try {
+      const result = await startCrawl(target, startYear);
+      setMessage(result.message);
+      await loadAll();
+    } catch (e) {
+      setMessage(`오류: ${e}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleStop = async () => {
+    setActionLoading(true);
+    setMessage('');
+    try {
+      const result = await stopCrawl();
+      setMessage(result.message);
+      await loadAll();
+    } catch (e) {
+      setMessage(`오류: ${e}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="overview-grid">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="overview-card">
+            <div className="admin-skeleton" style={{ width: '60%', height: 14, marginBottom: 10 }} />
+            <div className="admin-skeleton" style={{ width: '40%', height: 32 }} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  const progressPct = status?.target ? Math.min((status.collected / status.target) * 100, 100) : 0;
+
+  // 연도별 데이터를 바 차트용으로 가공
+  const yearlyGroups: Record<string, Record<string, number>> = {};
+  stats?.by_year?.forEach(({ year, data_source, count }) => {
+    if (!yearlyGroups[year]) yearlyGroups[year] = {};
+    yearlyGroups[year][data_source] = count;
+  });
+  const maxYearlyCount = Math.max(1, ...Object.values(yearlyGroups).map(g => Object.values(g).reduce((a, b) => a + b, 0)));
+
+  return (
+    <>
+      {/* 크롤링 제어판 */}
+      <div className="crawl-control-panel">
+        <div className="crawl-control-header">
+          <div className="crawl-status-indicator">
+            <div className={`scheduler-status-dot ${status?.is_running ? 'running' : 'stopped'}`} />
+            <span className="crawl-status-text">
+              {status?.is_running ? `크롤링 진행 중 — ${status.current_year}년 수집 중` : '대기 중'}
+            </span>
+          </div>
+          {message && <span className="crawl-message">{message}</span>}
+        </div>
+
+        <div className="crawl-controls">
+          <div className="crawl-input-group">
+            <label>목표 건수</label>
+            <input
+              type="number"
+              className="filter-input"
+              value={target}
+              onChange={(e) => setTarget(Number(e.target.value))}
+              disabled={status?.is_running}
+              min={100}
+              max={10000}
+              step={100}
+            />
+          </div>
+          <div className="crawl-input-group">
+            <label>시작 연도</label>
+            <input
+              type="number"
+              className="filter-input"
+              value={startYear}
+              onChange={(e) => setStartYear(Number(e.target.value))}
+              disabled={status?.is_running}
+              min={2000}
+              max={2026}
+            />
+          </div>
+          <div className="crawl-buttons">
+            {status?.is_running ? (
+              <button className="crawl-stop-btn" onClick={handleStop} disabled={actionLoading}>
+                ⏹ 크롤링 중지
+              </button>
+            ) : (
+              <button className="crawl-start-btn" onClick={handleStart} disabled={actionLoading}>
+                🚀 크롤링 시작
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* 진행률 바 */}
+        {(status?.is_running || status?.collected! > 0) && (
+          <div className="crawl-progress">
+            <div className="crawl-progress-header">
+              <span>{status?.collected?.toLocaleString()} / {status?.target?.toLocaleString()} 건</span>
+              <span>{progressPct.toFixed(1)}%</span>
+            </div>
+            <div className="rate-limit-bar" style={{ height: 8 }}>
+              <div
+                className="rate-limit-fill safe"
+                style={{ width: `${progressPct}%`, transition: 'width 0.5s ease' }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 소스별 통계 카드 */}
+      <h3 className="section-title">소스별 수집 현황</h3>
+      <div className="overview-grid">
+        <div className="overview-card">
+          <div className="overview-card-label">TOTAL ARTICLES</div>
+          <div className="overview-card-value">{stats?.total_count?.toLocaleString() ?? 0}</div>
+          <div className="overview-card-meta">전체 수집된 뉴스 기사</div>
+        </div>
+        {stats?.by_source?.map((s) => (
+          <div className="overview-card" key={s.data_source}>
+            <div className="overview-card-label">
+              <SourceTag source={s.data_source} />
+            </div>
+            <div className="overview-card-value">{s.count.toLocaleString()}</div>
+            <div className="overview-card-meta">
+              {s.oldest_date?.slice(0, 10)} ~ {s.newest_date?.slice(0, 10)}
+              {' · '}{s.source_count} sources
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* 연도별 분포 바 차트 */}
+      <h3 className="section-title">연도별 수집 분포</h3>
+      <div className="crawl-yearly-chart">
+        {Object.entries(yearlyGroups).map(([year, sources]) => {
+          const total = Object.values(sources).reduce((a, b) => a + b, 0);
+          return (
+            <div className="crawl-year-row" key={year}>
+              <span className="crawl-year-label">{year}</span>
+              <div className="crawl-year-bar-container">
+                {Object.entries(sources).map(([src, cnt]) => (
+                  <div
+                    key={src}
+                    className={`crawl-year-bar-segment source-${src}`}
+                    style={{ width: `${(cnt / maxYearlyCount) * 100}%` }}
+                    title={`${src}: ${cnt}건`}
+                  />
+                ))}
+              </div>
+              <span className="crawl-year-count">{total}</span>
+            </div>
+          );
+        })}
+        {Object.keys(yearlyGroups).length === 0 && (
+          <div className="admin-empty">
+            <div className="admin-empty-icon">📊</div>
+            <div className="admin-empty-text">아직 수집된 데이터가 없습니다</div>
+          </div>
+        )}
+      </div>
+
+      {/* 실시간 로그 */}
+      {status?.recent_logs && status.recent_logs.length > 0 && (
+        <>
+          <h3 className="section-title">실시간 로그</h3>
+          <div className="crawl-log-panel">
+            {status.recent_logs.map((line, i) => (
+              <div key={i} className="crawl-log-line">{line}</div>
+            ))}
+            <div ref={logEndRef} />
+          </div>
+        </>
+      )}
+    </>
+  );
+};
+
+// ═══════════════════════════════════════════════
 // Main Admin Panel
 // ═══════════════════════════════════════════════
 
@@ -483,6 +734,7 @@ export const AdminPanel: React.FC = () => {
 
   const tabs: { id: TabId; label: string; icon: string }[] = [
     { id: 'overview', label: 'Overview', icon: '📊' },
+    { id: 'crawl', label: 'Crawl Center', icon: '🕷' },
     { id: 'logs', label: 'Collection Logs', icon: '📋' },
     { id: 'data', label: 'Data Explorer', icon: '🗃' },
     { id: 'trigger', label: 'Manual Trigger', icon: '⚡' },
@@ -512,6 +764,7 @@ export const AdminPanel: React.FC = () => {
       </div>
 
       {activeTab === 'overview' && <OverviewSection />}
+      {activeTab === 'crawl' && <CrawlCenterSection />}
       {activeTab === 'logs' && <LogsSection />}
       {activeTab === 'data' && <DataExplorerSection />}
       {activeTab === 'trigger' && <TriggerSection />}
