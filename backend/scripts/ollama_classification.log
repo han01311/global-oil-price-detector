@@ -39,3 +39,137 @@ INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 
 INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
 INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
 INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+Found 580 unclassified articles in DB.
+[1/580] Classifying: [시사스페셜] 트럼프 만찬장 총격…용의자는 누구?
+  -> Success: 제공된 기사는 석유 시장이나 글로벌 
+[2/580] Classifying: US president cancels envoy trip to Pakistan for ce
+  -> Failed: 
+[3/580] Classifying: '바다연금' 우홍섭 vs '전복산업 혁신' 김신…완도군수 예측불허 승부
+  -> Failed: 
+[4/580] Classifying: Ed Miliband's puffin 'killing fields': How the wor
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[5/580] Classifying: Have you heard? YouTube mogs Clavicular, iGumdrop 
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[6/580] Classifying: Beloved teacher killed as she slept, daughter stab
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...동기 불명 (경찰)'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...동기 불명 (경찰)'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...동기 불명 (경찰)'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[7/580] Classifying: Best players available after Round 1
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[8/580] Classifying: Geecee Ventures Acquires 2,75,000 Vedanta Shares f
+  -> Success: 지에씨벤처스, 베단타 주식 27만 5천 주를 19억 7천만 루피에 매입
+[9/580] Classifying: Heidmar Maritime Holdings Corp. Announces Receipt 
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[10/580] Classifying: Cotton Pulling Back Early on Friday
+  -> Success: 금요일에 면화 가격이 급락하며 출발했습니다
+[11/580] Classifying: Tokyo workers encouraged to wear shorts to cut ene
+  -> Success: 도쿄 근로자들에게 에너지 비용 절감 및 더위를 식히기 위해 반바지를 입으도록 장려
+[12/580] Classifying: Gold Tanks ₹1,011 To ₹1,50,750, Silver Down Nearly
+  -> Success: 유가 급등 및 인플레이션 우려로 금 1,011루피에서 1,50,750루피로, 은는 거의 1% 하락
+[13/580] Classifying: Val Dancer wins Welsh Grand National: horse racing
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[14/580] Classifying: Cost of average UK Christmas dinner rises by 6.5%,
+  -> Success: 평균 영국 크리스마스 만찬 비용 6.5% 상승, 칸타 보고서; 애쉬티드, 미국 상장으로 이전 결정
+[15/580] Classifying: Test
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[16/580] Classifying: Soft plastic, not fantastic: what to do with Austr
+  -> Success: 멋진 건 아니지만: 호주 봉투와 과자 봉지를 어떻게 할 것인가
+[17/580] Classifying: Gas Prices in U.S. Rise for a Second Week After Re
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i... 2주 연속 상승세'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i... 2주 연속 상승세'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i... 2주 연속 상승세'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[18/580] Classifying: FTSE 100 hits 22-month high as shares recover Covi
+  -> Success: FTSE 100, 코로나 위기 손실 회복하며 22개월 만 고점 기록
+[19/580] Classifying: FTSE 100 hits nine-month high amid Brexit deal rel
+  -> Success: 브렉시트 합의 완화와 백신 기대감 속 FTSE 100, 9개월 만 고점 기록
+[20/580] Classifying: Guardian style guide: O
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[21/580] Classifying: As oil prices languish, Alberta sees its future in
+  -> Success: 유가가 부진한 가운데, 앨버타가 '석탄 붐'의 미래를 찾다
+[22/580] Classifying: Australia news live: drug decriminalisation bill t
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[23/580] Classifying: David Bellamy: farewell to the man who could have 
+  -> Success: 데이비드 벨라미: 애튼버러의 왕좌를 빼앗을 수 있었던 그 남가 지도에서 작별하며
+[24/580] Classifying: Paul Volcker, US Fed chief under Carter and Reagan
+  -> Success: 폴 벌커, 카터 대통령과 레이건 대통령 재임 시 연준 의장이었던 인물이 92세로 별세
+[25/580] Classifying: Tullow Oil shares dive as chief is ousted amid pro
+  -> Success: 가나발 에너지가 배당금 축소 발표 후 주가 폭락에 빠지다
+[26/580] Classifying: 2018 highs and lows: five markets that have surged
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[27/580] Classifying: From 'rice bunny' to 'back up the car': China's ye
+  -> Success: ‘쌀 토끼’에서 ‘차 뒤쪽 지원’으로: 중국의 검열의 해
+[28/580] Classifying: Toxic mud swamps fortunes of Niger Delta women yea
+  -> Success: 기름 유출 사고 이후 수년이 지난 나이지리아 델타 지역의 여성들, 독성 진흙이 그들의 운명을 위협하다
+[29/580] Classifying: Revealed: FBI kept files on peaceful climate chang
+  -> Success: 공개된 정보: FBI가 평화적인 기후 변화 시위자들의 파일을 보관해 왔다
+[30/580] Classifying: Monday briefing: Maybe give today a miss
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[31/580] Classifying: Drivers Head Into Summer With a Gift at the Gas Pu
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"

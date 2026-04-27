@@ -26,13 +26,14 @@ async def main():
         result = memory._collection.get(include=["metadatas", "documents"])
         ids = result.get("ids", [])
         metadatas = result.get("metadatas", [])
+        documents = result.get("documents", [])
         
         print(f"Found {len(ids)} items in ChromaDB.")
         
         updated_count = 0
         
         async with SessionLocal() as db:
-            for article_id, metadata in zip(ids, metadatas):
+            for article_id, metadata, document in zip(ids, metadatas, documents):
                 impact_by_crude = {}
                 for crude in ["dubai", "brent", "wti"]:
                     impact_by_crude[crude] = {
@@ -41,9 +42,14 @@ async def main():
                         "rationale": ""
                     }
                 
+                summary = ""
+                for line in (document or "").splitlines():
+                    if line.startswith("Summary: "):
+                        summary = line.replace("Summary: ", "", 1)
+                
                 classification_json = {
                     "translated_title": metadata.get("translated_title"),
-                    "impact_summary": "",
+                    "impact_summary": summary,
                     "impact_score": metadata.get("impact_score", 0),
                     "confidence": 1.0,
                     "is_relevant": True,

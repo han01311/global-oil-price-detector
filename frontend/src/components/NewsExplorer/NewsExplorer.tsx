@@ -45,19 +45,21 @@ export const NewsExplorer: React.FC = () => {
     }
   }, [selectedDate]);
 
+  const targetArticles = selectedDate ? dbArticles : articles;
+
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: articles.length };
+    const counts: Record<string, number> = { All: targetArticles.length };
     CATEGORIES.slice(1).forEach(cat => {
-      counts[cat] = articles.filter(a => a.category === cat).length;
+      counts[cat] = targetArticles.filter(a => a.category === cat).length;
     });
     return counts;
-  }, [articles]);
+  }, [targetArticles]);
 
   const filteredAndSortedArticles = useMemo(() => {
-    let filtered = articles;
+    let filtered = targetArticles;
 
     if (activeCategory !== 'All') {
-      filtered = articles.filter(a => a.category === activeCategory);
+      filtered = targetArticles.filter(a => a.category === activeCategory);
     }
     
     if (activeCrudeType !== 'All') {
@@ -82,56 +84,29 @@ export const NewsExplorer: React.FC = () => {
       }
       return new Date(b.article.published_at).getTime() - new Date(a.article.published_at).getTime();
     });
-  }, [articles, activeCategory, activeCrudeType, sortOrder]);
+  }, [targetArticles, activeCategory, activeCrudeType, sortOrder]);
 
   const handleRetry = useCallback(() => {
     refetch?.();
   }, [refetch]);
 
   const renderContent = () => {
-    // 날짜가 선택된 경우: DB 기사 표시
-    if (selectedDate) {
-      if (dbLoading) {
-        return (
-          <div className="news-grid">
-            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height="160px" />)}
-          </div>
-        );
-      }
-
-      if (dbArticles.length === 0) {
-        return (
-          <EmptyState
-            icon="news"
-            title={`${selectedDate}에 수집된 기사가 없습니다`}
-            description="다른 날짜를 선택하거나 차트의 ◆ 마커를 클릭해 보세요."
-          />
-        );
-      }
-
+    if (selectedDate && dbLoading) {
       return (
         <div className="news-grid">
-          {dbArticles.map((article, index) => (
-            <div
-              key={article.article.id}
-              className="news-card-container"
-              style={{ animationDelay: `${index * 0.03}s` }}
-            >
-              <NewsCard article={article} activeCrudeType={activeCrudeType} />
-            </div>
-          ))}
+          {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height="160px" />)}
         </div>
       );
     }
 
-    // 기본: LLM 분류된 기사 표시
-    if (loading) {
+    if (!selectedDate && loading) {
       return (
         <div className="news-grid">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} height="180px" />)}
         </div>
       );
     }
+
     if (error) {
       return (
         <div className="error-fallback-partial">
@@ -151,11 +126,18 @@ export const NewsExplorer: React.FC = () => {
       );
     }
     if (filteredAndSortedArticles.length === 0) {
+      const emptyTitle = selectedDate 
+        ? `${selectedDate}에 수집된 기사가 없습니다`
+        : "선택한 카테고리에 해당하는 뉴스가 없습니다";
+      const emptyDesc = selectedDate
+        ? "다른 날짜를 선택하거나 다른 카테고리로 필터링해 보세요."
+        : "다른 카테고리를 선택해 보세요.";
+      
       return (
         <EmptyState
           icon="news"
-          title="선택한 카테고리에 해당하는 뉴스가 없습니다"
-          description="다른 카테고리를 선택해 보세요."
+          title={emptyTitle}
+          description={emptyDesc}
         />
       );
     }
@@ -175,7 +157,6 @@ export const NewsExplorer: React.FC = () => {
   };
 
   const handleCategoryClick = (cat: Category) => {
-    setSelectedDate(null);
     setActiveCategory(cat);
   }
 
@@ -186,7 +167,7 @@ export const NewsExplorer: React.FC = () => {
           {CATEGORIES.map(cat => (
             <button
               key={cat}
-              className={`category-tab ${activeCategory === cat && !selectedDate ? 'active' : ''}`}
+              className={`category-tab ${activeCategory === cat ? 'active' : ''}`}
               onClick={() => handleCategoryClick(cat)}
               onMouseEnter={() => setHighlightedCategory(cat === 'All' ? null : cat as any)}
               onMouseLeave={() => setHighlightedCategory(null)}
@@ -197,40 +178,35 @@ export const NewsExplorer: React.FC = () => {
           ))}
         </div>
         <div className="sort-and-filter">
-          <div className="date-filter-container">
+          <div className="crude-filter-pills">
+            {CRUDE_TYPES.map(crude => (
+              <button
+                key={crude}
+                className={`crude-pill ${activeCrudeType === crude ? 'active' : ''}`}
+                onClick={() => setActiveCrudeType(crude)}
+              >
+                {crude === 'All' ? 'All Crudes' : crude.charAt(0).toUpperCase() + crude.slice(1)}
+              </button>
+            ))}
+          </div>
+          <div className="sort-toggle">
+            <button onClick={() => setSortOrder('time')} className={sortOrder === 'time' ? 'active' : ''}>Time</button>
+            <button onClick={() => setSortOrder('impact')} className={sortOrder === 'impact' ? 'active' : ''}>Impact</button>
+          </div>
+          <div className="date-filter-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {selectedDate && (
+              <div className="date-badge">
+                🗓 {selectedDate} 
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: '4px' }}>({dbArticles.length}건)</span>
+              </div>
+            )}
             <button 
               className={`today-button ${selectedDate === null ? 'active' : ''}`}
               onClick={() => setSelectedDate(null)}
             >
-              최신 뉴스
+              {selectedDate ? '최신 뉴스로 돌아가기' : '최신 뉴스'}
             </button>
-            {selectedDate && (
-              <div className="date-badge">
-                🗓 {selectedDate} 
-                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>({dbArticles.length}건)</span>
-                <button className="date-badge-close" onClick={() => setSelectedDate(null)}>&times;</button>
-              </div>
-            )}
           </div>
-          {!selectedDate && (
-            <>
-              <div className="crude-filter-pills">
-                {CRUDE_TYPES.map(crude => (
-                  <button
-                    key={crude}
-                    className={`crude-pill ${activeCrudeType === crude ? 'active' : ''}`}
-                    onClick={() => setActiveCrudeType(crude)}
-                  >
-                    {crude === 'All' ? 'All Crudes' : crude.charAt(0).toUpperCase() + crude.slice(1)}
-                  </button>
-                ))}
-              </div>
-              <div className="sort-toggle">
-                <button onClick={() => setSortOrder('time')} className={sortOrder === 'time' ? 'active' : ''}>Time</button>
-                <button onClick={() => setSortOrder('impact')} className={sortOrder === 'impact' ? 'active' : ''}>Impact</button>
-              </div>
-            </>
-          )}
         </div>
       </div>
       {renderContent()}
