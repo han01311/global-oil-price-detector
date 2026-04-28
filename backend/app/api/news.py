@@ -252,6 +252,7 @@ async def search_similar_events(
 
             event = SimilarEvent(
                 title=res.get('document', '').split('\n')[0].replace('Title: ', ''),
+                translated_title=metadata.get('translated_title'),
                 summary=res.get('document', '').split('\n')[1].replace('Summary: ', '') if '\n' in res.get('document', '') else '',
                 category=metadata.get('category', 'unknown'),
                 impact_score=metadata.get('impact_score', 0),

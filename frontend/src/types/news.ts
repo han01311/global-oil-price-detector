@@ -30,6 +30,7 @@ export interface ClassifiedArticle {
 
 export interface SimilarEvent {
   title: string;
+  translated_title?: string;
   summary: string;
   category: string;
   impact_score: number;

@@ -50,6 +50,7 @@ class ClassifiedArticle(BaseModel):
 class SimilarEvent(BaseModel):
     """유사 과거 사례"""
     title: str
+    translated_title: str | None = None
     summary: str
     category: str
     impact_score: int

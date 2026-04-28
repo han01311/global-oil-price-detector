@@ -35,7 +35,7 @@ const CrudeImpacts: React.FC<{
         const direction = impact.direction === 'bullish' ? 'bull' : impact.direction === 'bearish' ? 'bear' : 'neutral';
         const label = crudeType.charAt(0).toUpperCase() + crudeType.slice(1);
         return (
-          <div key={crudeType} className={`crude-impact-badge impact-${direction}`} title={impact.rationale}>
+          <div key={crudeType} className={`crude-impact-badge impact-${direction}`} data-tooltip={impact.rationale}>
             <span className="crude-label">{label}</span>
             <span className="crude-score">{impact.score > 0 ? '+' : ''}{impact.score}</span>
           </div>
@@ -45,18 +45,13 @@ const CrudeImpacts: React.FC<{
   );
 };
 
-const RelatedCrudeTags: React.FC<{ impacts?: ClassifiedArticle['impact_by_crude'] }> = ({ impacts }) => {
-  if (!impacts) return null;
-  const relatedCrudes = Object.entries(impacts)
-    .filter(([_, impact]) => Math.abs(impact.score) > 0)
-    .map(([crudeType]) => crudeType.charAt(0).toUpperCase() + crudeType.slice(1));
-  
-  if (relatedCrudes.length === 0) return null;
+const SubCategoryTags: React.FC<{ subCategories?: string[] }> = ({ subCategories }) => {
+  if (!subCategories || subCategories.length === 0) return null;
 
   return (
     <div className="related-crude-tags">
-      {relatedCrudes.map(crude => (
-        <span key={crude} className="crude-tag">#{crude}</span>
+      {subCategories.map((sub, index) => (
+        <span key={index} className="crude-tag">#{sub}</span>
       ))}
     </div>
   );
@@ -84,10 +79,11 @@ const isKorean = (text: string) => /[가-힣]/.test(text);
 
 export const NewsCard: React.FC<NewsCardProps> = ({ article, activeCrudeType }) => {
   const [showSimilar, setShowSimilar] = useState(false);
+  const cardRef = React.useRef<HTMLDivElement>(null);
 
   return (
     <>
-      <div className="news-card">
+      <div className="news-card" ref={cardRef}>
         <div className="news-card-header">
           <Badge category={article.category as any} />
           <CrudeImpacts 
@@ -112,13 +108,14 @@ export const NewsCard: React.FC<NewsCardProps> = ({ article, activeCrudeType }) 
           <button className="ghost-button" onClick={() => setShowSimilar(true)}>
             유사 사례
           </button>
-          <RelatedCrudeTags impacts={article.impact_by_crude} />
+          <SubCategoryTags subCategories={article.sub_categories} />
         </div>
       </div>
       {showSimilar && (
         <SimilarEventsPopup
           query={article.article.title}
           crudeType={activeCrudeType}
+          anchorEl={cardRef.current}
           onClose={() => setShowSimilar(false)}
         />
       )}

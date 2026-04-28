@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import type { SimilarEvent } from '../../types/news';
 import { fetchSimilarEvents } from '../../services/api';
 import { Skeleton } from '../common/Skeleton';
@@ -8,6 +9,7 @@ import './SimilarEventsPopup.css';
 interface SimilarEventsPopupProps {
   query: string;
   crudeType?: string;
+  anchorEl: HTMLElement | null;
   onClose: () => void;
 }
 
@@ -31,10 +33,34 @@ const formatChange = (change: number | null | undefined): React.ReactNode => {
   );
 };
 
-export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, crudeType, onClose }) => {
+export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, crudeType, anchorEl, onClose }) => {
   const [events, setEvents] = useState<SimilarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
+  const [popupStyle, setPopupStyle] = useState<React.CSSProperties>({});
+
+  useEffect(() => {
+    if (anchorEl) {
+      const rect = anchorEl.getBoundingClientRect();
+      const popupWidth = 420; // Width of the popup
+      const windowWidth = window.innerWidth;
+      
+      let leftPosition = rect.right + 16;
+      // If it overflows on the right, show it on the left
+      if (leftPosition + popupWidth > windowWidth) {
+        leftPosition = rect.left - popupWidth - 16;
+      }
+      
+      setPopupStyle({
+        position: 'fixed',
+        top: Math.max(16, rect.top), // don't go above screen
+        left: leftPosition,
+        width: popupWidth,
+        maxHeight: '80vh',
+        zIndex: 1000,
+      });
+    }
+  }, [anchorEl]);
 
   useEffect(() => {
     const loadSimilarEvents = async () => {
@@ -53,7 +79,7 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, c
 
   const renderContent = () => {
     if (loading) {
-      return Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height="60px" style={{ marginBottom: '12px' }} />);
+      return Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} height="80px" style={{ marginBottom: '12px' }} />);
     }
     if (error) {
       return <p className="popup-error">Error: {error.message}</p>;
@@ -69,9 +95,21 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, c
               <Badge category={event.category as any} />
               <span className="event-date">{new Date(event.date).toLocaleDateString()}</span>
             </div>
-            <a href={event.url} target="_blank" rel="noopener noreferrer" className="event-title">
-              {event.title}
+            <a href={event.url} target="_blank" rel="noopener noreferrer" className="event-title-container" style={{ textDecoration: 'none', display: 'block', marginBottom: '8px' }}>
+              <strong className="event-title" style={{ fontSize: '14px', display: 'block', marginBottom: '4px' }}>
+                {event.translated_title || event.title}
+              </strong>
+              {event.translated_title && event.translated_title !== event.title && (
+                <span className="event-original-title" style={{ fontSize: '12px', color: 'var(--color-text-muted)', display: 'block' }}>
+                  {event.title}
+                </span>
+              )}
             </a>
+            {event.summary && (
+              <p className="event-summary" style={{ fontSize: '12px', color: 'var(--color-text-body)', marginBottom: '8px', lineHeight: 1.4 }}>
+                {event.summary}
+              </p>
+            )}
             <div className="event-impacts">
               <div style={{ width: '100%', fontSize: '10px', color: 'var(--color-text-muted)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <span style={{ fontSize: '12px' }}>📉</span>
@@ -96,17 +134,22 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, c
     );
   };
 
-  return (
-    <div className="popup-overlay" onClick={onClose}>
-      <div className="popup-content" onClick={(e) => e.stopPropagation()}>
+  // If no anchor is provided, default to full screen overlay
+  if (!anchorEl) return null;
+
+  return ReactDOM.createPortal(
+    <>
+      <div className="popup-backdrop" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
+      <div className="popup-content" style={popupStyle} onClick={(e) => e.stopPropagation()}>
         <div className="popup-header">
-          <h4>Similar Past Events</h4>
+          <h4>유사 과거 사례</h4>
           <button onClick={onClose} className="close-button">&times;</button>
         </div>
         <div className="popup-body">
           {renderContent()}
         </div>
       </div>
-    </div>
+    </>,
+    document.body
   );
 };

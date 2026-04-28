@@ -65,6 +65,46 @@
   color: var(--color-text-secondary);
 }
 
+/* Custom Tooltip */
+.crude-impact-badge {
+  position: relative;
+  cursor: help;
+}
+
+.crude-impact-badge::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(4px);
+  margin-bottom: 8px;
+  width: max-content;
+  max-width: 260px;
+  background-color: #1E1E24;
+  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+  z-index: 100;
+  pointer-events: none;
+  white-space: normal;
+  text-align: left;
+  word-break: keep-all;
+}
+
+.crude-impact-badge:hover::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+
 .news-card-title-container {
   display: flex;
   flex-direction: column;
