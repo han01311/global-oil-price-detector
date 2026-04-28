@@ -37,13 +37,16 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, c
   const [events, setEvents] = useState<SimilarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
-  const [popupStyle, setPopupStyle] = useState<React.CSSProperties>({});
+  const [popupStyle, setPopupStyle] = useState<React.CSSProperties>({ opacity: 0 }); // Hide initially until positioned
+  const popupRef = React.useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (anchorEl) {
+  React.useLayoutEffect(() => {
+    if (anchorEl && popupRef.current) {
       const rect = anchorEl.getBoundingClientRect();
-      const popupWidth = 420; // Width of the popup
+      const popupRect = popupRef.current.getBoundingClientRect();
+      const popupWidth = 420; // Fixed width
       const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
       
       let leftPosition = rect.right + 16;
       // If it overflows on the right, show it on the left
@@ -51,16 +54,28 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, c
         leftPosition = rect.left - popupWidth - 16;
       }
       
+      let topPosition = rect.top;
+      // If the popup would overflow the bottom of the screen, shift it up
+      if (topPosition + popupRect.height > windowHeight - 16) {
+        topPosition = windowHeight - popupRect.height - 16;
+      }
+      // But never let it overflow the top of the screen
+      if (topPosition < 16) {
+        topPosition = 16;
+      }
+      
       setPopupStyle({
         position: 'fixed',
-        top: Math.max(16, rect.top), // don't go above screen
+        top: topPosition,
         left: leftPosition,
         width: popupWidth,
-        maxHeight: '80vh',
+        maxHeight: 'calc(100vh - 32px)',
         zIndex: 1000,
+        opacity: 1, // Show once positioned
+        transition: 'top 0.2s ease-out', // Smooth adjustment if content changes
       });
     }
-  }, [anchorEl]);
+  }, [anchorEl, events, loading]);
 
   useEffect(() => {
     const loadSimilarEvents = async () => {
@@ -140,7 +155,7 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, c
   return ReactDOM.createPortal(
     <>
       <div className="popup-backdrop" onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 999 }} />
-      <div className="popup-content" style={popupStyle} onClick={(e) => e.stopPropagation()}>
+      <div className="popup-content" ref={popupRef} style={popupStyle} onClick={(e) => e.stopPropagation()}>
         <div className="popup-header">
           <h4>유사 과거 사례</h4>
           <button onClick={onClose} className="close-button">&times;</button>
