@@ -13,9 +13,17 @@ interface SimilarEventsPopupProps {
 
 const formatChange = (change: number | null | undefined): React.ReactNode => {
   if (change === null || change === undefined) {
-    return <span className="change-neutral">N/A</span>;
+    return (
+      <span 
+        className="change-neutral" 
+        style={{ fontSize: '10px', border: '1px solid var(--color-border)', padding: '1px 4px', borderRadius: '2px', cursor: 'help' }}
+        title="발행일로부터 7일이 경과하지 않아 아직 변동률 데이터를 집계할 수 없습니다."
+      >
+        집계 대기
+      </span>
+    );
   }
-  const direction = change > 0 ? 'bull' : 'bear';
+  const direction = change > 0 ? 'bull' : (change < 0 ? 'bear' : 'neutral');
   return (
     <span className={`change-${direction}`}>
       {change > 0 ? '+' : ''}{change.toFixed(2)}%
@@ -65,6 +73,13 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, c
               {event.title}
             </a>
             <div className="event-impacts">
+              <div style={{ width: '100%', fontSize: '10px', color: 'var(--color-text-muted)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '12px' }}>📉</span>
+                <span>이 기사 발행 후 <strong>7일간</strong>의 유가 변동률</span>
+                <span className="event-similarity" style={{ marginLeft: 'auto', color: 'var(--color-text-secondary)' }}>
+                  유사도: {(event.similarity * 100).toFixed(0)}%
+                </span>
+              </div>
               <div className="event-impact-item">
                 <span>Dubai:</span> {formatChange(event.dubai_change_7d)}
               </div>
@@ -74,7 +89,6 @@ export const SimilarEventsPopup: React.FC<SimilarEventsPopupProps> = ({ query, c
               <div className="event-impact-item">
                 <span>Brent:</span> {formatChange(event.brent_change_7d)}
               </div>
-              <span className="event-similarity">Sim: {(event.similarity * 100).toFixed(0)}%</span>
             </div>
           </li>
         ))}

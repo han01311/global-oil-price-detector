@@ -122,10 +122,9 @@ async def _classify_articles_payload(
         if memory.is_available() and classified_results:
             for res in classified_results:
                 if res.is_relevant:
-                    price_changes = {}
-                    for crude in ["dubai", "brent", "wti"]:
-                        for period in ["1d", "7d", "30d"]:
-                            price_changes[f"{crude}_change_{period}"] = 0.0
+                    from app.core.database import Database
+                    db_instance = Database()
+                    price_changes = await db_instance.get_historical_price_changes(res.article.published_at)
                     await memory.store_event(res.model_dump(), price_changes)
 
         if cache_fetch_latest:
@@ -246,10 +245,10 @@ async def search_similar_events(
         for res in search_results:
             metadata = res.get('metadata', {})
             
-            # Helper to convert -1.0 back to None
+            # Helper to convert -9999.0 back to None
             def get_change(key):
                 val = metadata.get(key)
-                return None if val == -1.0 else val
+                return None if val == -9999.0 else val
 
             event = SimilarEvent(
                 title=res.get('document', '').split('\n')[0].replace('Title: ', ''),

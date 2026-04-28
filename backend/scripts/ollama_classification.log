@@ -173,3 +173,2127 @@ INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 
 INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
 INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
 INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i... 만난 운전자들'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i... 만난 운전자들'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i... 만난 운전자들'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[32/580] Classifying: Teargas, trees and oil: my life in the greatest jo
+  -> Success: 최대 강국의 직업과 환경: 나의 삶
+[33/580] Classifying: Revealed: Thatcher's mystery gems, Reagan's readin
+  -> Success: 밝혀진: 태처의 미스터리 보석, 레이건의 독서와 달의 먼지
+[34/580] Classifying: London house prices widen gap with rest of UK - li
+  -> Success: 런던 주택 가격, 영국 다른 지역과의 격차 확대 - 생중계
+[35/580] Classifying: 2015 will be a year of political thrills – and col
+  -> Success: 2015년은 정치적인 스릴과 거대한 위험의 한 해가 될 것이다
+[36/580] Classifying: FCA: 43% more reports of suspicious trades in wake
+  -> Success: FCA: 리보어 조작 스캔들 이후 의심 거래 보고서 43% 증가
+[37/580] Classifying: The autumn statement is a political ritual without
+  -> Success: 가을 성명은 경제적 관련성이 없는 정치적 의식일 뿐
+[38/580] Classifying: Equilateral by Ken Kalfus – review
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[39/580] Classifying: Scottish government publishes white paper on indep
+  -> Success: 스코틀랜드 정부의 독립 관련 백서 발표: 정치 라이브 블로그
+[40/580] Classifying: Guardian Weekly Letters, 14 December 2012
+  -> Success: 가디언 주간 서신, 2012년 12월 14일
+[41/580] Classifying: Your views on the news: Resource efficiency, plast
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[42/580] Classifying: Vladimir Putin: have a care, manling
+  -> Failed: 
+[43/580] Classifying: The inevitability of traceability in the oil and g
+  -> Success: 석유 및 가스 부문에서 추적 가능성의 불가피성
+[44/580] Classifying: What happened next? Torrey Canyon oil clean-up, Gu
+  -> Failed: 
+[45/580] Classifying: WikiLeaks: rule of law in Mikhail Khodorkovsky tri
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i... '겉치레'에 불과"}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i... '겉치레'에 불과"}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i... '겉치레'에 불과"}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[46/580] Classifying: Angola's hosting of African Cup of Nations boosts 
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[47/580] Classifying: As Prices Rise, Some See $2 Gas
+  -> Success: 물가 상승 속, 2달러 휘발유도 보인다
+[48/580] Classifying: Market forces: Charm pays for Imperial Energy suit
+  -> Success: 시장 역학: 차미(Charm)가 임페리얼 에너지(Imperial Energy)의 인수 후보가 되다 (또는 ONGC의 수혜주가 되다)
+[49/580] Classifying: Imperial Energy set for Indian oil and gas deal
+  -> Success: 임페리얼 에너지, 인도 석유 및 가스 거래 준비
+[50/580] Classifying: Rising stars, economic ruin and gold for Team GB: 
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[51/580] Classifying: Julia Finch: Insolvency specialists can be working
+  -> Success: 줄리아 핀치: 파산 전문가는 회사가 파산하기 몇 주 전부터 활동할 수 있습니다
+[52/580] Classifying: Newcomer Cairn Energy on the up again
+  -> Success: 신규 상장 에어른 에너지 주가 다시 상승세
+[53/580] Classifying: Mining firms dig themselves into a whole lot of de
+  -> Success: 광물 회사들이 수많은 거래에 얽매이다
+[54/580] Classifying: Christmas comes early for SABMiller
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[55/580] Classifying: Getting burnt by the winter sun
+  -> Success: 겨울 햇볕에 그을림을 당하다
+[56/580] Classifying: Unseasonably higher gasoline prices threaten U.S. 
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[57/580] Classifying: Who Cares About the Price of Gas?
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[58/580] Classifying: EU aviation plan fails to appease campaigners
+  -> Success: EU 항공 계획, 환경운동가들을 진정시키지 못하다
+[59/580] Classifying: F&C calls for 'UK-specific' stock market index
+  -> Success: F&C, '영국 특정' 주가 지수 부각 요구
+[60/580] Classifying: Oil giants merge
+  -> Success: 오일 거물들 합병
+[61/580] Classifying: British Airways climbs 7.75p
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[62/580] Classifying: British Airways climbs 7.75p
+  -> Success: 브리티시 항공, 7.75펜스 상승
+[63/580] Classifying: British Airways climbs 7.75p
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[64/580] Classifying: British Airways climbs 7.75p
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[65/580] Classifying: British Airways climbs 7.75p
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[66/580] Classifying: British Airways climbs 7.75p
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+  -> Failed: 4 validation errors for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i..., 주가 7.75p 상승'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i..., 주가 7.75p 상승'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i..., 주가 7.75p 상승'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[67/580] Classifying: British Airways shares fly higher
+  -> Success: 영국항공 주식가 상승
+[68/580] Classifying: OPEC says 6 members agree to trim output - Busines
+  -> Success: 석유 수출국 기구(OPEC), 6개 회원국 감산 합의에 동의
+[69/580] Classifying: Oil Contract Dips Briefly Below $60 a Barrel, as S
+  -> Success: 원유 계약 가격, 투기꾼들의 낮은 가격 베팅에 힘입어 배럴당 60달러대 아래로 일시 하락
+[70/580] Classifying: Oil-price slide prompts debate on future cycle - B
+  -> Success: 유가 급락이 미래 주기 논쟁을 촉발하다 - 비즈니스
+[71/580] Classifying: Oil Contract Dips Briefly Below $60 a Barrel, as S
+  -> Success: 유가 계약, 투기꾼들의 저가 베팅에 따라 배럴당 60달러대 밑으로 급락
+[72/580] Classifying: Despite drop in oil price, OPEC sticks with target
+  -> Success: 유가 하락에도 불구하고 OPEC은 목표를 고수한다 - 비즈니스
+[73/580] Classifying: At OPEC, Some Worry as Oil Prices Start Falling
+  -> Success: OPEC에서 일부 우려: 유가 하락세 시작
+[74/580] Classifying: At OPEC, Some Worry as Oil Prices Start Falling
+  -> Success: OPEC에서 일부 우려, 유가 하락세 시작
+[75/580] Classifying: Oil prices dismay OPEC - Business - International 
+  -> Success: 유가에 실망한 OPEC
+[76/580] Classifying: Greenspan sounds alarm on oil supply - Business - 
+  -> Success: 그린스펀, 유가 공급에 경고를 보내다
+[77/580] Classifying: Oil price tumbles along with other commodities
+  -> Success: 원유 가격이 다른 상품들과 함께 하락하다
+[78/580] Classifying: The Basics; When Gas Spikes, Presidents Speak
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[79/580] Classifying: Pledge From OPEC Eases Oil Price, but Shares Still
+  -> Success: 오펙의 약속이 유가를 완화시키나, 주가는 여전히 하락세를 보인다
+[80/580] Classifying: Exciting discoveries for Egyptologists
+  -> Success: 이집트학자들을 위한 흥미진진한 발견
+[81/580] Classifying: Alchemist who turned gold to dross - and back agai
+  -> Success: 금을 찌꺼기로 만들었다가 다시 돌아온 연금술사?
+[82/580] Classifying: Oil fund gushes as the price of crude soars
+  -> Success: 유가 급등에 따라 석유 펀드 자금이 몰리다
+[83/580] Classifying: Market forces
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[84/580] Classifying: Expectations of cut in interest rates grow
+  -> Success: 금리 인하 기대감 상승
+[85/580] Classifying: Visions of hell
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[86/580] Classifying: Leaders: Oil depot fire
+  -> Success: 지도자들: 원유 저장 시설 화재
+[87/580] Classifying: Notebook: No end in sight for Lloyds' problems | G
+  -> Failed: 
+[88/580] Classifying: Black rain will bring pollutants down to earth, wa
+  -> Success: 검은 비가 대기 오염 물질을 지상으로 떨어뜨릴 것이라 영국 기상청 경고
+[89/580] Classifying: Things can only get better
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[90/580] Classifying: Don't blame me, Brown tells MPs, it's the Bank
+  -> Success: 브라운이 의회에 경고하다: 문제는 은행에 있다
+[91/580] Classifying: Brown: Oil tax is fair
+  -> Success: 브라운: 석유세는 공정하다
+[92/580] Classifying: George Monbiot: The most destructive crop on earth
+  -> Success: 조지 몽비오: 지구상 가장 파괴적인 작물이 에너지 위기의 해결책이 될 수 없다
+[93/580] Classifying: Slowing Brown oils the wheels
+  -> Failed: 
+[94/580] Classifying: With Oil Prices Off Their Peak, Are Supplies Assur
+  -> Success: 유가가 정점 통과, 공급은 확보되었나?
+[95/580] Classifying: Some oil executives worry prices may fall
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i... 하락 우려 표명'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i... 하락 우려 표명'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i... 하락 우려 표명'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[96/580] Classifying: The Basics; The Oil Price To Be Scared Of
+  -> Failed: 1 validation error for ClassifiedArticle
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...계해야 할 이유'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[97/580] Classifying: Oil Prices Continue to Surge, Hitting $66 a Barrel
+  -> Success: 유가 급등 지속, 배럴당 66달러 기록
+[98/580] Classifying: Oil Price Touches $65; Gasoline Stockpiles Shrink
+  -> Failed: Expecting ',' delimiter: line 18 column 1 (char 766)
+[99/580] Classifying: Oil price takes toll on stocks
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[100/580] Classifying: OPEC members consider increase in ceiling for oil 
+  -> Success: OPEC 회원국, 원유 생산 상한가 인상 검토
+[101/580] Classifying: Strong Demand Limits OPEC's Leeway
+  -> Success: 강한 수요가 OPEC의 재량권을 제한하다
+[102/580] Classifying: Blue Chips Rise as Oil Falls and Inflation Worries
+  -> Success: 유가 하락과 인플레이션 우려 완화에 힘입어 우량주 상승
+[103/580] Classifying: OPEC Member Burdened by High Oil Prices
+  -> Success: OPEC 회원국, 높은 유가에 부담을 느낀다
+[104/580] Classifying: Too high even for OPEC?
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[105/580] Classifying: Oil Price Jumps 5% in One Day
+  -> Success: 유가, 하루 만에 5% 급등
+[106/580] Classifying: Premiership: Manchester United 2 - 0 Bolton
+  -> Success: 프리미어리그: 맨유 2 대 0 볼턴
+[107/580] Classifying: Wide-awake giant will shake west's strategy
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[108/580] Classifying: What will flow after big oil?
+  -> Success: 대형 석유(Big Oil) 이후에는 무엇이 흐를까?
+[109/580] Classifying: All that glisters not golden for chastened Chancel
+  -> Success: 반짝인다고 금은 아니다, 청렴한 재무장관에게
+[110/580] Classifying: Notebook: Half decent may be as good as it gets
+  -> Success: 노트북: 그저 그런 것, 그것이 최고의 만족일 때
+[111/580] Classifying: Neil Hume: Market forces
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[112/580] Classifying: Save the Children pulls out of Darfur
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[113/580] Classifying: Yukos warns of oil output crisis
+  -> Success: 유코스, 원유 생산 위기 경고
+[114/580] Classifying: Market forces
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[115/580] Classifying: Monday briefing
+  -> Success: 월요일 브리핑
+[116/580] Classifying: Opec cuts could push oil back above $50 mark
+  -> Success: OPEC 감산이 유가를 50달러 위로 밀어 올릴 수 있다
+[117/580] Classifying: Odds on: 'Steady as she goes' or 'full steam ahead
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[118/580] Classifying: Review: Putin's Russia by Anna Politkovskaya and D
+  -> Success: 리뷰: 폴리트코프스카야의 푸틴 러시아와 새벽의 어둠
+[119/580] Classifying: Market forces: Smith & Nephew suffers a relapse
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[120/580] Classifying: OPEC Nations Seen Cutting Worldwide Deposits in Do
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...소 움직임 포착'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...소 움직임 포착'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...소 움직임 포착'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[121/580] Classifying: With Oil Price Down Again, Analysts Keep Eyes on $
+  -> Success: 유가 다시 하락하며, 분석가들은 40달러 수준에 주목
+[122/580] Classifying: Oil prices put growth in danger, agency says
+  -> Success: 에이전시, 
+[123/580] Classifying: Oil Prices Surge Briefly Above $54 a Barrel
+  -> Success: 유가, 배럴당 54달러를 잠시 넘어 급등
+[124/580] Classifying: Saudis to Boost Oil Production Capacity as Price H
+  -> Success: 사우디, 유가 50달러 돌파에 따라 원유 생산 능력 증대 예고
+[125/580] Classifying: OPEC Raises Output Ceiling in Gesture to Lower Pri
+  -> Success: OPEC, 가격 인하 제스처로 생산 상한선 상향 조정
+[126/580] Classifying: OPEC Finds Few Options to Put a Lid on Oil Prices
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i... 대책 마련 난항'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i... 대책 마련 난항'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i... 대책 마련 난항'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[127/580] Classifying: Oil Price Comes Close to $50 But Then It Stages a 
+  -> Success: 9월물 유가, 이라크 불안정성 우려로 $49.40까지 상승했다가 후퇴하다
+[128/580] Classifying: Great Britain
+  -> Failed: 4 validation errors for ClassifiedArticle
+category
+  Field required [type=missing, input_value={'article': NewsArticle(i...r metals commodities.'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...r metals commodities.'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...r metals commodities.'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...r metals commodities.'}}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[129/580] Classifying: United Kingdom
+  -> Failed: 4 validation errors for ClassifiedArticle
+category
+  Field required [type=missing, input_value={'article': NewsArticle(i...ve Historical Analysis'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...ve Historical Analysis'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...ve Historical Analysis'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...ve Historical Analysis'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[130/580] Classifying: Statements in Beirut backing Saudis help cool rece
+  -> Success: 베이루트 성명, 사우디 지원하며 급등하는 유가 안정화 지원: OPEC, '끓는' 유가에 제한을 두려 함
+[131/580] Classifying: Many Feeling Pinch After Newest Surge In U.S. Fuel
+  -> Success: 미국 연료 가격 급등 이후 많은 사람이 겪는 어려움
+[132/580] Classifying: Economic Scene; The oil price spikes give new urge
+  -> Success: 경제 상황: 유가 급등이 야기하는 결과에 대한 논쟁에 새로운 긴급성을 부여하다.
+[133/580] Classifying: OPEC Offers Little Hope On Fuel Prices
+  -> Success: OPEC, 유가에 대한 희망을 제시하지 못하다
+[134/580] Classifying: TIGHT OIL SUPPLY WON'T EASE SOON
+  -> Success: 긴축된 유공급은 곧 완화되기 어려울 것
+[135/580] Classifying: A Crude Shock
+  -> Success: 원유 쇼크
+[136/580] Classifying: As oil tops $40, response is muted
+  -> Success: 유가가 40달러를 넘어서도 반응이 미미하다
+[137/580] Classifying: As oil tops $40, response is muted
+  -> Success: 원유가 40달러 돌파에 시장 반응은 미미
+[138/580] Classifying: As oil tops $40, response is muted
+  -> Success: 유가 40달러 돌파에 대한 반응은 미미하다
+[139/580] Classifying: Higher Oil Prices Are Damaging Global Economy, a S
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+  -> Success: 높은 유가가 세계 경제를 위협, 연구 보고서가 경고함
+[140/580] Classifying: Bears in retreat as FTSE looks up
+  -> Success: FTSE 상승세에 곰 매도세 후퇴
+[141/580] Classifying: World news in brief
+  -> Success: 세계 뉴스 요약
+[142/580] Classifying: New statesman: Gadafy turns reformer
+  -> Success: 신(新) 정치인: 가다피, 개혁가로 변모하다
+[143/580] Classifying: Market forces
+  -> Success: 시장 역학
+[144/580] Classifying: Celanese agrees £2bn bid from US
+  -> Success: 블랙스톤, 독일 화학 기업 셀라네스에 31억 유로 규모 인수 제안
+[145/580] Classifying: Notebook: Markets resist Saddam euphoria
+  -> Success: 노트북: 시장은 사담의 유토피아에 저항하다
+[146/580] Classifying: Market forces
+  -> Success: 시장 역학
+[147/580] Classifying: MARKET INSIGHT; As the World Turns, See Oil Prices
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[148/580] Classifying: Shanghai on nights to avoid blackout
+  -> Success: 정전 사태가 만연한 상하이
+[149/580] Classifying: George Monbiot: Bottom of the barrel
+  -> Success: 조지 몬비오: 배럴 바닥에 다다르다
+[150/580] Classifying: Russia accused of plot to sabotage Georgian oil pi
+  -> Success: 러시아, 조지아 석유 파이프라인 사보타주 공작 음모로 비난
+[151/580] Classifying: Smart investors can strike black gold
+  -> Success: 스마트 투자자는 검은 황금을 발견할 수 있다
+[152/580] Classifying: Focus: Putin launches assault on Russian capitalis
+  -> Success: 초점: 푸틴, 러시아 자본주의에 대한 습격 개시
+[153/580] Classifying: BAE earnings take off
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[154/580] Classifying: Prospecting for gold
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[155/580] Classifying: OPEC Says It Will Cut Output, And Price of Oil Cli
+  -> Success: OPEC, 감산 결정 및 유가 급등 발표
+[156/580] Classifying: Move pushes price of oil sharply higher : In surpr
+  -> Success: 깜짝 결정: OPEC, 감산 결정으로 유가 급등을 이끌다
+[157/580] Classifying: OPEC Surprises Oil Market by Cutting Production Qu
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...에 이변 가져와'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...에 이변 가져와'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...에 이변 가져와'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[158/580] Classifying: MARKET INSIGHT; This May Be The Time To Buy Oil St
+  -> Success: 시장 분석: 지금이 유가 주식을 매수할 때일 수 있다
+[159/580] Classifying: AHEAD OF THE MARKETS : For investors, end of Iraq 
+  -> Success: 시장 전 돌입: 투자자들에게 이라크 전쟁의 종식은 별것을 안겨준다
+[160/580] Classifying: With the War Largely Over, OPEC Fears Oil Price Dr
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i... 하락 우려 표명'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i... 하락 우려 표명'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i... 하락 우려 표명'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[161/580] Classifying: COMMODITIES; OPEC Says It Will Maintain Current Le
+  -> Success: 상품; OPEC, 현행 원유 생산량 유지 결정
+[162/580] Classifying: THE MARKETS: COMMODITIES; Oil Price Falls on Chanc
+  -> Success: 시장 동향: 유가, 추가 생산 기대감에 하락
+[163/580] Classifying: Oil majors grease rally
+  -> Success: 주요 석유 기업 주가 반등 기대
+[164/580] Classifying: Jitters undermine dollar
+  -> Success: 전쟁 공포가 시장을 불안하게 하자 유가, 2년 만 고점 기록
+[165/580] Classifying: Jobless fall lifts Wall Street gloom
+  -> Success: 실업자 감소가 월스트리트의 우울감을 덜어내다
+[166/580] Classifying: THE MARKETS: COMMODITIES; Venezuela Strike and War
+  -> Success: 시장 분석: 베네수엘라 사태와 전쟁 공포가 유가를 2년 만의 고점으로 밀어올리다
+[167/580] Classifying: Chavez acts to ease food crisis
+  -> Success: 카베스는 식량 위기 해소를 위해 노력하다
+[168/580] Classifying: Prophets perk up the world's balance sheet
+  -> Success: 예언자들이 세계의 대차대조표를 밝히다
+[169/580] Classifying: Oilmen don't want another Suez
+  -> Success: 석유 전문가들, 또 다른 수에즈 운하 사태는 원치 않는다
+[170/580] Classifying: The key events of October 2002
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[171/580] Classifying: War fears push up oil price
+  -> Success: 전쟁 우려가 유가 상승을 부추기다
+[172/580] Classifying: It's your choice: Hunker down versus hunky-dory
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[173/580] Classifying: Dollar at three-year low
+  -> Success: 달러, 3년 최저치 기록
+[174/580] Classifying: Oil prices hit two-year high
+  -> Success: 유가, 2년 만에 최고치 기록
+[175/580] Classifying: City briefing
+  -> Success: 시정 브리핑
+[176/580] Classifying: Market forces: FTSE's eight-day tailspin ends
+  -> Success: 시장세력: FTSE의 8일 연속 급락세 마감
+[177/580] Classifying: Russian oil giants try to beat US to Iraqi reserve
+  -> Success: 러시아 석유 기업, 이라크 유전에 진출하여 미국을 따라잡으려다
+[178/580] Classifying: OPEC Keeping Oil Price Down By Increasing Its Prod
+  -> Success: OPEC, 생산량 증대로 유가 하락을 유도하다
+[179/580] Classifying: Oil and war | How much exposure?: Seeking stabilit
+  -> Success: 유가와 전쟁 | 어느 정도의 노출?: 안정을 추구하며, 어떤 가격으로든
+[180/580] Classifying: MARKET INSIGHT; Smiles And Frowns In Higher Oil Pr
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i... 따른 희비 교차'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i... 따른 희비 교차'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i... 따른 희비 교차'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[181/580] Classifying: New year's wishes: Martin Sorrell, ad agency CEO
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+  -> Success: 새해 인사: 마틴 소렐, 광고 대행사 CEO
+[182/580] Classifying: Petrol price fear as Opec agrees to cut production
+  -> Success: OPEC+가 감산에 합의하며 유가 불안감 고조
+[183/580] Classifying: Only a deal can save Cedar from falling
+  -> Success: 세더를 구하려면 거래만이 유일한 방법이다
+[184/580] Classifying: Opec announces oil output cut
+  -> Success: Opec, 원유 생산량 감축 발표
+[185/580] Classifying: Oil prices up as Opec expected to cut production
+  -> Success: OPEC이 생산량 감축할 것이라는 기대감에 기름 가격 상승
+[186/580] Classifying: Oil fuels small-scale burst of optimism
+  -> Success: 유가, 소규모 낙관론을 부추기다
+[187/580] Classifying: THE MARKETS: Market Place; Several Issues Combine 
+  -> Success: 시장 분석: 여러 이슈가 결합하여 올해 가장 큰 유가 급등을 유발하다
+[188/580] Classifying: Pre-Christmas torpor stifles crisis fears
+  -> Success: 크리스마스 전 침체기가 위기 공포를 가라앉히다
+[189/580] Classifying: Remedies may cause their own problems
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[190/580] Classifying: Baron who beat the sheikhs
+  -> Success: 셰이크를 이긴 남작
+[191/580] Classifying: Foie gras, Safe hands, and Big debt
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[192/580] Classifying: Rate hope as inflation hits 38-year low
+  -> Success: 인플레이션이 38년 만에 최저치를 기록하며 금리 인하 기대감 고조
+[193/580] Classifying: The sheer wastefulness of a long-distance Christma
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[194/580] Classifying: America's history of recession bites again
+  -> Success: 미국의 경기 침체 역사 재조명
+[195/580] Classifying: Output prices drop steeply
+  -> Success: 출하 가격 급락
+[196/580] Classifying: Russian Statement Lifts Oil Price
+  -> Success: 러시아의 발언으로 유가 상승
+[197/580] Classifying: THE MARKETS: COMMODITIES; Accord May Be Near on Oi
+  -> Success: 시장 동향: 유가를 지탱하기 위한 원유 생산 감축 합의가 임박할 수 있다
+[198/580] Classifying: THE MARKETS: COMMODITIES; OIL PRICES TUMBLE TO A 2
+  -> Success: 시장 동향: 상품; 유가 2년 최저 수준으로 급락
+[199/580] Classifying: Warnings by 2 OPEC Nations Send Oil Price to a 2-Y
+  -> Success: 2개 OPEC 국가의 경고가 유가를 2년 최저점까지 하락시키다
+[200/580] Classifying: Drop in Price Pushes OPEC To Consider Cut in Outpu
+  -> Success: 저가 유가 하락으로 OPEC, 감산 검토 압박
+[201/580] Classifying: Good Riddance:Grim Quarter Closed Out a Grim Year 
+  -> Success: 부진한 분기가 증시의 침체된 한 해를 마감하다
+[202/580] Classifying: Colombian policy puts Bush under pressure
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[203/580] Classifying: Market forces
+  -> Success: 시장 동향
+[204/580] Classifying: ECB stays quiet over interest rate changes
+  -> Success: 유로 지역 금리 변화에 대한 ECB의 침묵
+[205/580] Classifying: Fair exchange rate is no panacea
+  -> Success: 공정 환율은 만병통치약이 아니다. 유로는 여전히 까다로운 질문에 직면해 있다.
+[206/580] Classifying: Shell cuts price of unleaded by 4p a litre
+  -> Success: 쉘, 휘발유 가격을 리터당 4펜스 인하
+[207/580] Classifying: Mitterrand's son loses plea for immediate bail
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[208/580] Classifying: Oil shares get a warm glow
+  -> Success: 석유주에 따뜻한 빛이 비치다
+[209/580] Classifying: Peace on earth: not in 2000
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[210/580] Classifying: Comment: Andrew Rawnsley
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[211/580] Classifying: DTI threatens inquiry over gas price increases
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[212/580] Classifying: Hanson rejoins FTSE 100
+  -> Success: 한슨, FTSE 100 재진입
+[213/580] Classifying: Leader: Clinton aiming to go out with a bang
+  -> Success: 리더: 클린턴의 마지막 불꽃
+[214/580] Classifying: Business: At this price? Blue Circle
+  -> Success: 블루 서클, 이 가격에?
+[215/580] Classifying: Hi-tech flight floors Footsie
+  -> Success: 첨단 기술주들이 하락하며 포츠계 지수(FTSE 100)에 영향을 미치다
+[216/580] Classifying: The Crisis That Maybe Cried Wolf; Heating Oil Supp
+  -> Success: 늑대 소리일지 모르는 위기; 난방유 공급은 공식 추정치보다 많을 수 있다
+[217/580] Classifying: THE 2000 CAMPAIGN; Transcript of Debate Between Vi
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[218/580] Classifying: Circumventing An Oil Crisis; This Time, Policy Mak
+  -> Success: 석유 위기 극복: 이번에는 정책 입안자들이 '손만 대는' 접근 방식을 채택
+[219/580] Classifying: Foreign Affairs; Candidate In the Balance
+  -> Success: 외교 문제입니다: 후보자의 균형점
+[220/580] Classifying: U.S. and Others Press for Cuts In Price of Oil
+  -> Success: 미국과 기타 국가들이 유가 인하를 촉구하다
+[221/580] Classifying: A New Energy Economy Is Dawning
+  -> Success: 새로운 에너지 경제의 도래
+[222/580] Classifying: NEWS SUMMARY
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[223/580] Classifying: THE MARKETS; Despite OPEC Decision, Home Heating O
+  -> Success: OPEC 결정에도 불구하고 가정 난방유 가격이 10년 만에 최고치 기록
+[224/580] Classifying: Producers Urged to Lift Output As Cost Nears a 10-
+  -> Success: 생산국들은 비용이 10년 만에 최고치에 근접하면서 생산량 증산에 힘쓰라는 촉구를 받다: 오일 가격 급등이 OPEC 압박 가중
+[225/580] Classifying: THE MARKETS: Market Place; Home Heating Oil Prices
+  -> Success: 시장 동향: 재고 급감에 따라 난방유 가격 급등
+[226/580] Classifying: Small Gas Stations Struggle As Big Oil Producers P
+  -> Success: 대형 석유 기업이 이익을 얻는 사이 소형 주유소는 어려움에 처하다
+[227/580] Classifying: FIVE QUESTIONS for BIJAN NAMDAR ZANGANEH; Toward O
+  -> Success: 가격 안정화를 위한 단계별 접근: 비잔 남다르 장가네 인터뷰
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+[228/580] Classifying: Oil Price Falls Nearly Enough For OPEC to Cut Prod
+  -> Success: 유가, OPEC의 생산량 감산 언급에 근접하며 급락
+[229/580] Classifying: OPEC Leaves Question Of Oil Increase on Table
+  -> Success: OPEC, 원유 증산 문제에 대한 의문을 남긴 채 회의를 마치다
+[230/580] Classifying: Cheap Oil's Tough Bargains
+  -> Success: 싼 석유의 어려운 거래들
+[231/580] Classifying: THE MARKETS: Market Place; Oil Price Exceeds $30 a
+  -> Success: 시장 동향: 국제 유가, 1991년 이후 최초로 배럴당 30달러 돌파
+[232/580] Classifying: OPEC Strategy Is Beginning To Be Noticed By Consum
+  -> Success: OPEC 전략이 소비자들에게 감지되기 시작하다
+[233/580] Classifying: THE MARKETS: COMMODITIES; Oil Price Tops $28 a Bar
+  -> Success: 시장 동향: 상품; OPEC의 강경 발언에 유가 배럴당 28달러 돌파
+[234/580] Classifying: Movers
+  -> Success: 이사 업체
+[235/580] Classifying: Shell searches for hidden pearl of performance
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[236/580] Classifying: Scotland '£5bn better off than Whitehall claims'
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[237/580] Classifying: Strategy sacriced to soundbite
+  -> Success: 전략을 희생한 속보
+[238/580] Classifying: Shell shares soar on buy-back teaser
+  -> Success: 쉘 주식, 자사주 매입 기대로 급등
+[239/580] Classifying: Nemesis and nativity
+  -> Success: 네메시스와 탄생
+[240/580] Classifying: Crude oil price hits profit margins
+  -> Success: 원유 가격 상승이 이익 마진을 위협하다
+[241/580] Classifying: Finance Roundup
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[242/580] Classifying: Russia's ultimatum
+  -> Success: 러시아의 최후 통첩
+[243/580] Classifying: Carlos the Jackal returns to court
+  -> Success: 카를로스 더 자칼, 법정 복귀
+[244/580] Classifying: City briefing
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[245/580] Classifying: Pay policy in fancy dress
+  -> Success: 화려한 분장 정책
+[246/580] Classifying: Iraq turns off oil to wrongfoot the UN
+  -> Success: 이라크, 유엔에 맞서 석유 수출 중단
+[247/580] Classifying: COMMODITIES; Oil Prices Reach Highest Level in 3 Y
+  -> Success: 상품: 유가 3년 만에 최고치 기록; 일부 산업 금속도 상승
+[248/580] Classifying: Gas as a Haven From Oil-Price Swings
+  -> Success: 유가 변동성으로부터의 안전 자산으로서의 천연가스
+[249/580] Classifying: Labor Day Drivers to Pay More for Gas Than in '98
+  -> Success: 노동절 운전자들이 1998년보다 더 많은 돈을 주유에 지출하게 된다
+[250/580] Classifying: THE MARKETS: Market Place; Resurging Oil Prices Le
+  -> Success: 시장 분석: 반등하는 유가, 상품 시장 전반의 상승세를 이끌다
+[251/580] Classifying: THE MARKETS: COMMODITIES; Oil Price Up As OPEC's C
+  -> Success: 시장 분석: 상품군; OPEC의 감산 유지 기대감에 유가 상승세
+[252/580] Classifying: Business Travel
+  -> Success: 출장 비즈니스
+[253/580] Classifying: Oil Producers Agree to Trim Output to Help Bolster
+  -> Success: 주요 산유국들, 가격 방어 위해 추가 감산 합의
+[254/580] Classifying: Looking Up All the Way Down:Is Oil Finally Ripe fo
+  -> Success: 바닥을 향해 올라가는 곡선: 석유가 마침내 반등할 준비가 되었나?
+[255/580] Classifying: BIG OIL: THE MOTIVES; Supply and Profits
+  -> Success: 빅 오일: 동기(動機); 공급과 이익
+[256/580] Classifying: BP sacks security chief: Inquiry into arms and spy
+  -> Success: BP, 보안 책임자 해고: 무기 및 스파이 스캔들 조사 개시
+[257/580] Classifying: The gamble
+  -> Success: 도박
+[258/580] Classifying: The World; Singing the Cartel Blues
+  -> Success: 카르텔의 블루스를 노래하는 세계
+[259/580] Classifying: INTERNATIONAL BUSINESS; Mexico Playing Unfamiliar 
+  -> Success: 국제 비즈니스: 세계 석유 정치에 참여하는 낯선 역할의 멕시코
+[260/580] Classifying: THE MARKETS; Oil Price Rises 13% on Pledges Of Sup
+  -> Success: 시장 분석: 공급 감축 약속에 유가 13% 급등
+[261/580] Classifying: Why we must not be tempted into the single currenc
+  -> Success: 싱글 머니즈의 미로에 빠져서는 안 되는 이유
+[262/580] Classifying: Oil Firms Get Blamed for High Prices
+  -> Success: 석유 기업들이 높은 가격의 책임을 지다
+[263/580] Classifying: Tugs fight to stop slick from tanker polluting wil
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[264/580] Classifying: Keith Joseph obituary
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[265/580] Classifying: Growing Thirst to Boost Prices for Decade : Appeti
+  -> Success: 10년간 가격 상승을 촉진할 아시아의 에너지 수요 증가: 아시아의 에너지에 대한 열망 증가
+[266/580] Classifying: FUTURE MARKETS; Oil Price Is Highest In a Year
+  -> Success: 미래 시장: 유가는 1년 만에 최고치
+[267/580] Classifying: The World; OPEC's Lonely at the Tap, But China's G
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...하는 세계 시장'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...하는 세계 시장'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...하는 세계 시장'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[268/580] Classifying: Oil Prices, Plunging, May Not Have Hit Bottom
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[269/580] Classifying: COMPANY REPORTS; Texaco's Earnings Double Despite 
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[270/580] Classifying: Is There Energy in Oil Stocks?
+  -> Success: 유가주, 다시 힘을 받을까?
+[271/580] Classifying: FUTURES/OPTIONS; Oil Price Tumbles to $17.87, The 
+  -> Success: 선물/옵션: 유가, 1년 가까이 최저치인 17.87달러까지 폭락
+[272/580] Classifying: OPEC Divided on Meeting To Address Weak Oil Prices
+  -> Success: 약세 유가 해결을 위한 OPEC 분열된 회의
+[273/580] Classifying: FORUM;
+A World Overly Greedy for Oil
+  -> Success: 포럼: 석유에 너무 탐욕적인 세계
+[274/580] Classifying: Saudis Won't Ditch OPEC for Our Sake
+  -> Success: 사우디가 우리의 부탁 때문에 OPEC+를 포기하지 않을 것이다
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+[275/580] Classifying: OPEC Cuts: How Much and Whose?
+  -> Success: OPEC 감산: 얼마나, 누구의 감산인가?
+[276/580] Classifying: Market Place; Are Oil Stocks A Bargain Now?
+  -> Success: 시장: 지금 유가 주식은 매력적인가?
+[277/580] Classifying: FUTURES/OPTIONS; Oil Prices Decline Sharply On Bel
+  -> Success: 선물/옵션; 걸프 평화에 대한 기대감에 유가 급락
+[278/580] Classifying: The 462 million gallon question
+  -> Success: 4억 6,200만 개스갤런의 문제
+[279/580] Classifying: Cheap Oil May Not Be Enough to Cure Recession
+  -> Success: 경기 침체를 치료하기에 저렴한 유가만으로는 부족할 수 있다
+[280/580] Classifying: OPEC to Restore Quotas After Crisis Ends
+  -> Success: 오펙스, 위기 종료 후 생산 쿼터 복원
+[281/580] Classifying: Oil Price Falls 49 Cents Amid OPEC Concerns
+  -> Success: OPEC+ 우려 속에 유가, 49센트 하락
+[282/580] Classifying: Oil Industry Shows Caution In Spending Sudden Prof
+  -> Success: 석유 산업, 급작스러운 이익에 대한 지출에 신중함 표명
+[283/580] Classifying: Oil-Price Drop Seen by Yamani
+  -> Success: 야마니, 유가 하락 전망
+[284/580] Classifying: Oil Jumps In Futures Trading
+  -> Success: 유가가 선물 거래에서 급등
+[285/580] Classifying: In the Oil Trading Pit, Reflexes Must Be Fast
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[286/580] Classifying: Oil Price Rise Gives Algeria a $1 Billion Windfall
+  -> Success: 유가 상승으로 알제리, 10억 달러의 횡재액 얻어
+[287/580] Classifying: Crude Up By $1.66, To $31.43
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...해 31.43달러 기록'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...해 31.43달러 기록'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...해 31.43달러 기록'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[288/580] Classifying: Oil Price Tumbles $4 a Barrel l
+  -> Success: 원유 가격 배럴당 4달러 폭락
+[289/580] Classifying: Oil's Big Chance To Shape the Future
+  -> Success: 석유가 미래를 바꿀 큰 기회를 잡다
+[290/580] Classifying: Peace Effort Seen Stalling Oil Price Rise
+  -> Success: 평화 노력 정체에 따른 유가 상승세 둔화
+[291/580] Classifying: World Markets
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[292/580] Classifying: Oil Drops More Than $2 a Barrel
+  -> Success: 유가, 배럴당 2달러 이상 하락
+[293/580] Classifying: Oil-Price Climb Slows; New Stability Possible
+  -> Success: 유가 상승세 둔화; 새로운 안정화 가능성
+[294/580] Classifying: Oil Price Slide Fails to Register At Gas Pumps
+  -> Success: 유가 하락이 주유소 휘발유 가격에 반영되지 않다
+[295/580] Classifying: Oil Worries Increasing For OPEC
+  -> Success: OPEC를 둘러싼 유가 우려 고조
+[296/580] Classifying: Abrupt Oil-Price Shifts Seen As Unlikely Despite S
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[297/580] Classifying: Giant oil spill imperils Alaska
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...유출에 위협받다'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...유출에 위협받다'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...유출에 위협받다'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[298/580] Classifying: Giant oil spill imperils Alaska
+  -> Success: 거대 유출 사고, 알래스카 위협
+[299/580] Classifying: FUTURES/OPTIONS; Several Oil Countries Pledge Supp
+  -> Success: 상품/옵션; 여러 석유 국가들이 OPEC의 가격 지지를 약속하다
+[300/580] Classifying: OPEC Pact Lifts Oil Prices, But $18-$20 Goal Is El
+  -> Success: OPEC 협정이 유가를 끌어올리지만, 18-20달러 목표는 여전히 멀다
+[301/580] Classifying: FUTURES/OPTIONS; Energy Prices Up Strongly After N
+  -> Success: 선물/옵션; 노르웨이 감산 발표에 에너지 가격 강한 상승
+[302/580] Classifying: Big Gasoline Price Rise Is Considered Unlikely
+  -> Success: 큰 휘발유 가격 상승은 가능성이 낮다고 평가됨
+[303/580] Classifying: New Demand by Saudis Endangers OPEC Accord
+  -> Success: 사우디의 새로운 수요가 OPEC 합의를 위협하다
+[304/580] Classifying: Oil Experts See No Rebound Until OPEC Limits Outpu
+  -> Success: 전문가들, OPEC이 생산량 제한하지 않으면 회복 없을 것이라 분석
+[305/580] Classifying: INVESTING;
+The Case for Natural Gas Stocks
+  -> Success: 천연가스 주식 투자: 주목할 만한 이유
+[306/580] Classifying: Goodbye, Ronald Reagan
+  -> Success: 로널드 레이건 안녕
+[307/580] Classifying: Mexico to Seek More Loans In Plan to Offset Oil De
+  -> Success: 멕시코, 석유 생산 감소에 따른 재정 격차 메우기 위해 추가 대출 모색
+[308/580] Classifying: TWO CHEERS FOR $5 OIL
+  -> Success: 5달러짜리 기름에 건배를!
+[309/580] Classifying: Oil Price Is Little Changed: Stability Is Seen as 
+  -> Success: 유가 변화 미미: 불안정한 안정이 감지되다
+[310/580] Classifying: FUTURES/OPTIONS; Price War Fears Send Oil Tumbling
+  -> Success: 선물/옵션 시장: 가격 전쟁 공포로 유가 급락
+[311/580] Classifying: Market Place;
+Analysts Wary On Big Oil Stocks
+  -> Success: 시장 현황: 분석가들, 대형 석유주에 경계심
+[312/580] Classifying: Some Treasury Bond Yields Dip Below 9%
+  -> Success: 일부 국채 수익률이 9% 이하로 하락
+[313/580] Classifying: FUTURES/OPTIONS; Oil Price Off On Fears of More Su
+  -> Success: 선물/옵션; 공급 증가 우려로 유가 하락세
+[314/580] Classifying: FUTURES/OPTIONS; 84-Cent Jump Raises Oil Price to 
+  -> Success: 선물/옵션 거래: 84센트 급등으로 유가 15.40달러 상승
+[315/580] Classifying: INTERNATIONAL REPORT; Tensions Within OPEC Heighte
+  -> Success: 국제 보고서: OPEC 내부 갈등이 유가 전쟁을 고조시키다
+[316/580] Classifying: Oil Price Falls to a 20-Month Low of $14.78
+  -> Success: 유가, 20개월 만에 14.78달러까지 하락
+[317/580] Classifying: OIL PRICE SLIDE KEEPS GASOLINE COST STABLE
+  -> Success: 유가 하락세가 휘발유 가격 안정화에 기여
+[318/580] Classifying: Saudi Oil Tied to Spot Price
+  -> Success: 사우디 원유가 현물 가격과 연동되다
+[319/580] Classifying: FUTURES/OPTIONS; Oil Price Tops $17 a Barrel; OPEC
+  -> Success: 선물/옵션: 유가 배럴당 17달러 돌파; OPEC 회의 결과 주목
+[320/580] Classifying: Oil Declines On Silence By OPEC
+  -> Success: OPEC의 침묵으로 유가 하락
+[321/580] Classifying: FUTURES/OPTIONS; Crude Oil Prices in the U.S. Decl
+  -> Success: 선물/옵션; 미국 원유 가격 배럴당 16달러 미만으로 하락
+[322/580] Classifying: DISARRAY OF OPEC IS CALLED BENEFIT TO U.S. CONSUME
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+  -> Success: OPEC의 혼란이 미국 소비자에게 이익으로 불리다
+[323/580] Classifying: OPEC Pact Sends Oil Price Down
+  -> Success: OPEC 협정이 유가 하락을 부추기다
+[324/580] Classifying: INTERNATIONAL REPORT; Drop in Oil Prices Seen as L
+  -> Success: 국제 보고서: 유가 하락 가능성 높아
+[325/580] Classifying: IRAN AND ARABS CLASH IN OPEC ON OIL POLICY
+  -> Success: 이란과 아랍 국가들이 석유 정책을 두고 충돌하다
+[326/580] Classifying: Market Place; Oil Reserves Called Bargain
+  -> Success: 시장 전문가들이 원유 재고를 저가 매수 대상으로 평가하다
+[327/580] Classifying: FUTURES/OPTIONS; Gulf War Speculation Spurs Oil-Co
+  -> Success: 선물/옵션; 걸프전 투기가 유가 계약 상승을 촉발하다
+[328/580] Classifying: FUTURES/OPTIONS; Raids in Persian Gulf Lift Crude 
+  -> Success: 선물/옵션; 페르시아만 지역의 급습이 원유 가격을 끌어올리다
+[329/580] Classifying: U.S. Crude Falls Below $20 a Barrel
+  -> Success: 미국 원유, 배럴당 20달러 아래로 하락
+[330/580] Classifying: Oil Market Volatility Aids Merc
+  -> Success: 유가 시장 변동성이 Merc에 도움을 주다
+[331/580] Classifying: SIGNS OF LIFE IN OIL INDUSTRY
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[332/580] Classifying: OPEC OUTPUT MAY BE DOWN
+  -> Success: OPEC 생산량이 감소할 수 있다
+[333/580] Classifying: OPEC'S ACCORD FAILING TO BLOCK OIL PRICE SLUMP
+  -> Success: OPEC의 합의가 유가 하락세를 막지 못하는 상황
+[334/580] Classifying: U.S. OIL SHORTAGES SEEM UNAVOIDABLE TO MANY ANALYS
+  -> Success: 미국 원유 부족, 분석가들 사이에서 피할 수 없어 보인다
+[335/580] Classifying: BUSINESS FORUM: WILL OIL PRICES HOLD AT $18?; OPEC
+  -> Success: 비즈니스 포럼: 유가 $18 유지 가능할까? OPEC의 난관에도 불구하고, 붕괴는 없을 것
+[336/580] Classifying: SAUDIS WANT OIL KEPT AT $18
+  -> Success: 사우디, 유가 18달러 유지 의지 표명
+[337/580] Classifying: As Gulf War Intensifies, Oil Price Worries Grow
+  -> Success: 걸프전 격화에 따라 유가 우려 고조
+[338/580] Classifying: Iraq Fixing Its Oil Prices
+  -> Success: 이라크가 자체적으로 유가 조정에 나선다
+[339/580] Classifying: Article 814686 -- No Title
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[340/580] Classifying: OIL WORRY: IMPORT RELIANCE
+  -> Success: 원유 우려: 수입 의존도
+[341/580] Classifying: FUTURES/OPTIONS; Oil-Price Slide Checked Despite D
+  -> Success: 선물/옵션: OPEC에 대한 의구심 속에서도 유가 하락세 점검
+[342/580] Classifying: SAUDIS, TO DEVELOP TEHERAN TIES, ARE SAID TO BE SE
+  -> Success: 사우디, 테헤란 관계 개선 시도하며 이란에 연료 지원하는 것으로 알려져
+[343/580] Classifying: Egypt to Raise Oil Price
+  -> Success: 이집트, 유가 인상 결정
+[344/580] Classifying: THE OPEC SCHISM: PRICE WAR HINTED
+  -> Success: OPEC의 분열: 가격 전쟁 암시
+[345/580] Classifying: OPEC PLAN SNAGGED AS KUWAIT DEMANDS BIG RISE IN IT
+  -> Success: 쿠웨이트가 할당량 대폭 증액을 요구하며 OPEC 플랜 차질을 빚다
+[346/580] Classifying: Market Place; Energy Stocks: Analysts Split
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[347/580] Classifying: PROSPECTS
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[348/580] Classifying: GASOLINE PRICE RISE OF 10 cents TO 20 cents IS SEE
+  -> Success: OPEC의 감축 성공 시 휘발유 가격 10센트에서 20센트 상승 전망
+[349/580] Classifying: AN OPEC MEETING SEEMS AT IMPASSE
+  -> Success: OPEC 회의, 교착 상태에 빠지다
+[350/580] Classifying: OPEC AGAIN FAILS ON OUTPUT QUOTAS
+  -> Success: OPEC, 다시 한번 생산 할당에 실패하다
+[351/580] Classifying: OPEC STILL AT IMPASSE OVER PRODUCTION CUTS
+  -> Success: OPEC, 생산 감축 규모를 두고 여전히 교착 상태
+[352/580] Classifying: OIL PRICE RISE VIEWED AS TEMPORARY
+  -> Success: 유가 급등세, 일시적인 것으로 평가되다
+[353/580] Classifying: OPEC STILL DIVIDED ON OIL CURBS
+  -> Success: OPEC은 여전히 원유 감축에 있어 의견이 분분하다
+[354/580] Classifying: AGREEMENT BY OPEC IS ELUSIVE
+  -> Success: OPEC 합의 난항
+[355/580] Classifying: DOUBTS ON GASOLINE PRICE CUTS
+  -> Success: 휘발유 가격 인하에 의문 제기
+[356/580] Classifying: BUSINESS DIGEST: WEDNESDAY, DECEMBER 11, 1985
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[357/580] Classifying: MARKET REACTION STRONG AMID DOUBTS ON OPEC
+  -> Success: OPEC에 대한 의구심 속에 강한 시장 반응
+[358/580] Classifying: OPEC PLANS TO END OIL-PRICE DEFENSE TO CAPTURE SAL
+  -> Success: OPEC+, 판매 점유율 확대를 위해 유가 방어 계획을 포기할 예정
+[359/580] Classifying: BRITAIN AND NORWAY OUT OF OIL SPOTLIGHT
+  -> Success: 영국과 노르웨이의 오일 스포트라이트 하차
+[360/580] Classifying: REACTION MILD TO OIL PRICE CUTS
+  -> Success: 유가 감산에 대한 온건한 반응
+[361/580] Classifying: MEXICO THREATENED BY OIL PRICE CUTS
+  -> Success: 유가 절감 위협에 직면한 멕시코
+[362/580] Classifying: PRICE CUT PUTS MEXICO IN LEADING ROLE ON OIL;   Re
+  -> Success: 가격 인하가 멕시코를 오일 선두주자로 만듦; 가격 인하에 대한 반응
+[363/580] Classifying: PRICE CUT PUTS MEXICO IN LEADING ROLE ON OIL
+  -> Success: 가격 통제책이 멕시코를 원유 시장의 주도적인 역할에 놓이게 하다
+[364/580] Classifying: MEXICO CUTS PRICES OF ITS OIL
+  -> Success: 멕시코, 원유 가격 인하
+[365/580] Classifying: CURRENCY MARKETS;   Dollar Has Broad Fall; Gold Is
+  -> Success: 화폐 시장: 달러 폭락; 금은 변화 미미
+[366/580] Classifying: Oil Price Cut In Soviet Seen
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[367/580] Classifying: NORTH SEA OIL PRICE DROP SEEN
+  -> Success: 북해유가 하락세 목격
+[368/580] Classifying: TALK OF CUT IN OIL PRICE
+  -> Success: 원유 가격 인하 논의
+[369/580] Classifying: OIL PRICE FALL SEEN PERSISTING
+  -> Success: 유가 하락세 지속 예상
+[370/580] Classifying: Norway Said to Cut Oil Price by Up to $1
+  -> Success: 노르웨이, 원유 가격 최대 1달러 인하할 예정
+[371/580] Classifying: British Change Oil Price Setup
+  -> Success: 영국 변경유 가격 책정 전략
+[372/580] Classifying: Britain Avoids Oil-Price Cuts
+  -> Success: 영국, 유가 인하를 피하다
+[373/580] Classifying: Egypt Cuts Oil Price by 50/
+  -> Success: 이집트, 유가 50% 인하 결정
+[374/580] Classifying: OPEC SEEKS PLAN TO MONITOR OUTPUT
+  -> Success: OPEC, 생산량 모니터링 계획 모색
+[375/580] Classifying: OPEC'S OPENING TALKS YIELD LITTLE PROGRESS
+  -> Success: OPEC, 개회 논의에서 미흡한 진전만을 보이다
+[376/580] Classifying: Keep Prices, OPEC Urged
+  -> Success: 유가 가격 유지 요청, OPEC의 압박
+[377/580] Classifying: Oil Prices Are Sharply Lower
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[378/580] Classifying: OPEC REFINING ALARMS U.S. OILMEN
+  -> Success: OPEC, 정제 부문을 언급하며 미국 석유 업계에 경고장을 날리다
+[379/580] Classifying: ; IT'S TIME FOR OPEC TO COME DOWN TO EARTH
+  -> Success: OPEC이 현실을 직시해야 할 때
+[380/580] Classifying: U.S. OIL REFINERS IN SQUEEZE
+  -> Success: 미국 정유사들의 압박
+[381/580] Classifying: OIL PATCH IS WARY OF MORE PRICE CUTS
+  -> Success: 석유 시장, 추가 가격 인하에 대해 신중한 입장
+[382/580] Classifying: THE TROUBLING ECONOMICS OF OIL
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[383/580] Classifying: CANADA ANNOUNCES CUT IN OIL PRICE FOR NOV. 1
+  -> Success: 캐나다, 11월 유가 인하 발표
+[384/580] Classifying: CUTBACKS IN OIL ARE TAKEN UP BY OPEC STATES
+  -> Success: OPEC 국가들이 감산에 나서다
+[385/580] Classifying: OIL PRICES ARE LITTLE CHANGED
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[386/580] Classifying: NIGERIA CUTS PRICE OF OIL IN FIRST RIFT IN OPEC ST
+  -> Success: 나이지리아, OPEC 구조 균열 속 원유 가격 조정
+[387/580] Classifying: OIL INDUSTRY NUMBERS GAME
+  -> Failed: 
+[388/580] Classifying: 3 REFINERS WILL PAY LESS FOR OIL
+  -> Success: 3개 정유사, 원유를 더 싸게 매입할 전망
+[389/580] Classifying: OIL TRADERS FEARFUL OF AN OIL PRICE RISE BY NIGERI
+  -> Success: 나이지리아의 원유 가격 상승을 두려워하는 유가 트레이더들
+[390/580] Classifying: BRITAIN BRACES FOR NORTH SEA'S EBB
+  -> Success: 영국, 북해의 감소에 대비하다
+[391/580] Classifying: OIL COMPANIES' PROFITS AND ECONOMICS ARGUED
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[392/580] Classifying: Iran Lifts Oil Price 20 Cents, to $27.10 TEHERAN, 
+  -> Success: 이란, 원유 가격 20센트 인상, 배럴당 27.10달러로
+[393/580] Classifying: OIL PRICE CUTS ACCEPTED, BRITISH SAY
+  -> Success: 석유 가격 감산 합의 수락, 영국(브리티시)
+[394/580] Classifying: Market Place; Energy Stock Selections
+  -> Failed: 
+[395/580] Classifying: THE RISE OF OIL'S SPOT MARKET
+  -> Success: 원유 현물 시장의 부상
+[396/580] Classifying: IF OPEC'S PACT FAILS, WE LOSE
+  -> Success: OPEC의 협약이 무너지면 우리는 무너진다
+[397/580] Classifying: OIL EXPERTS SEE PRICES STABILIZING
+  -> Success: 전문가들, 유가 안정화 전망
+[398/580] Classifying: BRITISH SEE MINOR CUT IN OIL PRICE
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[399/580] Classifying: OPEC BARD; AN OIL MINISTER'S POEM STOLE THE SHOW
+  -> Failed: Expecting ',' delimiter: line 17 column 5 (char 798)
+[400/580] Classifying: U.S. EVALUATES BENEFITS OF PRICE CUT BY OPEC
+  -> Success: 미국, OPEC 가격 인하 혜택 평가
+[401/580] Classifying: OPEC CUT FAILS TO WIN ENTHUSIASM OF BUYERS
+  -> Success: OPEC 감산 발표가 구매자들의 관심을 끌지 못하다
+[402/580] Classifying: A SOVIET PUSH ON OIL EXPORTS
+  -> Success: 러시아의 원유 수출 압력
+[403/580] Classifying: VENEZUELA QUOTA CALLED OPEC SNAG
+  -> Success: 베네수엘라 쿼터가 OPEC을 고발하다
+[404/580] Classifying: Economic Scene; OPEC Failing As Cartel
+  -> Success: 경제 상황: 카르텔로 전락하는 OPEC
+[405/580] Classifying: Market Place; Oil-Related Stocks Viewed
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[406/580] Classifying: OIL HUNT AT TOP OF THE WORLD
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[407/580] Classifying: OIL EXPORTERS CONTINUE TALKS
+  -> Success: 원유 수출국들이 협상 지속
+[408/580] Classifying: PRODUCTION NOW FOCUS OF OPEC
+  -> Success: OPEC, 이제 생산량에 초점을 맞추다
+[409/580] Classifying: OPEC SEEKS TO SETTLE A DISPUTE ON OUTPUT CEILINGS
+  -> Success: OPEC, 생산 상한선에 대한 분쟁 해결 모색
+[410/580] Classifying: OPEC to Focus on Production
+  -> Success: OPEC, 생산량 관리에 집중할 것
+[411/580] Classifying: SOHIO ALASKA OIL PRICE $2-$3
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[412/580] Classifying: WISHFUL THINKINNG ON THE SPOT MARKET
+  -> Success: 현물 시장에 대한 환상적 생각
+[413/580] Classifying: Spot Oil Price Holds Steady
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[414/580] Classifying: THE VERY MIXED BLESSINGS OF PURE LIQUID GOLD
+  -> Failed: Expecting ',' delimiter: line 11 column 262 (char 695)
+[415/580] Classifying: Investing; A MEASURED ENTHUSIASM FOR OIL STOCKS
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[416/580] Classifying: OUR TAXES HELP PAY THE SAUDI 'RANSOM'
+  -> Success: 우리의 세금이 사우디 '몸값'을 지불한다
+[417/580] Classifying: TENSIONS ARE EASING FOR OPEC
+  -> Success: OPEC+의 긴장 완화
+[418/580] Classifying: THE NIGERIAN OIL PRICE BATTLE; News Analysis
+  -> Success: 나이지리아 석유 가격 전쟁: 뉴스 분석
+[419/580] Classifying: Editorial: Far away, forgotten and now filched | F
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[420/580] Classifying: U.S. OIL RUSH BEGINS TO SLOW
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...가 급등세 둔화'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...가 급등세 둔화'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...가 급등세 둔화'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[421/580] Classifying: THE DARK SIDE OF THE OIL GLUT
+  -> Success: 유가 과잉 공급의 어두운 면
+[422/580] Classifying: Economic Affairs;
+QUICK, PUT A TAX ON OPEC'S OIL
+  -> Success: 경제 문제; OPEC 원유에 세금 부과를 요구하다
+[423/580] Classifying: ARAB OIL MEETING SET
+  -> Success: 아랍 원유 회의 개최
+[424/580] Classifying: OPEC SETS REVIEW OF OIL MARKET
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+  -> Success: OPEC, 원유 시장 검토 예고
+[425/580] Classifying: BRITISH REDUCE THEIR OIL PRICE BY $4 A BARREL
+  -> Success: 영국, 유가 $4배럴 인하
+[426/580] Classifying: Mexico Cuts Its Oil Prices By Up to $2.50
+  -> Success: 멕시코, 자체 원유 가격 최대 2.50달러 인하
+[427/580] Classifying: IRAN IS SAID TO CUT OIL PRICES IN WIDER BREACH WIT
+  -> Success: 이란, OPEC과 다른 차원의 원유 가격 인하 시사
+[428/580] Classifying: SLIPPAGE IN OIL PRICE IS POSSIBLE
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[429/580] Classifying: Oil Price Cut By Iraq Cited
+  -> Success: 이라크의 원유 가격 감산 언급
+[430/580] Classifying: Kuwait Sets Oil Price Cut
+  -> Success: 쿠웨이트, 유가 인하 결정
+[431/580] Classifying: No Headline
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[432/580] Classifying: OPEC'S NEW UNITY: HOW DURABLE IS IT?; News Analysi
+  -> Success: OPEC의 새로운 단합: 얼마나 지속 가능한가?
+[433/580] Classifying: Mexico Raises Oil Price by $1
+  -> Success: 멕시코, 휘발유 가격 $1 인상
+[434/580] Classifying: OPEC MEMBERS UNITE TO FREEZE OIL PRICE AT $34
+  -> Success: OPEC 회원국들, 원유 가격 34달러로 동결에 합의
+[435/580] Classifying: EARLY OPEC PRICE ACCORD PREDICTED
+  -> Success: OPEC 가격 합의 임박 예측
+[436/580] Classifying: WEINBERGER SAYS SAUDI ARMS SALE WOULD HELP ALL MID
+  -> Success: 와인버거, 사우디의 무기 판매가 중동 국가 전체에 도움이 될 것이라고 말하다
+[437/580] Classifying: HEATING OIL PRICE MAY SLOW ITS RISE
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[438/580] Classifying: OIL COMPANIES REDUCE INVENTORIES
+  -> Success: 석유 회사들, 재고 축소에 나서다
+[439/580] Classifying: OPEC IS SAID TO NEGOIATE ON A UNIFIED PRICE
+  -> Success: OPEC, 통일된 가격 책정 협상 논의
+[440/580] Classifying: Index; International
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[441/580] Classifying: Oil Price Cut By Indonesia
+  -> Success: 인도네시아, 유가 인하 결정
+[442/580] Classifying: OPEC'S PRICING BATTLE: SAUDIS SHIFT TO THREATS; Ne
+  -> Success: OPEC의 가격 전쟁: 사우디의 위협적인 움직임 분석
+[443/580] Classifying: ECONOMIC GAINS TIED TO ENDING OIL PRICE CURBS
+  -> Success: 오일 가격 규제 해제에 따른 경제적 이익
+[444/580] Classifying: NIGERIA REDUCES CRUDE OIL PRICE BY $4 A BARREL
+  -> Success: 나이지리아, 원유 가격 1배럴당 4달러 인하
+[445/580] Classifying: BRITISH OIL: TO PUMP, OR NOT TO?; LONDON THIS year
+  -> Success: 영국 석유: 생산할 것인가, 말 것인가?; 영국이 에너지 자급자족을 이룩하다
+[446/580] Classifying: OPEC NATIONS FAIL TO HEAL THEIR RIFT OVER PRICE OF
+  -> Success: OPEC 국가들은 원유 가격에 대한 갈등을 치유하지 못하다
+[447/580] Classifying: Venezuela, Mexico Oil Prices Up; Two Raise Crude P
+  -> Success: 베네수엘라, 멕시코 유가 상승; 두 국가, 원유 가격 인상 시사권행 발언, 아프리카 발언 대기, OPEC 외 영향 소비자에 미치는 영향
+[448/580] Classifying: Oil Stocks Help Lift Dow 10.41; Energy Fervor Foll
+  -> Success: 원유 주식, 다우지수 상승 견인; OPEC 가격 인상에 힘입은 에너지 낙관론, 강세 마감한 원유 주식 상승세 주도
+[449/580] Classifying: OPEC MEETING ENDS WITH SIGN OF ACCORD ON $2-TO-$3 
+  -> Success: OPEC 회의, 2~3달러 원유가 상승 합의로 종료; 증가는 온화하게 간주
+[450/580] Classifying: Yamani's Optimism on Oil Price; Seeking Restraint 
+  -> Success: 야마니의 유가 낙관론; 덩컨이 본 이라크 수출 증대 기대에 따른 신중론
+[451/580] Classifying: Indonesia and Venezuela Expected to Lift Oil Price
+  -> Success: 인도네시아와 베네수엘라가 유가를 끌어올릴 것으로 예상; 이란과 이라크의 원유 선적이 예정된 OPEC 회의
+[452/580] Classifying: OPEC Says Its Meeting On Prices Will Be Held; Conf
+  -> Success: OPEC, 가격 회의 연기 발표하며 회원국 간 갈등 심화
+[453/580] Classifying: Spot Oil Price Up on War News; Refined Items Repor
+  -> Success: 전쟁 소식에 상승한 현물유 가격; 정제 제품가, '전쟁 리스크' 프리미엄으로 가달러 상승세 지속
+[454/580] Classifying: OPEC OIL MINISTERS AT ODDS ON PRICING AND OIL PROD
+  -> Success: OPEC 석유장관들, 가격 및 생산량에 의견 충돌; 야마니, 사우디는 전략 합의 전 감산 저항할 것이라 시사
+[455/580] Classifying: Oil Nations Criticized By Muskie at Opening Of U.N
+  -> Success: 오일 국가들, 국제원조 UN 회의에서 무스키에게 비판받다; 무스키, OPEC 보호 신규 자금 및 무역 약속 비판
+[456/580] Classifying: Spot Oil Price Dips Below $30; Lower Gas Prices Se
+  -> Success: 현물 유가 30달러대 하회; 네덜란드 가격 10% 하락에 따른 저가 유류 예상
+[457/580] Classifying: Reports On U.S. Oil Companies; Concerns Said To Ai
+  -> Success: 미국 석유 기업 보고서; OPEC 지원 우려 제기
+[458/580] Classifying: U.S. Pledge on Oil Curb Fulfilled; Import Limit Se
+  -> Success: 미국의 유류 소비 제한 약속 이행; 카터가 '79년 회담에서 수입 한도 설정
+[459/580] Classifying: Common Market Assails OPEC Over Continued Price In
+  -> Success: 상업시장, 지속적인 가격 인상을 두고 OPEC에 압박을 가하다; 과거 관행에서 벗어나라
+[460/580] Classifying: OPEC Head Pessimistic On Pricing; 'Others Might Ha
+  -> Success: OPEC 수장, 가격 책정에 비관적 입장 표명; '타국들은 기다렸을 것'
+[461/580] Classifying: Saudis Increase Crude Oil Price; Some Gas May Rise
+  -> Success: 사우디아라비아, 원유 가격 인상 단행; 일부 가스 가격도 1~2센트 상승 예상
+[462/580] Classifying: PRODUCER PRICE RISE CUT TO 0.5% IN APRIL; COST OF 
+  -> Success: 생산자 가격 상승률 4월에 0.5%로 하락; 식료품 비용 하락; 인플레이션 둔화. 경제학자들, 도매 물가 하락세가 계속되지 않을 수 있다고 경고 '우리는 완화세를 예상한다'
+[463/580] Classifying: Slower Oil Price Rises Expected; Analysts Cite A D
+  -> Success: 유가 상승 둔화 예상; 분석가들, 발전하는 공급 과잉이 완만한 증가만을 야기한다고 지적
+[464/580] Classifying: Yamani Predicts Oil Price Relief; But Warns U.S. O
+  -> Success: 야마니, 유가 안정 예측하나 미국의 연료 비축 요소에 대해 경고
+[465/580] Classifying: Excerpts From Economic Report; Reducing Inflation 
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[466/580] Classifying: PRESIDENT PRESENTS A GLOOMY OUTLOOK FOR ECONOMY IN
+  -> Success: 대통령, '80년 경제 전망 비관적 보고서 발표; 연례 국회 보고서에서 경기 침체 및 성장률 하락 예측
+[467/580] Classifying: The World
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[468/580] Classifying: THE THREATENING ECONOMY
+  -> Success: 위협적인 경제
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+[469/580] Classifying: BUSINESS Digest
+  -> Success: 비즈니스 다이제스트
+[470/580] Classifying: Venezuela Reported Ready to Raise Oil Cost by Up t
+  -> Success: 베네수엘라, 1월 1일부터 원유 가격 $2/배럴 인상 발표 예정
+[471/580] Classifying: CREDIT MARKETS
+  -> Success: 신용 시장
+[472/580] Classifying: Consumers’ Oil Cartel Proposed
+  -> Success: 소비자들의 '석유 카르텔' 제안
+[473/580] Classifying: Kennedy Says Carter Energy Policy Tempts Foreign O
+  -> Success: 케네디, 카터 대통령이 외국 석유 생산자들에게 유가 인상을 유도한다고 비난하다
+[474/580] Classifying: CARTER SAID TO BAR AN OIL IMPORT FEE
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[475/580] Classifying: OPEC'S BOARD URGES KEY CHARGE BE KEPT AT $24‐$25 A
+  -> Success: OPEC 이사회, 배럴당 24~25달러 가격대 유지 촉구
+[476/580] Classifying: ‘WINDFALL’ OIL TAX RAISING $178 BILLION IS VOTED B
+  -> Success: '뜻밖의' 유가세 부과 1,780억 달러 법안, 상원에서 통과
+[477/580] Classifying: 2 Refiners Lift Gas Price 6¢
+  -> Success: 2개 정제사, 가스 가격 6센트 인상
+[478/580] Classifying: LIBYA, KEY SUPPLIER FOR U.S., INCREASES PRICE OF O
+  -> Success: 리비아, 미국 주요 공급국, 원유 가격 15% 인상 및 인도네시아, OPEC 회의를 앞두고 금리 인상
+[479/580] Classifying: Computing Impact Of Oil Price Rise
+  -> Success: 유가 상승이 경제에 미치는 영향 분석
+[480/580] Classifying: Saudi‐U.S. Relations: New Test Over Oil Costs News
+  -> Success: 사우디-미국 관계: 유가에 대한 새로운 시험 분석
+[481/580] Classifying: Big Oil Price Increase. Because of Iran Cutoff Reg
+  -> Success: 이란 오일 차단 불가능성으로 인한 원유가 상승 제한
+[482/580] Classifying: Kuwait Said to Plan Oil Price Rise of 7.3%
+  -> Success: 쿠웨이트, 유가 7.3% 인상 계획 발표 전망
+[483/580] Classifying: Iran Calls For Parley On Oil Price
+  -> Success: 이란, 유가 관련 담판 요청
+[484/580] Classifying: THE CASE AGAINST THE OIL COMPANIES
+  -> Success: 석유 기업에 반하는 논리
+[485/580] Classifying: Letters
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...', 'sub_categories': []}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...', 'sub_categories': []}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...', 'sub_categories': []}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[486/580] Classifying: Surprise Oil Price Increase Threatens Anti‐Inflati
+  -> Success: 깜짝 유가 상승 위협, 인플레이션 억제 프로그램에 악영향
+[487/580] Classifying: POINT OF VIEW
+  -> Success: 관점: OPEC+가 인플레이션 및 달러 가치 하락에 따라 증산하는 것은 정당화될 수 있으며, 이는 또한 보존을 촉진하고 비OPEC 국가의 신규 프로젝트를 경제적으로 실현 가능하게 할 수 있다고 주장합니다.
+[488/580] Classifying: Oil Price Rise Cuts Two Ways
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[489/580] Classifying: CURRENCY MARKETS
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...title': '외환 시장'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...title': '외환 시장'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...title': '외환 시장'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[490/580] Classifying: Economic Scene
+  -> Success: 경제 상황 (OPEC+의 증산과 미국 및 세계 경제 피해 방지 방안에 대한 논평/만화)
+[491/580] Classifying: From the archive: Europe shudders as oil prices ri
+  -> Success: 보관된 아카이브: 오일 가격이 상승하면서 유럽이 떨게 되다
+[492/580] Classifying: ECONOMISTS EXPECT OPEC RISE TO WIDEN U.S. RECESSIO
+  -> Success: 경제학자들, OPEC의 상승 결정이 미국의 경기 침체 위험 확대에 기여할 것으로 예측
+[493/580] Classifying: Letting OPEC Make Energy Policy
+  -> Success: OPEC이 에너지 정책을 주도하도록 허용하기
+[494/580] Classifying: The World
+  -> Success: 제공된 기사 내용은 전적으로 미국 중
+[495/580] Classifying: Saudis to Seek Oil Price Freeze, But Hint OPEC Wil
+  -> Success: 사우디, 유가 동결 추진하지만 OPEC 동의는 불확실
+[496/580] Classifying: LETTERS
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[497/580] Classifying: For Oil Pricing, a Basket Of Currencies in Offing?
+  -> Success: 유가 산정을 위한 바스켓 통화?: 원유 가격 책정; 구매자의 오일 시장
+[498/580] Classifying: 5 in OPEC to Meet On Crude‐Oil Price
+  -> Success: OPEC 내 5개국, 원유 가격 논의를 위해 만나다
+[499/580] Classifying: Weaker OPEC Is Worried Over Disunity
+  -> Success: 오펙이 약해지면서 불안감을 느끼다
+[500/580] Classifying: OPEC SAYS OIL PRICES WILL NOT BE RAISED FOR THE TI
+  -> Success: OPEC, 당분간 유가 인상 없을 것이라고 밝히다
+[501/580] Classifying: OPEC SAYS OIL PRICES WILL NOT BE RAISED FOR THE TI
+  -> Success: OPEC: 당분간 유가 인상 없을 것
+[502/580] Classifying: Yamani Reported to SayThat Saudis Will SeekOil Pri
+  -> Success: 야마니, 사우디가 78년 유가 동결을 모색할 것이라 전해: UAE도 사우디 입장 지지 (S)
+[503/580] Classifying: Vance Says Venezuela Is Rejecting Requests for a F
+  -> Success: 밴스가 베네수엘라의 유가 동결 요청 거부에 대해 언급하다
+[504/580] Classifying: Iran Emerging as Major Alternative In Eastern Euro
+  -> Success: 이란, 동유럽의 원유 탐색에 주요 대안으로 떠오르다
+[505/580] Classifying: 15% OPEC PRICE RISE URGED BY ALGERIAN
+  -> Success: 알제리, OPEC에 15% 가격 인상 요구
+[506/580] Classifying: IN BRIEF
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[507/580] Classifying: Iraq Is Passing Up 5% Rise in Oil Price
+  -> Success: 이라크, 유가 5% 상승 기회 포기
+[508/580] Classifying: 9 in OPEC Drop Planned 5% Rise For Price of Oil
+  -> Success: OPEC, 회원국 9곳이 계획했던 5% 유가 인상 취소 발표
+[509/580] Classifying: 9 in OPEC Drop Planned 5% Rise For Price of Oil
+  -> Success: OPEC에서 9개국이 감산하고 유가 상승 5%를 계획하다
+[510/580] Classifying: Reports of End of Pricing Split In OPEC Confirmed 
+  -> Success: 쿠웨이트에서 OPEC 가격 분할 종료 보도 확인
+[511/580] Classifying: Sharing the Higher Profits From Oil
+  -> Success: 석유 수익을 나누다
+[512/580] Classifying: Caracas Official Won't Confirm Oil Price Report
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+  -> Failed: 3 validation errors for ClassifiedArticle
+impact_score
+  Field required [type=missing, input_value={'article': NewsArticle(i...고서 발표 거부'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+impact_summary
+  Field required [type=missing, input_value={'article': NewsArticle(i...고서 발표 거부'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+confidence
+  Field required [type=missing, input_value={'article': NewsArticle(i...고서 발표 거부'}, input_type=dict]
+    For further information visit https://errors.pydantic.dev/2.11/v/missing
+[513/580] Classifying: Indonesia Forgoes A 5% Oil Price Rise
+  -> Success: 인도네시아, 유가 5% 상승 포기 결정
+[514/580] Classifying: Leonard Silk
+  -> Success: 레너드 실크: 카터 에너지 프로그램에 대한 기록 - MIT 교수들의 석유 및 가스 완전 탈규제에 대한 논거
+[515/580] Classifying: CARTER TO ASK RISE ON U.S.‐PRODUCED OIL TO THE IMP
+  -> Success: 캐터, 미국산 석유를 수입 가격에 반영 요구
+[516/580] Classifying: Saudis Reported Planning Big Increase in Oil Outpu
+  -> Success: 사우디, 원유 생산량 대폭 증대 계획 발표
+[517/580] Classifying: WORLD OIL BUSINESS THROWN INTO CHAOS
+  -> Success: 세계 석유 비즈니스가 혼란에 빠지다
+[518/580] Classifying: SAUDIS WARN THE WEST TO SHOW APPRECIATION OF OIL‐P
+  -> Success: 사우디, 서방에 유가 안정화에 대한 인식을 보여줄 것을 경고하다
+[519/580] Classifying: WORLD OIL BUSINESS THROWN INTO CHAOS
+  -> Success: 세계 석유 산업이 혼란에 빠지다
+[520/580] Classifying: Gasoline to Cost About a Penny a Gallon More; Slig
+  -> Success: 휘발유 가격은 가당 1페니 상승 예상; 공과금 및 항공료도 소폭 인상 예정
+[521/580] Classifying: OPEC's Price Power Has Grown Over Last 16 Years
+  -> Success: OPEC의 가격 결정력, 지난 16년간 성장해 왔다
+[522/580] Classifying: SAUDIS WARN THE WEST TO SHOW APPRECIATION OF OIL‐P
+  -> Success: 사우디, 서방에 유가 안정에 대한 '감사'를 보여줄 것을 경고하다
+[523/580] Classifying: Saudi Arabia's Oil Minister Urges A 6‐Month Price 
+  -> Success: 사우디 석유부 장관, OPEC에 6개월간 유가 동결 촉구
+[524/580] Classifying: HEAD OF OPEC CALLS TWO‐STEP PRICE RISE ‘POSSIBLE S
+  -> Success: OPEC 수장, 2단계 가격 인상 '가능한 시나리오'로 언급
+[525/580] Classifying: East Europe Also to Face Soviet Oil Price Rise
+  -> Success: 동유럽도 소련의 유가 인상 위협에 직면할 수 있다
+[526/580] Classifying: Oil Experts Vexed By Power Failures In Qatar Meeti
+  -> Success: 카타르 회의에서의 정전 사태에 대한 석유 전문가들의 우려
+[527/580] Classifying: Oil Consumers Await Price Rise As OPEC Nations Mee
+  -> Success: 석유 소비자들, 이번 주 OPEC 국가 회의 결과를 기다리며 가격 상승 기대
+[528/580] Classifying: Oil Consumers Await Price Rise As OPEC Nations Mee
+  -> Success: 석유 소비자들, OPEC 국가 회의를 앞두고 가격 상승에 대한 기대감에 주목
+[529/580] Classifying: Letters to the Editor
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[530/580] Classifying: Oil Price Rise ...
+  -> Success: 유가 상승… 사우디아라비아의 오펙 가격 정책 방향 분석
+[531/580] Classifying: OUTLOOK FOR A RISE IN THE PRICE OF OIL PUSHES URAN
+  -> Success: 유가 상승 전망이 우라늄 가격을 끌어올린다
+[532/580] Classifying: OPEC MEETING NEXT WEEK TO DISCUSS NEW OIL PRICES
+  -> Success: OPEC, 다음 주 원유 가격 구조 논의 예정
+[533/580] Classifying: People and Business
+  -> Success: 사람과 비즈니스
+[534/580] Classifying: Billion Iran Deficit Seen Despite Oil‐Price Rise
+  -> Success: 석유 가격 상승에도 불구하고 기록적인 이란 재정 적자
+[535/580] Classifying: Business Briefs
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[536/580] Classifying: RISE IN OIL PRICE WORKING OUT TO 9%
+  -> Success: 유가, 상승세로 9%까지 오를 전망
+[537/580] Classifying: 3 More Concerns Cut Gasoline Cost By Cent a Gallon
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[538/580] Classifying: Saudis Back Oil‐Price Freeze Until ‘77
+  -> Success: 사우디, 유가 동결 유지 선언
+[539/580] Classifying: Algeria Raises Her Oil Price by $1 to $12.75 a Bar
+  -> Success: 알제가, 원유 가격을 배럴당 1달러 인상하여 12.75달러로 조정
+[540/580] Classifying: EFFECT UNCERTAIN IN OIL‐PRICE RISE
+  -> Failed: 1 validation error for ClassifiedArticle
+category
+  Input should be a valid string [type=string_type, input_value=None, input_type=NoneType]
+    For further information visit https://errors.pydantic.dev/2.11/v/string_type
+[541/580] Classifying: Oil‐Price Rise Dismays Japan; Miki Calls Cabinet I
+  -> Success: 유가 상승에 일본 실망, 미키(Miki)가 내각을 소집하다
+[542/580] Classifying: Effects of 10% Oil Price Rise Are Assayed
+  -> Success: 원유 가격 10% 상승의 영향 분석
+[543/580] Classifying: THE ECONOMIC SCENE
+  -> Success: 경제 전망
+[544/580] Classifying: Shah Says View Will Be Influential in OPEC
+  -> Success: 이란 지도자, OPEC 회의에서 원유 가격 영향력 행사 시사
+[545/580] Classifying: Business Briefs
+  -> Success: 비즈니스 브리프
+[546/580] Classifying: Federal Oil Controls End; Large Price Rises Doubte
+  -> Success: 연방 오일 통제 해제; 큰 폭의 가격 상승은 의문시됨
+[547/580] Classifying: Federal Oil Controls End; Large Price Rises Doubte
+  -> Success: 연방유분통제 종료; 급격한 가격 상승은 의심된다
+[548/580] Classifying: The Oil Oracle of Wall Street
+  -> Success: 월스트리트의 석유 오라클
+[549/580] Classifying: Kuwaiti Hints a Delay on Oil Price Rise
+  -> Success: 쿠웨이트, 유가 인상 계획 지연 시사
+[550/580] Classifying: Mobil Opposes Decontrol of Oil; Urges Phaseout of 
+  -> Success: 모빌, 유가 통제 완화 반대하며 가격 통제 단계적 해제를 촉구
+[551/580] Classifying: Mobil Opposes Decontrol of Oil; Urges Phaseout of 
+  -> Success: 모빌(Mobil), 석유 통제 해제를 반대하며 가격 통제 철폐 촉구
+[552/580] Classifying: THE ECONOMIC SCENE
+  -> Success: 경제 상황
+[553/580] Classifying: Ford's Strategy Can Adapt to Tariff Loss
+  -> Success: 포드의 전략은 관세 손실에도 적응할 수 있다
+[554/580] Classifying: GETTING EVEN
+  -> Success: 균형을 잡으려는 노력
+[555/580] Classifying: Business Briefs
+  -> Success: 비즈니스 브리핑
+[556/580] Classifying: New Turn in Oil Prices
+  -> Success: 유가 변동의 새로운 국면
+[557/580] Classifying: Arab Emirates Seek Oil‐Price Meeting
+  -> Success: 아랍에미리트, 유가 관련 회의 추진
+[558/580] Classifying: The Profit Machine
+  -> Success: 수익 엔진
+[559/580] Classifying: OPEC DISCUSSING OIL PRICE REFORM
+  -> Success: OPEC, 원유 가격 개혁 논의
+[560/580] Classifying: MEXICO ACCEPTS OIL‐PRICE SYSTEM
+  -> Success: 멕시코, 원유 가격 시스템 수용
+[561/580] Classifying: Saudi Sheik Links Oil Price Cut to Mideast Peace
+  -> Success: 사우디 왕자, 유가 감산과 중동 평화를 연관 지어 말하다
+[562/580] Classifying: Saving on Oil
+  -> Success: 유가 절약
+[563/580] Classifying: OIL NATIONS PLAN PRICE STRATEGY
+  -> Success: 석유 국가들, 가격 전략 논의 준비
+[564/580] Classifying: The Price of Oil
+  -> Success: 유가의 가격
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+INFO:httpx:HTTP Request: POST http://localhost:11434/api/generate "HTTP/1.1 200 OK"
+[565/580] Classifying: MOST OPEC LANDS. AGREE ON 57% RIS FOR TAXES ON OIL
+  -> Success: OPEC이 주도. 석유세 관련 57% 합의 도출
+[566/580] Classifying: MOST OPEC LANDS AGREE ON ro RISE FOR TAXES ON OIL
+  -> Success: OPEC 회원국 대부분, 석유세 인상에 합의하다
+[567/580] Classifying: Saudi Arabia and Iran In Oil‐Price Stalemate
+  -> Success: 사우디아라비아와 이란, 유가 정책 교착 상태 지속
+[568/580] Classifying: Venezuela Expects Rise Of 14% in Crude Oil Price
+  -> Success: 베네수엘라, 원유 가격 14% 상승 예상
+[569/580] Classifying: Major Declines in Oil Prices Doubted
+  -> Success: 유가 대폭 하락 우려 불식
+[570/580] Classifying: Aramco Deal Is Oil‐Price Movel
+  -> Success: 아람코 거래는 유가 결정적 요인
+[571/580] Classifying: Impact of Arabs' Oil Tactics
+  -> Success: 아라비아의 석유 전술적 영향
+[572/580] Classifying: GROWING DEFICITS EXPECTED IN WAKE OF OIL‐PRICE RIS
+  -> Success: 원유가 상승에 따른 적자 예상 증가
+[573/580] Classifying: GROWING DEFICITS EXPECTED IN WAKE OF OIL‐PRICE RIS
+  -> Success: 유가 상승에 따른 적자 증가 예상
+[574/580] Classifying: OIL PRICE DOUBLED BY BIG PRODUCERS ON PERSIAN GULF
+  -> Success: 페르시아만 주요 생산국들이 유가를 두 배로 끌어올리다
+[575/580] Classifying: OIL PRICE DOUBLED BY BIG PRODUCERS ON PERSIAN GULF
+  -> Success: 석유 가격을 크게 올릴 중동 대형 산유국들
+[576/580] Classifying: EXPORTERS OP OIL SEE ACCORD NEAR
+  -> Success: 원유 수출국들이 높은 유가 합의에 근접했다고 보고
+[577/580] Classifying: HIGHER OIL PRICES UNDER DISCUSSION
+  -> Success: 높아질 유가 논의
+[578/580] Classifying: Arabs Increasing Pressure on Oil
+  -> Success: 아랍 국가들, 석유 가격에 압박 가중
+[579/580] Classifying: Business Briefs
+  -> Success: 비즈니스 브리핑
+[580/580] Classifying: 0.P.E.C. WEIGHING SANCTIONS ON OIL
+  -> Success: OPEC이 원유 규제에 대한 제재 검토
+All articles processed.

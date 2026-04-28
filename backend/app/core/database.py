@@ -369,6 +369,67 @@ class Database:
             result = await session.execute(stmt)
             return [dict(r._mapping) for r in result.all()]
 
+    async def get_historical_price_changes(self, base_date_str: str) -> dict:
+        """
+        Calculate the percentage price changes for 1d, 7d, 30d relative to the base_date.
+        Handles missing days (weekends/holidays) via forward-fill logic.
+        Returns a dict like: {'wti_change_1d': 1.5, 'dubai_change_7d': -0.2, ...}
+        """
+        from datetime import datetime, timedelta
+        from sqlalchemy import text
+        
+        try:
+            # Parse ISO 8601 string to YYYY-MM-DD
+            base_date = datetime.fromisoformat(base_date_str.replace('Z', '+00:00')).date()
+        except ValueError:
+            base_date = datetime.strptime(base_date_str[:10], "%Y-%m-%d").date()
+            
+        target_dates = {
+            "1d": base_date + timedelta(days=1),
+            "7d": base_date + timedelta(days=7),
+            "30d": base_date + timedelta(days=30),
+        }
+        
+        crude_types = ["dubai", "brent", "wti"]
+        changes = {f"{c}_change_{p}": None for c in crude_types for p in ["1d", "7d", "30d"]}
+        
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            for crude in crude_types:
+                # 1. Get base price (closest trading day ON OR BEFORE base_date)
+                stmt_base = text(f"""
+                    SELECT {crude} FROM oil_prices 
+                    WHERE date <= :b_date AND {crude} IS NOT NULL 
+                    ORDER BY date DESC LIMIT 1
+                """)
+                res_base = await session.execute(stmt_base, {"b_date": base_date.isoformat()})
+                base_price_row = res_base.scalar()
+                
+                if not base_price_row:
+                    continue  # No historical data before this date for this crude
+                    
+                base_price = float(base_price_row)
+                if base_price == 0:
+                    continue
+                    
+                # 2. Get future prices for each period
+                for period, t_date in target_dates.items():
+                    # Closest trading day ON OR AFTER target_date
+                    stmt_future = text(f"""
+                        SELECT {crude} FROM oil_prices 
+                        WHERE date >= :t_date AND {crude} IS NOT NULL 
+                        ORDER BY date ASC LIMIT 1
+                    """)
+                    res_future = await session.execute(stmt_future, {"t_date": t_date.isoformat()})
+                    future_price_row = res_future.scalar()
+                    
+                    if future_price_row:
+                        future_price = float(future_price_row)
+                        pct_change = ((future_price - base_price) / base_price) * 100.0
+                        changes[f"{crude}_change_{period}"] = round(pct_change, 2)
+                        
+        return changes
+
     async def get_news_yearly_stats(self) -> list[dict]:
         """뉴스 기사 연도별 통계"""
         session_factory = get_session_factory()

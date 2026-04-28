@@ -127,10 +127,10 @@ async def main():
                 classified_article = ClassifiedArticle(**result_data)
                 
                 if classified_article.is_relevant:
-                    price_changes = {}
-                    for crude in ["dubai", "brent", "wti"]:
-                        for period in ["1d", "7d", "30d"]:
-                            price_changes[f"{crude}_change_{period}"] = 0.0
+                    from app.core.database import Database
+                    db_instance = Database()
+                    price_changes = await db_instance.get_historical_price_changes(classified_article.article.published_at)
+
                     await memory.store_event(classified_article.model_dump(), price_changes)
                     
             async with SessionLocal() as db_update:

@@ -96,7 +96,7 @@ class MarketMemory:
             # Ensure all metadata values are of supported types
             for key, value in metadata.items():
                 if value is None:
-                    metadata[key] = -1.0  # ChromaDB doesn't like None
+                    metadata[key] = -9999.0  # ChromaDB doesn't like None
                 elif isinstance(value, (int, float, str, bool)):
                     continue
                 else:
