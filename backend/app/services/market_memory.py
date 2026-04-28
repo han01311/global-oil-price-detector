@@ -69,6 +69,7 @@ class MarketMemory:
                 "source": article_info.source or "Unknown",
                 "url": article_info.url,
                 "translated_title": article_model.translated_title or "",
+                "sub_categories": ",".join(article_model.sub_categories) if article_model.sub_categories else "",
             }
 
             # Store per-crude impact scores
@@ -247,7 +248,7 @@ class MarketMemory:
                     article=news_article,
                     is_relevant=True,
                     category=metadata.get("category", "unknown"),
-                    sub_categories=[],
+                    sub_categories=[s.strip() for s in str(metadata.get("sub_categories", "")).split(",")] if metadata.get("sub_categories") else [],
                     impact_score=int(metadata.get("impact_score", 0) or 0),
                     impact_summary=summary or "",
                     confidence=float(metadata.get("confidence", 0.8) or 0.8),

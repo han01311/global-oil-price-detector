@@ -7,11 +7,11 @@ async def main():
     session_factory = get_session_factory()
     async with session_factory() as session:
         result = await session.execute(
-            select(NewsArticle).where(NewsArticle.is_classified == 1).limit(5)
+            select(NewsArticle).where(NewsArticle.is_classified == 1)
         )
         articles = result.scalars().all()
-        for a in articles:
-            print(a.id, a.classification_result.get('sub_categories') if a.classification_result else None)
+        missing_count = sum(1 for a in articles if not a.classification_result or not a.classification_result.get('sub_categories'))
+        print(f"Total classified: {len(articles)}, Missing sub_categories: {missing_count}")
 
 if __name__ == "__main__":
     asyncio.run(main())

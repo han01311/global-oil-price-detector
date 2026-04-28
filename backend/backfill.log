@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/jazzmandarine/Documents/GitHub/global-oil-price-detector/backend/scripts/backfill_subcategories.py", line 4, in <module>
+    from app.models.base import get_session_factory
+ModuleNotFoundError: No module named 'app'
