@@ -351,6 +351,20 @@ class Database:
             result = await session.execute(stmt)
             return [_row_to_dict(r) for r in result.scalars().all()]
 
+    async def get_news_by_range(self, start_date: str, end_date: str, limit: int = 200) -> list[dict]:
+        """특정 기간의 기사 목록 반환"""
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            stmt = (
+                select(NewsArticleModel)
+                .where(NewsArticleModel.published_at >= start_date)
+                .where(NewsArticleModel.published_at <= end_date + "T23:59:59")
+                .order_by(NewsArticleModel.published_at.desc())
+                .limit(limit)
+            )
+            result = await session.execute(stmt)
+            return [_row_to_dict(r) for r in result.scalars().all()]
+
     async def get_news_source_stats(self) -> list[dict]:
         """뉴스 기사 소스별 통계"""
         session_factory = get_session_factory()

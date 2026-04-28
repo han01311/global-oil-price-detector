@@ -40,7 +40,7 @@ const INTERVALS: { key: Interval; label: string }[] = [
   { key: 'year', label: '년' },
 ];
 
-function aggregate(data: ChartDataPoint[], iv: Interval): ChartDataPoint[] {
+function aggregate(data: ChartDataPoint[], iv: Interval, rawCounts?: Record<string, number>): ChartDataPoint[] {
   if (iv === 'day' || data.length === 0) return data;
   const groups = new Map<string, ChartDataPoint[]>();
   for (const d of data) {
@@ -60,7 +60,21 @@ function aggregate(data: ChartDataPoint[], iv: Interval): ChartDataPoint[] {
   return Array.from(groups.entries()).map(([k, pts]) => {
     const first = pts[0];
     const last = pts[pts.length - 1];
-    const sumCount = pts.reduce((acc, curr) => acc + (curr.dbArticleCount || 0), 0);
+    
+    let sumCount = 0;
+    if (rawCounts) {
+      // iterate through dates from first to last using string comparison
+      const startStr = first.date;
+      const endStr = last.date;
+      for (const [dateStr, count] of Object.entries(rawCounts)) {
+        if (dateStr >= startStr && dateStr <= endStr) {
+          sumCount += count;
+        }
+      }
+    } else {
+      sumCount = pts.reduce((acc, curr) => acc + (curr.dbArticleCount || 0), 0);
+    }
+
     return { 
       ...last, 
       dbArticleCount: sumCount || undefined, 
@@ -106,10 +120,10 @@ const ChartTooltip: React.FC<any> = ({ active, payload, label, interval }) => {
 
 export const PriceChart: React.FC = () => {
   const [interval, setIv] = useState<Interval>('day');
-  const { chartData, forecast, loading, error } = usePriceData('ALL');
-  const { setSelectedDate } = useDashboardContext();
+  const { chartData, forecast, loading, error, rawNewsCounts } = usePriceData('ALL');
+  const { setSelectedDate, setSelectedDateRange } = useDashboardContext();
 
-  const aggData = useMemo(() => aggregate(chartData, interval), [chartData, interval]);
+  const aggData = useMemo(() => aggregate(chartData, interval, rawNewsCounts), [chartData, interval, rawNewsCounts]);
 
   const [xStart, setXStart] = useState(0);
   const [xEnd, setXEnd] = useState(0);
@@ -277,8 +291,12 @@ export const PriceChart: React.FC = () => {
 
   const handleElementClick = (data: any) => {
     if (dragState.current.isPanning) return;
-    if (data && (data.filterDate || data.date)) {
-      setSelectedDate(data.filterDate || data.date);
+    if (data) {
+      if (interval !== 'day' && data.groupStartDate && data.groupEndDate) {
+        setSelectedDateRange({ start: data.groupStartDate, end: data.groupEndDate });
+      } else if (data.filterDate || data.date) {
+        setSelectedDate(data.filterDate || data.date);
+      }
       setTimeout(() => document.querySelector('.news-explorer-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     }
   };

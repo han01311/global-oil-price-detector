@@ -130,3 +130,7 @@ export async function fetchNewsByDate(date: string): Promise<ClassifiedArticle[]
   return apiFetch(`/api/news/by-date?date=${date}`);
 }
 
+export async function fetchNewsByRange(startDate: string, endDate: string): Promise<ClassifiedArticle[]> {
+  return apiFetch(`/api/news/by-range?start_date=${startDate}&end_date=${endDate}`);
+}
+

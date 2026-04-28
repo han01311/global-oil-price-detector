@@ -38,6 +38,7 @@ interface PriceData {
   newsMarkers: NewsMarker[];
   dbNewsMarkers: DBNewsMarker[];
   forecast: ForecastResult | null;
+  rawNewsCounts: Record<string, number>;
   loading: boolean;
   error: Error | null;
 }
@@ -106,7 +107,7 @@ export function usePriceData(period: Period): PriceData {
     loadData();
   }, [period]);
 
-  const { chartData, newsMarkers, dbNewsMarkers } = useMemo(() => {
+  const { chartData, newsMarkers, dbNewsMarkers, rawNewsCounts } = useMemo(() => {
     if (!history.length) {
       return { chartData: [], newsMarkers: [], dbNewsMarkers: [] };
     }
@@ -191,14 +192,18 @@ export function usePriceData(period: Period): PriceData {
       }
     });
 
+    const rawNewsCounts: Record<string, number> = {};
+    dateCountMap.forEach((val, key) => { rawNewsCounts[key] = val; });
+
     return {
       chartData: Array.from(chartDataMap.values()),
       newsMarkers: processedNewsMarkers,
       dbNewsMarkers: processedDBMarkers,
+      rawNewsCounts,
     };
   }, [history, forecast, news, newsDateCounts]);
 
-  return { chartData, newsMarkers, dbNewsMarkers, forecast, loading, error };
+  return { chartData, newsMarkers, dbNewsMarkers, rawNewsCounts, forecast, loading, error };
 }
 
 export { getCategoryColor };

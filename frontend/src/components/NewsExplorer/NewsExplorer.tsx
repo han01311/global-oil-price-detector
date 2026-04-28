@@ -6,7 +6,7 @@ import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';
 import { EmptyState } from '../common/EmptyState';
 import { useDashboardContext } from '../../context/DashboardContext';
-import { fetchNewsByDate } from '../../services/api';
+import { fetchNewsByDate, fetchNewsByRange } from '../../services/api';
 import type { ClassifiedArticle } from '../../types/news';
 import './NewsExplorer.css';
 
@@ -20,7 +20,7 @@ const CRUDE_TYPES: CrudeType[] = ['All', 'dubai', 'brent', 'wti'];
 
 export const NewsExplorer: React.FC = () => {
   const { articles, loading, error, refetch } = useNewsData();
-  const { selectedDate, setSelectedDate, setHighlightedCategory } = useDashboardContext();
+  const { selectedDate, setSelectedDate, selectedDateRange, setSelectedDateRange, setHighlightedCategory } = useDashboardContext();
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [activeCrudeType, setActiveCrudeType] = useState<CrudeType>('All');
   const [sortOrder, setSortOrder] = useState<SortOrder>('time');
@@ -29,24 +29,28 @@ export const NewsExplorer: React.FC = () => {
   const [dbArticles, setDbArticles] = useState<ClassifiedArticle[]>([]);
   const [dbLoading, setDbLoading] = useState(false);
 
-  // 차트에서 날짜 클릭 시 DB에서 해당 날짜 기사를 로드
+  // 차트에서 날짜/범위 클릭 시 DB에서 해당 기사를 로드
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate || selectedDateRange) {
       setActiveCategory('All');
       setDbLoading(true);
-      fetchNewsByDate(selectedDate)
+      const fetchPromise = selectedDateRange
+        ? fetchNewsByRange(selectedDateRange.start, selectedDateRange.end)
+        : fetchNewsByDate(selectedDate as string);
+        
+      fetchPromise
         .then(data => setDbArticles(data))
         .catch(err => {
-          console.error('Failed to fetch articles by date:', err);
+          console.error('Failed to fetch articles:', err);
           setDbArticles([]);
         })
         .finally(() => setDbLoading(false));
     } else {
       setDbArticles([]);
     }
-  }, [selectedDate]);
+  }, [selectedDate, selectedDateRange]);
 
-  const targetArticles = selectedDate ? dbArticles : articles;
+  const targetArticles = (selectedDate || selectedDateRange) ? dbArticles : articles;
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: targetArticles.length, other: 0 };
@@ -97,7 +101,7 @@ export const NewsExplorer: React.FC = () => {
   }, [refetch]);
 
   const renderContent = () => {
-    if (selectedDate && dbLoading) {
+    if ((selectedDate || selectedDateRange) && dbLoading) {
       return (
         <div className="news-grid">
           {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} height="160px" />)}
@@ -105,7 +109,7 @@ export const NewsExplorer: React.FC = () => {
       );
     }
 
-    if (!selectedDate && loading) {
+    if (!selectedDate && !selectedDateRange && loading) {
       return (
         <div className="news-grid">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} height="180px" />)}
@@ -132,10 +136,10 @@ export const NewsExplorer: React.FC = () => {
       );
     }
     if (filteredAndSortedArticles.length === 0) {
-      const emptyTitle = selectedDate 
+      const emptyTitle = (selectedDate || selectedDateRange) 
         ? `${selectedDate}에 수집된 기사가 없습니다`
         : "선택한 카테고리에 해당하는 뉴스가 없습니다";
-      const emptyDesc = selectedDate
+      const emptyDesc = (selectedDate || selectedDateRange)
         ? "다른 날짜를 선택하거나 다른 카테고리로 필터링해 보세요."
         : "다른 카테고리를 선택해 보세요.";
       
@@ -202,21 +206,30 @@ export const NewsExplorer: React.FC = () => {
         </div>
       </div>
       
-      {selectedDate && (
-        <div className="active-date-chip-container">
+      <div className="active-date-chip-container">
+        {(selectedDate || selectedDateRange) ? (
           <div className="active-date-chip">
-            <span>조회 날짜:</span>
-            <strong>{selectedDate}</strong>
+            <span>조회 범위:</span>
+            <strong>{selectedDateRange ? `${selectedDateRange.start} ~ ${selectedDateRange.end}` : selectedDate}</strong>
             <span className="active-date-count">({dbArticles.length}건)</span>
-            <button className="clear-chip-button" onClick={() => setSelectedDate(null)} title="최신 뉴스로 돌아가기">
+            <button className="clear-chip-button" onClick={() => { setSelectedDate(null); setSelectedDateRange(null); }} title="최신 뉴스로 돌아가기">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
               </svg>
             </button>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="active-date-chip default-state">
+            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span className="pulse-dot"></span>
+              조회 기준:
+            </span>
+            <strong style={{ color: 'var(--color-text-primary)' }}>실시간 최신 뉴스</strong>
+            <span className="active-date-count">({articles.length}건)</span>
+          </div>
+        )}
+      </div>
 
       {renderContent()}
     </Card>

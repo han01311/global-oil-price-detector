@@ -1,0 +1,351 @@
+INFO:     Will watch for changes in these directories: ['/Users/jazzmandarine/Documents/GitHub/global-oil-price-detector/backend']
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     Started reloader process [56454] using WatchFiles
+INFO:     Started server process [56456]
+INFO:     Waiting for application startup.
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "Opinet 유가 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "EIA 재고 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "EIA 생산량 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "FRED 거시경제 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "뉴스 수집 (NewsAPI + GNews + GDELT)" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+INFO:app.services.scheduler:[Scheduler] 시작됨 (수집 주기: 6시간)
+INFO:     Application startup complete.
+/Users/jazzmandarine/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event CollectionGetEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61227 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61227 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61227 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61227 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61227 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61227 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61264 - "OPTIONS /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61264 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61320 - "OPTIONS /api/forecast/dual HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61323 - "OPTIONS /api/prices/history?start_date=2026-04-14&end_date=2026-04-28 HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61320 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61325 - "OPTIONS /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61323 - "OPTIONS /api/briefing/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61327 - "OPTIONS /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61329 - "OPTIONS /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61330 - "OPTIONS /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61325 - "OPTIONS /api/briefing/history?days=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61320 - "OPTIONS /api/prices/latest HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event CollectionGetEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61329 - "POST /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:app.services.data_collector:[DataCollector] Using 100 price records from SQLite (skipping API)
+/Users/jazzmandarine/Documents/GitHub/global-oil-price-detector/backend/app/services/data_collector.py:293: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df[['dubai', 'wti', 'brent']] = df[['dubai', 'wti', 'brent']].ffill()
+INFO:app.services.data_collector:[DataCollector] Using 100 price records from SQLite (skipping API)
+/Users/jazzmandarine/Documents/GitHub/global-oil-price-detector/backend/app/services/data_collector.py:293: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df[['dubai', 'wti', 'brent']] = df[['dubai', 'wti', 'brent']].ffill()
+INFO:app.services.data_collector:[DataCollector] Using 100 price records from SQLite (skipping API)
+/Users/jazzmandarine/Documents/GitHub/global-oil-price-detector/backend/app/services/data_collector.py:293: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df[['dubai', 'wti', 'brent']] = df[['dubai', 'wti', 'brent']].ffill()
+INFO:app.services.data_collector:[DataCollector] Using 65 macro records from SQLite (skipping API)
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.services.data_collector:[DataCollector] Using 65 macro records from SQLite (skipping API)
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61320 - "GET /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:app.services.data_collector:[DataCollector] Using 65 macro records from SQLite (skipping API)
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61320 - "GET /api/briefing/history?days=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61323 - "GET /api/prices/history?start_date=2026-04-14&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61320 - "GET /api/prices/latest HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61329 - "GET /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+/Users/jazzmandarine/Library/Python/3.9/lib/python/site-packages/numpy/core/_methods.py:173: RuntimeWarning: invalid value encountered in subtract
+  x = asanyarray(arr - arrmean)
+INFO:     127.0.0.1:61327 - "GET /api/forecast/dual HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61330 - "GET /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61358 - "OPTIONS /api/news/by-date?date=2026-04-27 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61358 - "GET /api/news/by-date?date=2026-04-27 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61358 - "OPTIONS /api/news/by-date?date=2026-04-24 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61360 - "GET /api/news/by-date?date=2026-04-24 HTTP/1.1" 200 OK
+ERROR:app.services.briefing_generator:Attempt 1: Failed to generate briefing. Error: 
+ERROR:app.services.briefing_generator:Attempt 2: Failed to generate briefing. Error: 
+WARNING:app.services.briefing_generator:All attempts failed. Returning fallback briefing.
+INFO:     127.0.0.1:61325 - "GET /api/briefing/today HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61375 - "OPTIONS /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61375 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61375 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61375 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61375 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61375 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61375 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+WARNING:  WatchFiles detected changes in 'app/api/news.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:app.services.scheduler:[Scheduler] 정지됨
+INFO:apscheduler.scheduler:Scheduler has been shut down
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [56456]
+INFO:     Started server process [56623]
+INFO:     Waiting for application startup.
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "Opinet 유가 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "EIA 재고 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "EIA 생산량 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "FRED 거시경제 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "뉴스 수집 (NewsAPI + GNews + GDELT)" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+INFO:app.services.scheduler:[Scheduler] 시작됨 (수집 주기: 6시간)
+INFO:     Application startup complete.
+WARNING:  WatchFiles detected changes in 'app/api/news.py'. Reloading...
+INFO:     Shutting down
+INFO:     Waiting for application shutdown.
+INFO:app.services.scheduler:[Scheduler] 정지됨
+INFO:apscheduler.scheduler:Scheduler has been shut down
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [56623]
+INFO:     Started server process [56632]
+INFO:     Waiting for application startup.
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Adding job tentatively -- it will be properly scheduled when the scheduler starts
+INFO:apscheduler.scheduler:Added job "Opinet 유가 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "EIA 재고 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "EIA 생산량 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "FRED 거시경제 수집" to job store "default"
+INFO:apscheduler.scheduler:Added job "뉴스 수집 (NewsAPI + GNews + GDELT)" to job store "default"
+INFO:apscheduler.scheduler:Scheduler started
+INFO:app.services.scheduler:[Scheduler] 시작됨 (수집 주기: 6시간)
+INFO:     Application startup complete.
+/Users/jazzmandarine/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+INFO:chromadb.telemetry.product.posthog:Anonymized telemetry enabled. See                     https://docs.trychroma.com/telemetry for more information.
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event CollectionGetEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61428 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event CollectionGetEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61451 - "POST /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61451 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:app.services.data_collector:[DataCollector] Using 100 price records from SQLite (skipping API)
+/Users/jazzmandarine/Documents/GitHub/global-oil-price-detector/backend/app/services/data_collector.py:293: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df[['dubai', 'wti', 'brent']] = df[['dubai', 'wti', 'brent']].ffill()
+INFO:app.services.data_collector:[DataCollector] Using 100 price records from SQLite (skipping API)
+/Users/jazzmandarine/Documents/GitHub/global-oil-price-detector/backend/app/services/data_collector.py:293: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df[['dubai', 'wti', 'brent']] = df[['dubai', 'wti', 'brent']].ffill()
+INFO:app.services.data_collector:[DataCollector] Using 100 price records from SQLite (skipping API)
+/Users/jazzmandarine/Documents/GitHub/global-oil-price-detector/backend/app/services/data_collector.py:293: FutureWarning: Downcasting object dtype arrays on .fillna, .ffill, .bfill is deprecated and will change in a future version. Call result.infer_objects(copy=False) instead. To opt-in to the future behavior, set `pd.set_option('future.no_silent_downcasting', True)`
+  df[['dubai', 'wti', 'brent']] = df[['dubai', 'wti', 'brent']].ffill()
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.services.data_collector:[DataCollector] Using 65 macro records from SQLite (skipping API)
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event CollectionQueryEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61452 - "GET /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:app.services.data_collector:[DataCollector] Using 65 macro records from SQLite (skipping API)
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61447 - "GET /api/prices/history?start_date=2026-04-14&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.services.data_collector:[DataCollector] Using 65 macro records from SQLite (skipping API)
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61452 - "GET /api/briefing/history?days=7 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61449 - "GET /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61454 - "GET /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61452 - "GET /api/prices/latest HTTP/1.1" 200 OK
+/Users/jazzmandarine/Library/Python/3.9/lib/python/site-packages/numpy/core/_methods.py:173: RuntimeWarning: invalid value encountered in subtract
+  x = asanyarray(arr - arrmean)
+INFO:     127.0.0.1:61428 - "GET /api/forecast/dual HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61428 - "GET /api/news/by-date?date=2026-04-24 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61428 - "OPTIONS /api/news/by-date?date=2026-04-22 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61452 - "GET /api/news/by-date?date=2026-04-22 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61466 - "OPTIONS /api/news/by-range?start_date=2026-01-01&end_date=2026-05-04 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61466 - "GET /api/news/by-range?start_date=2026-01-01&end_date=2026-05-04 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61466 - "GET /api/news/by-range?start_date=2026-01-01&end_date=2026-05-04 HTTP/1.1" 200 OK
+ERROR:app.services.briefing_generator:Attempt 1: Failed to generate briefing. Error: 
+ERROR:app.services.briefing_generator:Attempt 2: Failed to generate briefing. Error: 
+WARNING:app.services.briefing_generator:All attempts failed. Returning fallback briefing.
+INFO:     127.0.0.1:61451 - "GET /api/briefing/today HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61484 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61484 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61484 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61484 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61484 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61484 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61682 - "OPTIONS /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "OPTIONS /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61682 - "OPTIONS /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61687 - "OPTIONS /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "OPTIONS /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61688 - "OPTIONS /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61687 - "OPTIONS /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61682 - "OPTIONS /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61690 - "OPTIONS /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61688 - "OPTIONS /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "OPTIONS /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61692 - "OPTIONS /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61687 - "OPTIONS /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61690 - "OPTIONS /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61682 - "OPTIONS /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61688 - "OPTIONS /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61692 - "OPTIONS /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "OPTIONS /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61687 - "OPTIONS /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61690 - "OPTIONS /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61682 - "OPTIONS /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61688 - "OPTIONS /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61682 - "OPTIONS /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61692 - "OPTIONS /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61690 - "GET /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "POST /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61688 - "POST /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "POST /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61688 - "POST /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61692 - "POST /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "GET /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61690 - "POST /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61696 - "GET /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "GET /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61698 - "POST /api/news/classify?fetch_latest=true HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "GET /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "GET /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61684 - "GET /api/forecast/estimate HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61700 - "GET /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61682 - "GET /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61684 - "GET /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61682 - "GET /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61684 - "GET /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61682 - "GET /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61684 - "GET /api/news/date-counts?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61694 - "GET /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61687 - "GET /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61684 - "GET /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61687 - "GET /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61684 - "GET /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61687 - "GET /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61684 - "GET /api/prices/history?start_date=1996-04-28&end_date=2026-04-28 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61720 - "OPTIONS /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61720 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61849 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61851 - "OPTIONS /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61851 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61851 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61851 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61851 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:61851 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61853 - "GET /api/news/by-range?start_date=2026-01-01&end_date=2026-05-04 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61857 - "GET /api/news/by-range?start_date=2026-01-01&end_date=2026-05-04 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61857 - "OPTIONS /api/news/by-range?start_date=2025-01-01&end_date=2025-12-31 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61857 - "GET /api/news/by-range?start_date=2025-01-01&end_date=2025-12-31 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:61857 - "GET /api/news/by-range?start_date=2026-01-01&end_date=2026-05-04 HTTP/1.1" 200 OK
