@@ -341,12 +341,12 @@ export const PriceChart: React.FC = () => {
       >
         <div className="chart-wrapper">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={visibleData} margin={{ top: 10, right: 55, left: 10, bottom: 30 }} onClick={handleChartClick} onMouseMove={handleChartMouseMove}>
+            <ComposedChart data={visibleData} margin={{ top: 10, right: 5, left: 10, bottom: 10 }} onClick={handleChartClick} onMouseMove={handleChartMouseMove}>
               <defs>
                 <linearGradient id="fc-bull" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bull)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--color-bull)" stopOpacity={0}/></linearGradient>
                 <linearGradient id="fc-bear" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bear)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--color-bear)" stopOpacity={0}/></linearGradient>
               </defs>
-              <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+              <CartesianGrid vertical={true} stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="timestamp" stroke="var(--color-text-muted)" fontSize={11} axisLine={false} tickLine={false} dy={15} minTickGap={50}
                 tickFormatter={(t, index) => {
                   const d = new Date(t);
@@ -380,7 +380,7 @@ export const PriceChart: React.FC = () => {
                   return `${m}월`;
                 }}
               />
-              <YAxis yAxisId="0" orientation="right" domain={yDomain} stroke="var(--color-text-muted)" fontSize={11} axisLine={false} tickLine={false} dx={5}
+              <YAxis yAxisId="0" orientation="right" domain={yDomain} stroke="var(--color-text-muted)" fontSize={11} axisLine={false} tickLine={false} dx={0}
                 tickFormatter={(v) => `$${Number(v).toFixed(2)}`}
               />
               <YAxis yAxisId="news" orientation="left" domain={[0, maxNewsCount * 4]} hide />

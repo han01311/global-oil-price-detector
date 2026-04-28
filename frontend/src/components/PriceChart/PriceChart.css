@@ -1,10 +1,8 @@
-/* ── 등락 헤더 ── */
 .price-change-header {
   display: flex;
   gap: 20px;
-  padding: 10px 0;
-  margin-bottom: 10px;
-  border-bottom: 1px solid var(--color-border);
+  padding: 0;
+  margin-bottom: 16px;
 }
 
 .price-change-item {
@@ -109,9 +107,9 @@
 }
 
 .zoom-range-indicator {
-  font-size: 10px;
-  color: var(--color-text-muted);
-  padding: 4px 10px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  padding: 6px 10px;
   background: rgba(255,255,255,0.02);
   border: 1px solid var(--color-border);
   border-radius: 4px;
@@ -120,7 +118,9 @@
   justify-content: space-between;
 }
 
-.zoom-hint { opacity: 0.5; }
+.zoom-hint {
+  color: var(--color-text-muted);
+}
 
 /* ── Legend Toggles ── */
 .chart-legend-toggles {
@@ -173,7 +173,7 @@
   position: relative;
   width: 100%;
   margin-top: 4px;
-  padding-bottom: 30px;
+  padding-bottom: 10px;
   user-select: none;
   touch-action: none;
 }
