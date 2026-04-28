@@ -4,12 +4,12 @@ import './Badge.css';
 type Category = 'all' | 'geopolitics' | 'supply' | 'demand' | 'macro' | 'climate' | 'speculation' | 'other' | 'default';
 
 interface BadgeProps {
-  category: Category;
+  category: Category | string;
   children?: React.ReactNode;
   className?: string;
 }
 
-const categoryDisplay: Record<Category, string> = {
+const categoryDisplay: Record<string, string> = {
   all: '전체',
   geopolitics: '지정학',
   supply: '공급',
@@ -22,10 +22,18 @@ const categoryDisplay: Record<Category, string> = {
 };
 
 export const Badge: React.FC<BadgeProps> = ({ category, children, className }) => {
-  const normalizedCategory = (category || 'default').toString().toLowerCase() as Category;
-  const text = children || categoryDisplay[normalizedCategory] || categoryDisplay.default;
+  let normalizedCategory = (category || 'default').toString().toLowerCase();
+  
+  if (normalizedCategory === '기타') {
+    normalizedCategory = 'other';
+  }
+  
+  const isKnown = normalizedCategory in categoryDisplay;
+  const badgeClass = isKnown ? normalizedCategory : 'other';
+  const text = children || categoryDisplay[badgeClass] || '기타';
+
   return (
-    <span className={`badge badge-${normalizedCategory} ${className || ''}`}>
+    <span className={`badge badge-${badgeClass} ${className || ''}`}>
       {text}
     </span>
   );
