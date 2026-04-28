@@ -55,24 +55,24 @@ class NewsClassifier:
 """
 
         impact_score_guide = """
-- +5: 주요 산유국 간 대규모 전쟁 발발, 호르무즈 해협 봉쇄 등 공급에 즉각적이고 심각한 충격을 주는 사건.
-- +3: OPEC+의 예상 밖 대규모 감산, 주요 산유국 생산 차질 장기화.
-- +1: 지정학적 긴장 고조 발언, 예상보다 낮은 원유 재고.
-- 0: 유가에 미치는 영향이 중립적이거나 불확실함.
-- -1: 지정학적 긴장 완화, 예상보다 높은 원유 재고.
-- -3: OPEC+의 예상 밖 대규모 증산, 글로벌 경기 침체 우려 심화.
-- -5: 이란 핵 협상 타결로 인한 대규모 공급 재개, 심각한 글로벌 금융위기 발생.
+## Impact Score Rubric (-5 to +5)
+- +5/-5 (Extreme): Physical supply disruption/surplus >2 mb/d, or system-wide demand collapse/surge. (e.g., Hormuz closure, Covid-level crash).
+- +4/-4 (Very High): Physical supply shift of 0.5-2 mb/d, or credible threat of imminent disruption. (e.g., Major pipeline sabotage, US sanctions).
+- +3/-3 (High): Significant tightening/oversupply signal beyond consensus. (e.g., OPEC+ surprise cut/increase >500k bpd).
+- +2/-2 (Moderate): Notable shift or geopolitical escalation. (e.g., US inventory draw >5m bbl, rig count changes, minor attacks).
+- +1/-1 (Mild): Marginal sentiment-driven shift, or verbal escalation without physical impact.
+- 0 (Neutral): Priced in, mixed signals, or routine events.
 """
 
         crude_sensitivity_guide = """
-Each crude type has different geopolitical sensitivities. Evaluate impact INDEPENDENTLY for each:
+## Crude Sensitivity Guide (Evaluate each INDEPENDENTLY)
 
-- Dubai Crude: Most sensitive to Middle East geopolitics (Iran, Hormuz Strait, Saudi Arabia, OPEC+ cuts), Asian demand (China, India, Japan), and Gulf state production policies.
-- Brent Crude: Most sensitive to European energy policy, Russia-Ukraine conflict, Libyan production, North Sea supply disruptions, and global benchmark sentiment.
-- WTI Crude: Most sensitive to US shale production, SPR releases, Gulf of Mexico hurricanes, US interest rates/dollar strength, Cushing storage levels, and US domestic policy.
+- Dubai: Most sensitive to Middle East geopolitics (Iran, Hormuz, Saudi), Asian demand (China teapots, India), and Saudi OSP.
+- Brent: Most sensitive to European energy policy, Russia-Ukraine, Libya/Nigeria disruptions, and global benchmark sentiment.
+- WTI: Most sensitive to US shale production (Permian), Cushing storage levels, SPR releases, Gulf of Mexico hurricanes, and US Fed rates/Dollar (DXY).
 
-Example: A Hormuz Strait tension event → Dubai: +4 (direct supply route threat), Brent: +2 (global supply concern), WTI: +1 (indirect sentiment only).
-Example: US shale production surge → WTI: -3 (direct oversupply), Brent: -1 (global sentiment), Dubai: 0 (minimal direct impact).
+Example: Hormuz Strait threat → Dubai: +4 (direct transit route), Brent: +3 (global risk), WTI: +1 (sentiment only).
+Example: US Fed hikes rates unexpectedly → WTI: -2 (direct dollar impact), Brent: -1 (partial), Dubai: -1.
 """
 
         return f"""
@@ -86,20 +86,57 @@ Follow these instructions precisely:
 3.  If relevant, identify the primary category that best describes the news. The categories are:
 {category_definitions}
 4.  Identify any secondary categories if applicable.
+
 5.  For EACH crude type (dubai, brent, wti), independently assess:
     - direction: "bullish", "bearish", or "neutral"
-    - score: -5 to +5 using the guide below
-    - rationale: A concise explanation in Korean of WHY this crude type is affected differently
+    - score: -5 to +5 using the Impact Score Rubric above
+    - rationale: Write in Korean. This MUST be a specific, evidence-based explanation (2-3 sentences) of WHY this particular crude type is affected. You MUST:
+      * Reference the specific pricing mechanism or key price variable from the Crude-Specific Sensitivity Guide that makes this crude type sensitive (or insensitive) to this event
+      * Explain the causal transmission path: Event → [specific market mechanism] → Price impact
+      * If the score differs from other crude types, explicitly explain WHY the differential exists
+      * NEVER write a generic statement like "유가에 영향을 줄 수 있다" — always specify the concrete channel of impact
 {impact_score_guide}
 
 Use this guide for crude-specific sensitivity:
 {crude_sensitivity_guide}
 
-6.  Set the overall `impact_score` to the maximum absolute score among the three crude types.
-7.  Write a highly insightful `impact_summary` in Korean (1-2 sentences). Do not just summarize the article. Instead, specifically analyze HOW and WHY the events described in the article will affect global oil prices or market dynamics. You MUST write this summary in Korean regardless of the original article's language.
-8.  Provide a `confidence` score (0.0 to 1.0) for your overall classification.
-9.  If the original article is in a foreign language (e.g., English), translate the title into natural Korean and provide it as `translated_title`. If the original article is ALREADY in Korean, you MUST set `translated_title` to `null`.
-10. You MUST respond ONLY with a valid JSON object in the specified format. Do not include any other text, explanations, or markdown formatting.
+## Output Field Instructions
+
+6.  `impact_score`: Set to the maximum ABSOLUTE value among the three crude type scores.
+
+7.  `impact_summary` (CRITICAL — this is the most important output field):
+    Write a professional-grade analytical commentary in Korean, following this structure:
+
+    **Length**: 3-5 sentences (approximately 150-300 Korean characters). This is NOT a simple summary.
+
+    **Structure** (follow this 3-part framework):
+    ① [사건 식별] 기사에서 보도된 핵심 사건/데이터를 1문장으로 정확히 기술. 기사에 명시된 구체적 수치, 인명, 기관명, 날짜를 반드시 포함할 것.
+    ② [전파 경로] 이 사건이 글로벌 원유 시장에 영향을 미치는 구체적인 전파 경로(transmission mechanism)를 분석. 공급/수요/심리 중 어떤 채널을 통해 유가에 작용하는지 명시할 것.
+    ③ [시장 전망] 단기(1-7일) 유가에 대한 방향성과 강도를 판단하되, 불확실성이 높은 경우 시나리오를 구분하여 기술할 것.
+
+    **Anti-Hallucination Rules**:
+    - 기사 본문에 명시적으로 언급된 사실(fact)만을 근거로 분석할 것
+    - 기사에 없는 수치, 날짜, 발언, 기관의 입장을 절대 만들어내지 말 것
+    - 인과관계가 불확실한 경우 "~할 가능성이 있다", "~여부가 관건이다" 등 불확실성을 명시적으로 표현할 것
+    - 기사의 정보가 불충분한 경우, 무리하게 확대 해석하지 말고 기사에 제시된 범위 내에서만 분석할 것
+    - "전문가들은 ~라고 분석했다" 등의 허위 인용을 절대 생성하지 말 것
+
+    **Quality Standard Example** (Good):
+    "사우디 에너지부가 아시아향 아랍 라이트 7월 OSP를 배럴당 $1.80 인상한다고 발표했다. 이는 아시아 정유사들의 원유 조달 비용을 직접적으로 상승시키며, 특히 중국 독립 정유사(teapot)들의 마진 압박으로 이어져 두바이유 현물 프리미엄 확대가 예상된다. 다만 동시에 아시아 수요 둔화 우려가 상존하는 만큼, 실제 가격 상승폭은 $0.50-1.00/bbl 수준에 그칠 가능성이 높다."
+
+    **Quality Standard Example** (Bad — DO NOT write like this):
+    "이 기사는 사우디의 유가 정책에 대해 보도하고 있으며, 전반적으로 유가에 상승 압력을 줄 것으로 보입니다."
+
+8.  `confidence` (0.0 to 1.0): Rate your confidence in the overall classification based on:
+    - 0.9-1.0: Article contains specific data points, official statements, or confirmed events with clear oil market implications
+    - 0.7-0.8: Article describes a developing situation with probable but not certain oil market impact
+    - 0.5-0.6: Article is tangentially related to oil; impact direction is ambiguous or speculative
+    - 0.3-0.4: Very limited information; classification is largely inference-based
+    - Below 0.3: Insufficient information to make a meaningful assessment
+
+9.  `translated_title`: If the original article is in a foreign language (e.g., English, Chinese, Arabic), translate the title into natural, fluent Korean. Preserve proper nouns (OPEC, WTI, EIA etc.) and technical terms. If the article is ALREADY in Korean, set this to `null`. NEVER return an empty string "" — use either a valid Korean translation or `null`.
+
+10. You MUST respond ONLY with a valid JSON object in the specified format. Do not include any other text, explanations, markdown formatting, or code block markers.
 
 Article Content to Analyze:
 ---
@@ -112,12 +149,12 @@ JSON Output Format:
   "category": "string (one of {', '.join(self.CATEGORIES)})",
   "sub_categories": ["string"],
   "impact_by_crude": {{
-    "dubai": {{"direction": "string", "score": integer, "rationale": "string (in Korean)"}},
-    "brent": {{"direction": "string", "score": integer, "rationale": "string (in Korean)"}},
-    "wti": {{"direction": "string", "score": integer, "rationale": "string (in Korean)"}}
+    "dubai": {{"direction": "string", "score": integer, "rationale": "string (in Korean, 2-3 sentences, evidence-based)"}},
+    "brent": {{"direction": "string", "score": integer, "rationale": "string (in Korean, 2-3 sentences, evidence-based)"}},
+    "wti": {{"direction": "string", "score": integer, "rationale": "string (in Korean, 2-3 sentences, evidence-based)"}}
   }},
   "impact_score": integer,
-  "impact_summary": "string (in Korean)",
+  "impact_summary": "string (in Korean, 3-5 sentences following the 3-part framework above)",
   "confidence": float,
   "translated_title": "string or null"
 }}
