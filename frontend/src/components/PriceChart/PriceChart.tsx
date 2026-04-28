@@ -98,8 +98,14 @@ const ChartTooltip: React.FC<any> = ({ active, payload, label, interval }) => {
     <div className="chart-tooltip-content">
       <p className="tooltip-label">{new Date(label).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
       {d.dubai != null && <p className="tooltip-item" style={{ color: 'var(--color-primary)' }}>Dubai: ${d.dubai?.toFixed(2)}</p>}
+      {d.dubaiForecastTech != null && <p className="tooltip-item" style={{ color: 'var(--color-primary)', fontSize: '10px' }}>↳ Dubai (기술적): ${d.dubaiForecastTech?.toFixed(2)}</p>}
+      {d.dubaiForecastFund != null && <p className="tooltip-item" style={{ color: 'var(--color-primary)', fontSize: '10px' }}>↳ Dubai (펀더멘탈): ${d.dubaiForecastFund?.toFixed(2)}</p>}
       {d.wti != null && <p className="tooltip-item" style={{ color: '#34C759' }}>WTI: ${d.wti?.toFixed(2)}</p>}
+      {d.wtiForecastTech != null && <p className="tooltip-item" style={{ color: '#34C759', fontSize: '10px' }}>↳ WTI (기술적): ${d.wtiForecastTech?.toFixed(2)}</p>}
+      {d.wtiForecastFund != null && <p className="tooltip-item" style={{ color: '#34C759', fontSize: '10px' }}>↳ WTI (펀더멘탈): ${d.wtiForecastFund?.toFixed(2)}</p>}
       {d.brent != null && <p className="tooltip-item" style={{ color: '#FF9F0A' }}>Brent: ${d.brent?.toFixed(2)}</p>}
+      {d.brentForecastTech != null && <p className="tooltip-item" style={{ color: '#FF9F0A', fontSize: '10px' }}>↳ Brent (기술적): ${d.brentForecastTech?.toFixed(2)}</p>}
+      {d.brentForecastFund != null && <p className="tooltip-item" style={{ color: '#FF9F0A', fontSize: '10px' }}>↳ Brent (펀더멘탈): ${d.brentForecastFund?.toFixed(2)}</p>}
       {d.dbArticleCount && d.dbArticleCount > 0 && (
         <>
           <div className="tooltip-db-news">
@@ -159,8 +165,14 @@ export const PriceChart: React.FC = () => {
   const yDomain = useMemo((): [number, number] => {
     const v = visibleData.flatMap(d => [
       vis.wti ? d.wti : null,
+      vis.wti ? d.wtiForecastTech : null,
+      vis.wti ? d.wtiForecastFund : null,
       vis.brent ? d.brent : null,
-      vis.dubai ? d.dubai : null
+      vis.brent ? d.brentForecastTech : null,
+      vis.brent ? d.brentForecastFund : null,
+      vis.dubai ? d.dubai : null,
+      vis.dubai ? d.dubaiForecastTech : null,
+      vis.dubai ? d.dubaiForecastFund : null
     ].filter((x): x is number => x != null && x !== 0));
     if (!v.length) return [0, 100];
     const mn = Math.min(...v), mx = Math.max(...v), pad = (mx - mn) * 0.08 || 5;
@@ -320,7 +332,6 @@ export const PriceChart: React.FC = () => {
 
 
 
-  const upT = forecast ? forecast.estimated_7d > forecast.current_price : true;
   const cc = (c: ReturnType<typeof chg>) => !c ? '' : c.up ? 'chg-up' : c.dn ? 'chg-down' : '';
   const cs = (c: ReturnType<typeof chg>) => c?.up ? '+' : '';
 
@@ -342,10 +353,6 @@ export const PriceChart: React.FC = () => {
         <div className="chart-wrapper">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={visibleData} margin={{ top: 35, right: 20, left: 30, bottom: 20 }} onClick={handleChartClick} onMouseMove={handleChartMouseMove}>
-              <defs>
-                <linearGradient id="fc-bull" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bull)" stopOpacity={0.2} /><stop offset="95%" stopColor="var(--color-bull)" stopOpacity={0} /></linearGradient>
-                <linearGradient id="fc-bear" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bear)" stopOpacity={0.2} /><stop offset="95%" stopColor="var(--color-bear)" stopOpacity={0} /></linearGradient>
-              </defs>
               <CartesianGrid vertical={true} stroke="rgba(255,255,255,0.04)" />
               <XAxis dataKey="timestamp" stroke="var(--color-text-muted)" fontSize={11} axisLine={false} tickLine={false} dy={15} minTickGap={50}
                 tickFormatter={(t, index) => {
@@ -396,10 +403,16 @@ export const PriceChart: React.FC = () => {
                 </Bar>
               )}
               {vis.dubai && <Line yAxisId="0" type="linear" dataKey="dubai" stroke="var(--color-primary)" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} activeDot={{ onClick: (_e: any, p: any) => p?.payload && handleElementClick(p.payload) }} onClick={(_e: any, p: any) => p?.payload && handleElementClick(p.payload)} />}
+              {vis.dubai && <Line yAxisId="0" type="linear" dataKey="dubaiForecastTech" stroke="var(--color-primary)" strokeWidth={1.5} strokeDasharray="5 5" dot={false} isAnimationActive={false} />}
+              {vis.dubai && <Line yAxisId="0" type="linear" dataKey="dubaiForecastFund" stroke="var(--color-primary)" strokeWidth={1.5} strokeDasharray="2 2" dot={false} isAnimationActive={false} />}
+
               {vis.wti && <Line yAxisId="0" type="linear" dataKey="wti" stroke="#34C759" strokeWidth={2} dot={false} connectNulls isAnimationActive={false} activeDot={{ onClick: (_e: any, p: any) => p?.payload && handleElementClick(p.payload) }} onClick={(_e: any, p: any) => p?.payload && handleElementClick(p.payload)} />}
+              {vis.wti && <Line yAxisId="0" type="linear" dataKey="wtiForecastTech" stroke="#34C759" strokeWidth={2} strokeDasharray="5 5" dot={false} isAnimationActive={false} />}
+              {vis.wti && <Line yAxisId="0" type="linear" dataKey="wtiForecastFund" stroke="#34C759" strokeWidth={2} strokeDasharray="2 2" dot={false} isAnimationActive={false} />}
+
               {vis.brent && <Line yAxisId="0" type="linear" dataKey="brent" stroke="#FF9F0A" strokeWidth={1.5} dot={false} connectNulls isAnimationActive={false} activeDot={{ onClick: (_e: any, p: any) => p?.payload && handleElementClick(p.payload) }} onClick={(_e: any, p: any) => p?.payload && handleElementClick(p.payload)} />}
-              <Line yAxisId="0" type="linear" dataKey="forecastLine" stroke={upT ? 'var(--color-bull)' : 'var(--color-bear)'} strokeWidth={2} strokeDasharray="5 5" dot={false} />
-              <Area yAxisId="0" type="linear" dataKey="forecastBand" fill={`url(#${upT ? 'fc-bull' : 'fc-bear'})`} stroke="none" />
+              {vis.brent && <Line yAxisId="0" type="linear" dataKey="brentForecastTech" stroke="#FF9F0A" strokeWidth={1.5} strokeDasharray="5 5" dot={false} isAnimationActive={false} />}
+              {vis.brent && <Line yAxisId="0" type="linear" dataKey="brentForecastFund" stroke="#FF9F0A" strokeWidth={1.5} strokeDasharray="2 2" dot={false} isAnimationActive={false} />}
             </ComposedChart>
           </ResponsiveContainer>
         </div>

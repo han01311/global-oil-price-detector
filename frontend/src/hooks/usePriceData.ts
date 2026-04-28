@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { fetchPriceHistory, fetchForecastEstimate, fetchAndClassifyNews, fetchNewsDateCounts } from '../services/api';
+import { fetchPriceHistory, fetchDualForecast, fetchAndClassifyNews, fetchNewsDateCounts } from '../services/api';
 import type { OilPrice } from '../types/price';
-import type { ForecastResult } from '../types/forecast';
+import type { DualForecastResult } from '../types/forecast';
 import type { ClassifiedArticle } from '../types/news';
 import type { NewsDateCount } from '../services/api';
 
@@ -13,8 +13,12 @@ export interface ChartDataPoint {
   dubai: number | null;
   wti: number | null;
   brent: number | null;
-  forecastLine?: number;
-  forecastBand?: [number, number];
+  wtiForecastTech?: number;
+  wtiForecastFund?: number;
+  brentForecastTech?: number;
+  brentForecastFund?: number;
+  dubaiForecastTech?: number;
+  dubaiForecastFund?: number;
   article?: ClassifiedArticle;
   dbArticleCount?: number;
   filterDate?: string;
@@ -37,7 +41,7 @@ interface PriceData {
   chartData: ChartDataPoint[];
   newsMarkers: NewsMarker[];
   dbNewsMarkers: DBNewsMarker[];
-  forecast: ForecastResult | null;
+  forecast: DualForecastResult | null;
   rawNewsCounts: Record<string, number>;
   loading: boolean;
   error: Error | null;
@@ -57,7 +61,7 @@ const getCategoryColor = (category: string): string => {
 
 export function usePriceData(period: Period): PriceData {
   const [history, setHistory] = useState<OilPrice[]>([]);
-  const [forecast, setForecast] = useState<ForecastResult | null>(null);
+  const [forecast, setForecast] = useState<DualForecastResult | null>(null);
   const [news, setNews] = useState<ClassifiedArticle[]>([]);
   const [newsDateCounts, setNewsDateCounts] = useState<NewsDateCount[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -86,7 +90,7 @@ export function usePriceData(period: Period): PriceData {
 
         const [historyData, forecastData, newsData, dateCountsData] = await Promise.all([
           fetchPriceHistory(startDate, endDate),
-          fetchForecastEstimate(),
+          fetchDualForecast(),
           fetchAndClassifyNews().catch(() => []),
           fetchNewsDateCounts(startDate, endDate).catch(() => []),
         ]);
@@ -143,8 +147,13 @@ export function usePriceData(period: Period): PriceData {
       const lastDataPoint = processedChartData[processedChartData.length - 1];
       const lastDate = new Date(lastDataPoint.date);
 
-      lastDataPoint.forecastBand = [lastDataPoint.wti!, lastDataPoint.wti!];
-      lastDataPoint.forecastLine = lastDataPoint.wti!;
+      // Connect forecast lines to the last historical point
+      lastDataPoint.wtiForecastTech = lastDataPoint.wti !== null ? lastDataPoint.wti : undefined;
+      lastDataPoint.wtiForecastFund = lastDataPoint.wti !== null ? lastDataPoint.wti : undefined;
+      lastDataPoint.brentForecastTech = lastDataPoint.brent !== null ? lastDataPoint.brent : undefined;
+      lastDataPoint.brentForecastFund = lastDataPoint.brent !== null ? lastDataPoint.brent : undefined;
+      lastDataPoint.dubaiForecastTech = lastDataPoint.dubai !== null ? lastDataPoint.dubai : undefined;
+      lastDataPoint.dubaiForecastFund = lastDataPoint.dubai !== null ? lastDataPoint.dubai : undefined;
 
       const futureDate7d = new Date(lastDate);
       futureDate7d.setDate(lastDate.getDate() + 7);
@@ -155,8 +164,12 @@ export function usePriceData(period: Period): PriceData {
         dubai: null,
         wti: null,
         brent: null,
-        forecastLine: forecast.estimated_7d,
-        forecastBand: [forecast.estimated_7d_low, forecast.estimated_7d_high],
+        wtiForecastTech: forecast.method_a.forecasts_by_crude['wti']?.estimated_7d,
+        wtiForecastFund: forecast.method_b.forecasts_by_crude['wti']?.estimated_7d,
+        brentForecastTech: forecast.method_a.forecasts_by_crude['brent']?.estimated_7d,
+        brentForecastFund: forecast.method_b.forecasts_by_crude['brent']?.estimated_7d,
+        dubaiForecastTech: forecast.method_a.forecasts_by_crude['dubai']?.estimated_7d,
+        dubaiForecastFund: forecast.method_b.forecasts_by_crude['dubai']?.estimated_7d,
       });
     }
 
