@@ -129,10 +129,16 @@
 
 .fc-row {
   display: grid;
-  grid-template-columns: 80px 1fr 1.3fr 1.3fr;
+  grid-template-columns: 85px 1fr 1.5fr 1.5fr;
   align-items: center;
   flex: 1;
-  gap: 24px;
+  gap: 16px;
+}
+
+/* Zone Divider: Separate Current Price from Forecasts */
+.fc-row .fc-cell:nth-child(3) {
+  padding-left: 20px;
+  border-left: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .fc-row + .fc-row {
@@ -177,12 +183,12 @@
 }
 
 .fc-cell-name {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 800;
   color: var(--color-text-primary);
   white-space: nowrap;
-  padding-right: 8px;
-  letter-spacing: 0.03em;
+  padding-right: 16px;
+  letter-spacing: 0.05em;
 }
 
 .fc-cell-price,
