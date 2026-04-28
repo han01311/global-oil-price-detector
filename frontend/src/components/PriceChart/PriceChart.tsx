@@ -42,6 +42,7 @@ const INTERVALS: { key: Interval; label: string }[] = [
 
 function aggregate(data: ChartDataPoint[], iv: Interval, rawCounts?: Record<string, number>): ChartDataPoint[] {
   if (iv === 'day' || data.length === 0) return data;
+  
   const groups = new Map<string, ChartDataPoint[]>();
   for (const d of data) {
     let key: string;
@@ -57,30 +58,59 @@ function aggregate(data: ChartDataPoint[], iv: Interval, rawCounts?: Record<stri
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(d);
   }
+
+  const groupCounts = new Map<string, number>();
+  if (rawCounts) {
+    for (const [dateStr, count] of Object.entries(rawCounts)) {
+      let key: string;
+      if (iv === 'week') {
+        const dt = new Date(dateStr);
+        dt.setDate(dt.getDate() - ((dt.getDay() + 6) % 7));
+        key = dt.toISOString().split('T')[0];
+      } else if (iv === 'month') {
+        key = dateStr.slice(0, 7);
+      } else {
+        key = dateStr.slice(0, 4);
+      }
+      groupCounts.set(key, (groupCounts.get(key) || 0) + count);
+    }
+  }
+
   return Array.from(groups.entries()).map(([k, pts]) => {
     const first = pts[0];
     const last = pts[pts.length - 1];
 
     let sumCount = 0;
     if (rawCounts) {
-      // iterate through dates from first to last using string comparison
-      const startStr = first.date;
-      const endStr = last.date;
-      for (const [dateStr, count] of Object.entries(rawCounts)) {
-        if (dateStr >= startStr && dateStr <= endStr) {
-          sumCount += count;
-        }
-      }
+      sumCount = groupCounts.get(k) || 0;
     } else {
       sumCount = pts.reduce((acc, curr) => acc + (curr.dbArticleCount || 0), 0);
+    }
+
+    let groupStartDate = first.date;
+    let groupEndDate = last.date;
+
+    if (iv === 'month') {
+      groupStartDate = `${k}-01`;
+      const dt = new Date(parseInt(k.split('-')[0]), parseInt(k.split('-')[1]), 0);
+      groupEndDate = dt.toISOString().split('T')[0];
+    } else if (iv === 'year') {
+      groupStartDate = `${k}-01-01`;
+      groupEndDate = `${k}-12-31`;
+    } else if (iv === 'week') {
+      const startDt = new Date(k);
+      const endDt = new Date(k);
+      endDt.setDate(startDt.getDate() + 6);
+      groupStartDate = startDt.toISOString().split('T')[0];
+      groupEndDate = endDt.toISOString().split('T')[0];
     }
 
     return {
       ...last,
       dbArticleCount: sumCount || undefined,
       filterDate: k,
-      groupStartDate: first.date,
-      groupEndDate: last.date
+      groupStartDate,
+      groupEndDate
     };
   });
 }
