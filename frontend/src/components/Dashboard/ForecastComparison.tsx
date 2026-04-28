@@ -370,7 +370,7 @@ export const ForecastComparison: React.FC = () => {
 
   return (
     <>
-      <Card title="Crude Oil Price Forecast">
+      <Card title="Crude Oil Price Forecast" className="forecast-card">
         <div className="fc-sub-header">
           <span className="fc-date-context">
             {baseDateLabel ? `${baseDateLabel} 현재가 기준 → ${targetDateLabel} 전망 (7D)` : '데이터 로딩 중…'}

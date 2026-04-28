@@ -3,6 +3,18 @@
  * ────────────────────────────────────────────── */
 
 /* Sub-header */
+.forecast-card {
+  min-height: 332px; /* Sync with FactorGauge natural height */
+  display: flex;
+  flex-direction: column;
+}
+
+.forecast-card .card-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 .fc-sub-header {
   display: flex;
   justify-content: space-between;
@@ -111,13 +123,15 @@
 .fc-table {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  justify-content: space-between;
 }
 
 .fc-row {
   display: grid;
   grid-template-columns: 55px 95px 1fr 95px 1fr 95px 1fr;
-  align-items: baseline;
-  padding: 10px 0;
+  align-items: center;
+  padding: 16px 0;
 }
 
 .fc-row + .fc-row {
