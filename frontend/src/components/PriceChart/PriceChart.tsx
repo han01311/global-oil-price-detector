@@ -341,7 +341,7 @@ export const PriceChart: React.FC = () => {
       >
         <div className="chart-wrapper">
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={visibleData} margin={{ top: 10, right: 5, left: 10, bottom: 10 }} onClick={handleChartClick} onMouseMove={handleChartMouseMove}>
+            <ComposedChart data={visibleData} margin={{ top: 25, right: 20, left: 10, bottom: 10 }} onClick={handleChartClick} onMouseMove={handleChartMouseMove}>
               <defs>
                 <linearGradient id="fc-bull" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bull)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--color-bull)" stopOpacity={0}/></linearGradient>
                 <linearGradient id="fc-bear" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="var(--color-bear)" stopOpacity={0.2}/><stop offset="95%" stopColor="var(--color-bear)" stopOpacity={0}/></linearGradient>
