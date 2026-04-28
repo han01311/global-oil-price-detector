@@ -10,7 +10,7 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .factor-item {
@@ -18,7 +18,7 @@
   grid-template-columns: 70px 1fr 40px 55px;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .factor-label {
@@ -29,9 +29,9 @@
 
 .factor-bar-track {
   width: 100%;
-  height: 8px;
+  height: 6px;
   background-color: var(--color-border);
-  border-radius: 4px;
+  border-radius: 3px;
   position: relative;
   overflow: hidden;
 }
@@ -40,7 +40,7 @@
   height: 100%;
   position: absolute;
   top: 0;
-  border-radius: 4px;
+  border-radius: 3px;
 }
 
 .factor-bar.bull {
@@ -71,11 +71,12 @@
 
 .factor-gauge-footer {
   border-top: 1px solid var(--color-border);
-  padding-top: 16px;
+  margin-top: 8px;
+  padding-top: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  font-size: 12px;
+  gap: 6px;
+  font-size: 11px;
   color: var(--color-text-secondary);
 }
 

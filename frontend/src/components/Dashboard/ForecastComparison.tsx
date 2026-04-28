@@ -370,31 +370,25 @@ export const ForecastComparison: React.FC = () => {
 
   return (
     <>
-      <Card title="Crude Oil Price Forecast" className="forecast-card">
-        <div className="fc-sub-header">
-          <span className="fc-date-context">
-            {baseDateLabel ? `${baseDateLabel} 현재가 기준 → ${targetDateLabel} 전망 (7D)` : '데이터 로딩 중…'}
-          </span>
-          <div className="fc-sub-right">
-            {dualData && (
-              <span
-                className={`fc-consensus ${dualData.consensus ? 'agree' : 'disagree'}`}
-                data-tooltip="기술적 모델과 펀더멘탈 모델의 WTI 유가 예측 방향(상승/하락) 일치 여부입니다."
-              >
-                {dualData.consensus ? '✓ 방향 일치' : '⚠ 불일치'}
-              </span>
-            )}
-          </div>
-        </div>
+      <Card title="Crude Oil Price Forecast" className="forecast-card sync-top-card">
+
 
         <div className="fc-table">
           <div className="fc-row fc-row-header">
             <div className="fc-cell fc-cell-name"></div>
-            <div className="fc-cell fc-cell-price">현재가</div>
+            <div className="fc-cell fc-cell-price">
+              <div className="fc-header-stack">
+                <span>현재가</span>
+                {baseDateLabel && <span className="fc-header-date">{baseDateLabel}</span>}
+              </div>
+            </div>
             <div className="fc-cell fc-cell-change">전일비</div>
             <div className="fc-cell fc-cell-forecast">
               <div className="fc-header-group">
-                <span>기술적 7D</span>
+                <div className="fc-header-stack">
+                  <span>기술적 7D</span>
+                  {targetDateLabel && <span className="fc-header-date">{targetDateLabel}</span>}
+                </div>
                 <button className="fc-info-icon-btn" onClick={() => setInfoModal('A')} title="방법론 상세 보기" aria-label="방법론 상세 보기">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                 </button>
@@ -403,7 +397,10 @@ export const ForecastComparison: React.FC = () => {
             <div className="fc-cell fc-cell-change">변동</div>
             <div className="fc-cell fc-cell-forecast">
               <div className="fc-header-group">
-                <span>펀더멘탈 7D</span>
+                <div className="fc-header-stack">
+                  <span>펀더멘탈 7D</span>
+                  {targetDateLabel && <span className="fc-header-date">{targetDateLabel}</span>}
+                </div>
                 <button className="fc-info-icon-btn" onClick={() => setInfoModal('B')} title="방법론 상세 보기" aria-label="방법론 상세 보기">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                 </button>

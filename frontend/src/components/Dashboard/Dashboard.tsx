@@ -49,23 +49,29 @@ export const Dashboard: React.FC = () => {
       )}
 
       {/* Progressive loading: each widget manages its own loading/error state independently */}
-      <main className="dashboard-chart fade-in">
+      <div className="dashboard-forecast fade-in">
         <ErrorBoundary moduleName="Forecast Comparison">
           <ForecastComparison />
         </ErrorBoundary>
-        <ErrorBoundary moduleName="Price Chart">
-          <PriceChart />
-        </ErrorBoundary>
-      </main>
+      </div>
 
-      <aside className="dashboard-sidebar fade-in" style={{ animationDelay: '0.1s' }}>
+      <div className="dashboard-factors fade-in" style={{ animationDelay: '0.1s' }}>
         <ErrorBoundary moduleName="Market Factors">
           <FactorGauge />
         </ErrorBoundary>
+      </div>
+
+      <div className="dashboard-price fade-in" style={{ animationDelay: '0.1s' }}>
+        <ErrorBoundary moduleName="Price Chart">
+          <PriceChart />
+        </ErrorBoundary>
+      </div>
+
+      <div className="dashboard-briefing fade-in" style={{ animationDelay: '0.2s' }}>
         <ErrorBoundary moduleName="AI Daily Briefing">
           <AIBriefing />
         </ErrorBoundary>
-      </aside>
+      </div>
 
       <footer className="dashboard-news fade-in" style={{ animationDelay: '0.2s' }}>
         <ErrorBoundary moduleName="News Explorer">

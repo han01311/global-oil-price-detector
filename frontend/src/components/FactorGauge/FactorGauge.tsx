@@ -127,7 +127,7 @@ export const FactorGauge: React.FC = () => {
   };
 
   return (
-    <Card title="Market Factors">
+    <Card title="Market Factors" className="sync-top-card">
       {renderContent()}
     </Card>
   );
