@@ -144,60 +144,54 @@
   opacity: 0;
 }
 
-/* ── Date Filter Container ── */
-.date-filter-container {
+/* ── Active Date Chip ── */
+.active-date-chip-container {
   display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.active-date-chip {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
   background-color: var(--color-card-hover);
-  padding: 4px 8px;
-  border-radius: 8px;
   border: 1px solid var(--color-border);
-}
-
-.today-button {
-  background: transparent;
-  border: 1px solid var(--color-primary);
-  color: var(--color-primary);
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.today-button:hover {
-  background: rgba(255, 159, 107, 0.1);
-}
-
-.today-button.active {
-  background: var(--color-primary);
-  color: #000;
-}
-
-.date-badge {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  padding-left: 8px;
-  border-left: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+  animation: fade-in 0.2s ease-out;
 }
 
-.date-badge-close {
+.active-date-chip strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.active-date-count {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.clear-chip-button {
   background: none;
   border: none;
   color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 18px;
-  line-height: 1;
-  padding: 0 4px;
+  padding: 2px;
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
 }
-.date-badge-close:hover {
-  color: #ff6b6b;
+
+.clear-chip-button:hover {
+  background: var(--color-border);
+  color: var(--color-text-primary);
 }
 
 /* ── DB News Card (from chart date click) ── */

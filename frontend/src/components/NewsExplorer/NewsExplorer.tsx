@@ -199,22 +199,25 @@ export const NewsExplorer: React.FC = () => {
             <button onClick={() => setSortOrder('time')} className={sortOrder === 'time' ? 'active' : ''}>Time</button>
             <button onClick={() => setSortOrder('impact')} className={sortOrder === 'impact' ? 'active' : ''}>Impact</button>
           </div>
-          <div className="date-filter-container" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {selectedDate && (
-              <div className="date-badge">
-                🗓 {selectedDate} 
-                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: '4px' }}>({dbArticles.length}건)</span>
-              </div>
-            )}
-            <button 
-              className={`today-button ${selectedDate === null ? 'active' : ''}`}
-              onClick={() => setSelectedDate(null)}
-            >
-              {selectedDate ? '최신 뉴스로 돌아가기' : '최신 뉴스'}
+        </div>
+      </div>
+      
+      {selectedDate && (
+        <div className="active-date-chip-container">
+          <div className="active-date-chip">
+            <span>조회 날짜:</span>
+            <strong>{selectedDate}</strong>
+            <span className="active-date-count">({dbArticles.length}건)</span>
+            <button className="clear-chip-button" onClick={() => setSelectedDate(null)} title="최신 뉴스로 돌아가기">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </button>
           </div>
         </div>
-      </div>
+      )}
+
       {renderContent()}
     </Card>
   );
