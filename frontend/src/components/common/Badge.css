@@ -33,11 +33,12 @@
   background-color: rgba(236, 72, 153, 0.15);
   color: var(--color-cat-speculation);
 }
+.badge-other,
 .badge-default {
-  background-color: rgba(82, 82, 82, 0.15);
-  color: var(--color-neutral);
+  background-color: rgba(163, 163, 163, 0.15);
+  color: var(--color-text-secondary);
 }
 .badge-all {
-  background-color: rgba(82, 82, 82, 0.15);
-  color: var(--color-neutral);
+  background-color: rgba(163, 163, 163, 0.15);
+  color: var(--color-text-secondary);
 }

@@ -1,7 +1,7 @@
 import React from 'react';
 import './Badge.css';
 
-type Category = 'all' | 'geopolitics' | 'supply' | 'demand' | 'macro' | 'climate' | 'speculation' | 'default';
+type Category = 'all' | 'geopolitics' | 'supply' | 'demand' | 'macro' | 'climate' | 'speculation' | 'other' | 'default';
 
 interface BadgeProps {
   category: Category;
@@ -17,6 +17,7 @@ const categoryDisplay: Record<Category, string> = {
   macro: '거시경제',
   climate: '기후/ESG',
   speculation: '투기/심리',
+  other: '기타',
   default: '기타'
 };
 

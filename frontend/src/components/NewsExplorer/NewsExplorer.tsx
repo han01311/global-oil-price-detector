@@ -11,10 +11,11 @@ import type { ClassifiedArticle } from '../../types/news';
 import './NewsExplorer.css';
 
 type SortOrder = 'time' | 'impact';
-type Category = 'All' | 'geopolitics' | 'supply' | 'demand' | 'macro' | 'climate' | 'speculation';
+type Category = 'All' | 'geopolitics' | 'supply' | 'demand' | 'macro' | 'climate' | 'speculation' | 'other';
 type CrudeType = 'All' | 'dubai' | 'brent' | 'wti';
 
-const CATEGORIES: Category[] = ['All', 'geopolitics', 'supply', 'demand', 'macro', 'climate', 'speculation'];
+const KNOWN_CATEGORIES = ['geopolitics', 'supply', 'demand', 'macro', 'climate', 'speculation'];
+const CATEGORIES: Category[] = ['All', 'geopolitics', 'supply', 'demand', 'macro', 'climate', 'speculation', 'other'];
 const CRUDE_TYPES: CrudeType[] = ['All', 'dubai', 'brent', 'wti'];
 
 export const NewsExplorer: React.FC = () => {
@@ -48,10 +49,11 @@ export const NewsExplorer: React.FC = () => {
   const targetArticles = selectedDate ? dbArticles : articles;
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { All: targetArticles.length };
-    CATEGORIES.slice(1).forEach(cat => {
+    const counts: Record<string, number> = { All: targetArticles.length, other: 0 };
+    KNOWN_CATEGORIES.forEach(cat => {
       counts[cat] = targetArticles.filter(a => a.category === cat).length;
     });
+    counts['other'] = targetArticles.filter(a => !KNOWN_CATEGORIES.includes(a.category)).length;
     return counts;
   }, [targetArticles]);
 
@@ -59,7 +61,11 @@ export const NewsExplorer: React.FC = () => {
     let filtered = targetArticles;
 
     if (activeCategory !== 'All') {
-      filtered = targetArticles.filter(a => a.category === activeCategory);
+      if (activeCategory === 'other') {
+        filtered = targetArticles.filter(a => !KNOWN_CATEGORIES.includes(a.category));
+      } else {
+        filtered = targetArticles.filter(a => a.category === activeCategory);
+      }
     }
     
     if (activeCrudeType !== 'All') {
