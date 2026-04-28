@@ -15,7 +15,7 @@
 
 .factor-item {
   display: grid;
-  grid-template-columns: 70px 1fr 40px 40px;
+  grid-template-columns: 70px 1fr 40px 55px;
   align-items: center;
   gap: 8px;
   font-size: 12px;
@@ -66,6 +66,7 @@
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   text-align: right;
+  white-space: nowrap;
 }
 
 .factor-gauge-footer {
