@@ -57,10 +57,10 @@ interface MethodData {
 }
 
 const METHOD_A: MethodData = {
-  title: '기술적 분석 모델',
-  titleEn: 'Technical Analysis',
+  title: 'AI 퀀트 전망 모델',
+  titleEn: 'AI Quant Forecast',
   subtitle: 'XGBoost Gradient Boosting + News Sentiment Adjustment',
-  description: '과거 5년간 멀티팩터 시계열 데이터를 XGBoost로 학습하고, 실시간 뉴스 감성 분석을 5단계 파이프라인으로 보정하여 최종 7일 전망치를 산출합니다.',
+  description: '과거 5년간 멀티팩터 시계열 데이터를 XGBoost(머신러닝)로 학습하고, 실시간 뉴스 감성 분석을 5단계 파이프라인으로 보정하여 최종 7일 전망가를 산출합니다.',
   diagramType: 'pipeline',
   steps: [
     {
@@ -106,10 +106,10 @@ const METHOD_A: MethodData = {
 };
 
 const METHOD_B: MethodData = {
-  title: '펀더멘탈 분석 모델',
-  titleEn: 'Fundamental Analysis',
+  title: '매크로·수급 전망 모델',
+  titleEn: 'Macro & Supply-Demand Forecast',
   subtitle: 'EIA STEO Methodology + Multi-Signal Ensemble',
-  description: 'EIA 방법론을 재현하여 실물 수급 데이터로 유가를 전망합니다. 5개 독립 시그널을 신뢰도 기반 가중 합산합니다.',
+  description: 'EIA 방법론을 재현하여 실물 수급 및 거시경제 데이터로 유가를 전망합니다. 재고·생산·계절성·평균회귀·달러 등 5개 독립 시그널을 신뢰도 기반으로 가중 합산합니다.',
   diagramType: 'ensemble',
   steps: [
     {
@@ -371,51 +371,37 @@ export const ForecastComparison: React.FC = () => {
   return (
     <>
       <Card title="Crude Oil Price Forecast" className="forecast-card sync-top-card">
-
-
         <div className="fc-table">
+          {/* ── Header ── */}
           <div className="fc-row fc-row-header">
-            <div className="fc-cell fc-cell-name"></div>
+            <div className="fc-cell fc-cell-name" />
             <div className="fc-cell fc-cell-price">
-              <div className="fc-header-stack">
-                <span>현재가</span>
-                {baseDateLabel && <span className="fc-header-date">{baseDateLabel}</span>}
-              </div>
+              현재가
+              {baseDateLabel && <span className="fc-header-date">({baseDateLabel})</span>}
             </div>
-            <div className="fc-cell fc-cell-change">전일비</div>
             <div className="fc-cell fc-cell-forecast">
-              <div className="fc-header-group">
-                <div className="fc-header-stack">
-                  <span>기술적 7D</span>
-                  {targetDateLabel && <span className="fc-header-date">{targetDateLabel}</span>}
-                </div>
-                <button className="fc-info-icon-btn" onClick={() => setInfoModal('A')} title="방법론 상세 보기" aria-label="방법론 상세 보기">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                </button>
-              </div>
+              <span>AI 퀀트 전망가</span>
+              <button className="fc-info-icon-btn" onClick={() => setInfoModal('A')} aria-label="방법론 상세 보기">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </button>
+              {targetDateLabel && <span className="fc-header-date">({targetDateLabel})</span>}
             </div>
-            <div className="fc-cell fc-cell-change">변동</div>
             <div className="fc-cell fc-cell-forecast">
-              <div className="fc-header-group">
-                <div className="fc-header-stack">
-                  <span>펀더멘탈 7D</span>
-                  {targetDateLabel && <span className="fc-header-date">{targetDateLabel}</span>}
-                </div>
-                <button className="fc-info-icon-btn" onClick={() => setInfoModal('B')} title="방법론 상세 보기" aria-label="방법론 상세 보기">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                </button>
-              </div>
+              <span>매크로·수급 전망가</span>
+              <button className="fc-info-icon-btn" onClick={() => setInfoModal('B')} aria-label="방법론 상세 보기">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              </button>
+              {targetDateLabel && <span className="fc-header-date">({targetDateLabel})</span>}
             </div>
-            <div className="fc-cell fc-cell-change">변동</div>
           </div>
 
+          {/* ── Data Rows ── */}
           {CRUDE_ORDER.map(crude => {
             const mA = methodACrudes[crude];
             const mB = methodBCrudes[crude];
             const currentPrice = mA?.current_price ?? mB?.current_price;
             const chgA = mA && currentPrice ? formatChange(currentPrice, mA.estimated_7d) : null;
             const chgB = mB && currentPrice ? formatChange(currentPrice, mB.estimated_7d) : null;
-            const signal = getTopSignal(mB?.signals);
             const prevPrice = prevPrices ? (prevPrices as any)[crude] as number | null : null;
             const dayChg = currentPrice && prevPrice ? formatChange(prevPrice, currentPrice) : null;
 
@@ -426,42 +412,51 @@ export const ForecastComparison: React.FC = () => {
                 <div className="fc-cell fc-cell-price">
                   {loading || currentPrice === undefined
                     ? <Skeleton height="20px" width="70px" />
-                    : <span className={`fc-val-current ${dayChg ? (dayChg.isUp ? 'bull' : 'bear') : ''}`}>{formatPrice(currentPrice)}</span>
-                  }
-                </div>
-
-                <div className="fc-cell fc-cell-change">
-                  {loading || !dayChg
-                    ? <Skeleton height="14px" width="50px" />
-                    : <span className={`fc-val-change ${dayChg.isUp ? 'bull' : 'bear'}`}>{dayChg.pct}<span className="fc-val-diff">{dayChg.diff}</span></span>
+                    : <>
+                        <span className={`fc-val-current ${dayChg ? (dayChg.isUp ? 'bull' : 'bear') : ''}`}>
+                          {formatPrice(currentPrice)}
+                        </span>
+                        {dayChg && (
+                          <span className={`fc-val-badge ${dayChg.isUp ? 'bull' : 'bear'}`}>
+                            {dayChg.pct}
+                            <span className="fc-val-badge-diff">{dayChg.diff}</span>
+                          </span>
+                        )}
+                      </>
                   }
                 </div>
 
                 <div className="fc-cell fc-cell-forecast">
                   {loading || !mA
                     ? <Skeleton height="20px" width="70px" />
-                    : <span className={`fc-val-forecast ${chgA?.isUp ? 'bull' : 'bear'}`}>{formatPrice(mA.estimated_7d)}</span>
-                  }
-                </div>
-
-                <div className="fc-cell fc-cell-change">
-                  {loading || !chgA
-                    ? <Skeleton height="14px" width="50px" />
-                    : <span className={`fc-val-change ${chgA.isUp ? 'bull' : 'bear'}`}>{chgA.pct}<span className="fc-val-diff">{chgA.diff}</span></span>
+                    : <>
+                        <span className={`fc-val-forecast ${chgA?.isUp ? 'bull' : 'bear'}`}>
+                          {formatPrice(mA.estimated_7d)}
+                        </span>
+                        {chgA && (
+                          <span className={`fc-val-badge ${chgA.isUp ? 'bull' : 'bear'}`}>
+                            {chgA.pct}
+                            <span className="fc-val-badge-diff">{chgA.diff}</span>
+                          </span>
+                        )}
+                      </>
                   }
                 </div>
 
                 <div className="fc-cell fc-cell-forecast">
                   {loading || !mB
                     ? <Skeleton height="20px" width="70px" />
-                    : <span className={`fc-val-forecast ${chgB?.isUp ? 'bull' : 'bear'}`}>{formatPrice(mB.estimated_7d)}</span>
-                  }
-                </div>
-
-                <div className="fc-cell fc-cell-change">
-                  {loading || !chgB
-                    ? <Skeleton height="14px" width="50px" />
-                    : <span className={`fc-val-change ${chgB?.isUp ? 'bull' : 'bear'}`}>{chgB?.pct}<span className="fc-val-diff">{chgB?.diff}</span>{signal && <span className="fc-signal">{signal}</span>}</span>
+                    : <>
+                        <span className={`fc-val-forecast ${chgB?.isUp ? 'bull' : 'bear'}`}>
+                          {formatPrice(mB.estimated_7d)}
+                        </span>
+                        {chgB && (
+                          <span className={`fc-val-badge ${chgB.isUp ? 'bull' : 'bear'}`}>
+                            {chgB.pct}
+                            <span className="fc-val-badge-diff">{chgB.diff}</span>
+                          </span>
+                        )}
+                      </>
                   }
                 </div>
               </div>
@@ -471,7 +466,7 @@ export const ForecastComparison: React.FC = () => {
 
         {generatedAt && (
           <div className="fc-footer">
-            매시간 갱신 · {new Date(generatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            최근 갱신 · {new Date(generatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </div>
         )}
       </Card>
