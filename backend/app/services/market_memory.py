@@ -78,10 +78,12 @@ class MarketMemory:
                     impact = article_model.impact_by_crude[crude]
                     metadata[f"{crude}_score"] = impact.score
                     metadata[f"{crude}_direction"] = impact.direction
+                    metadata[f"{crude}_rationale"] = impact.rationale
                 else:
                     # Fallback to overall score
                     metadata[f"{crude}_score"] = article_model.impact_score
                     metadata[f"{crude}_direction"] = "neutral"
+                    metadata[f"{crude}_rationale"] = ""
 
             # Store per-crude price changes
             for crude in CRUDE_TYPES:
@@ -230,7 +232,7 @@ class MarketMemory:
                     impact_by_crude[crude] = CrudeImpact(
                         direction=metadata.get(f"{crude}_direction", "neutral"),
                         score=int(metadata.get(f"{crude}_score", metadata.get("impact_score", 0)) or 0),
-                        rationale="",
+                        rationale=metadata.get(f"{crude}_rationale", ""),
                     )
 
                 news_article = NewsArticle(
