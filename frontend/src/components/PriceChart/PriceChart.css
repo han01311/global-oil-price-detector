@@ -38,8 +38,13 @@
   color: var(--color-text-muted);
 }
 
-.pci-change.chg-up { color: #FF3B30; }
-.pci-change.chg-down { color: #007AFF; }
+.pci-change.chg-up {
+  color: #FF3B30;
+}
+
+.pci-change.chg-down {
+  color: #007AFF;
+}
 
 /* ── Controls ── */
 .price-chart-controls {
@@ -91,7 +96,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--color-border);
   color: var(--color-text-secondary);
   padding: 4px 10px;
@@ -102,7 +107,7 @@
 }
 
 .zoom-reset-btn:hover {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
   color: var(--color-text-primary);
 }
 
@@ -110,7 +115,7 @@
   font-size: 11px;
   color: var(--color-text-secondary);
   padding: 6px 10px;
-  background: rgba(255,255,255,0.02);
+  background: rgba(255, 255, 255, 0.02);
   border: 1px solid var(--color-border);
   border-radius: 4px;
   margin-bottom: 6px;
@@ -146,9 +151,9 @@
 
 .legend-toggle.active {
   opacity: 1;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--color-text-primary);
-  border-color: rgba(255,255,255,0.1);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .legend-toggle:hover {
@@ -157,7 +162,7 @@
 
 .legend-toggle.active:hover {
   opacity: 1;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .legend-dot {
@@ -168,8 +173,7 @@
 
 /* ── Chart container ── */
 .chart-container {
-  flex: 1;
-  min-height: 420px; /* 독립적인 최소 수직 길이 보장 */
+  height: 500px;
   position: relative;
   width: 100%;
   margin-top: 4px;
@@ -180,9 +184,10 @@
 
 .chart-wrapper {
   position: absolute;
-  top: 0; left: 0; right: 0; 
+  top: 0;
+  left: 0;
+  right: 0;
   height: 100%;
-  max-height: 500px; /* 옆 섹션 크기 증가 시 그래프 자체의 무한 확장을 막고 하단 여백 형성 */
   pointer-events: none;
 }
 
@@ -242,13 +247,18 @@
 
 .tooltip-crude-impact {
   font-size: 10px;
-  background: rgba(255,255,255,.05);
+  background: rgba(255, 255, 255, .05);
   padding: 1px 4px;
   border-radius: 2px;
 }
 
-.tooltip-bull { color: #FF3B30; }
-.tooltip-bear { color: #007AFF; }
+.tooltip-bull {
+  color: #FF3B30;
+}
+
+.tooltip-bear {
+  color: #007AFF;
+}
 
 .tooltip-news-snippet {
   margin-top: 4px;
@@ -258,8 +268,12 @@
 }
 
 /* ── Recharts overrides ── */
-.recharts-wrapper, .recharts-surface, .recharts-layer,
-.recharts-wrapper *, .recharts-wrapper:focus, .recharts-surface:focus {
+.recharts-wrapper,
+.recharts-surface,
+.recharts-layer,
+.recharts-wrapper *,
+.recharts-wrapper:focus,
+.recharts-surface:focus {
   outline: none !important;
 }
 
