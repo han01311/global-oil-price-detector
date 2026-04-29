@@ -26,7 +26,7 @@ class BriefingGenerator:
 
     def __init__(self, ollama_url: str | None = None):
         self.ollama_url = (ollama_url or settings.LOCAL_LLM_URL).rstrip("/")
-        self.model_name = "gemma"
+        self.model_name = "gemma4:e4b"
         os.makedirs(self.CACHE_DIR, exist_ok=True)
 
     def _get_cache_path(self) -> str:
@@ -89,7 +89,7 @@ class BriefingGenerator:
                             "format": "json",
                             "stream": False
                         },
-                        timeout=30.0
+                        timeout=120.0
                     )
                     response.raise_for_status()
                     
@@ -208,8 +208,13 @@ class BriefingGenerator:
             for a in articles if a.get('is_relevant')
         ][:5])
 
+        def _fmt_change(val):
+            if val is None or val == -9999.0:
+                return "N/A"
+            return f"{val:+.2f}%"
+
         similar_events_str = "\n".join([
-            f"- Event: {e.get('title', 'N/A')} ({e.get('date', 'N/A')})\n  Similarity: {e.get('similarity', 0):.1%}\n  WTI 7d: {e.get('wti_change_7d', 'N/A'):+.2f}%"
+            f"- Event: {e.get('title', 'N/A')} ({e.get('date', 'N/A')})\n  Similarity: {e.get('similarity', 0):.1%}\n  WTI 7d: {_fmt_change(e.get('wti_change_7d'))}"
             for e in similar_events
         ][:3])
 

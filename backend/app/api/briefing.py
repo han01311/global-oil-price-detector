@@ -2,14 +2,17 @@ from fastapi import APIRouter, Query, HTTPException
 from typing import List
 import os
 import json
+import logging
 from datetime import datetime, timedelta, timezone
 from pydantic import ValidationError
 
 from app.schemas.forecast import Briefing
 from app.services.briefing_generator import BriefingGenerator
+from app.services.market_memory import MarketMemory
 from app.api.forecast import _run_forecast_pipeline
 
 router = APIRouter(prefix="/api/briefing", tags=["briefing"])
+logger = logging.getLogger(__name__)
 
 @router.get("/today", response_model=Briefing)
 async def get_today_briefing() -> Briefing:
@@ -22,6 +25,37 @@ async def get_today_briefing() -> Briefing:
     
     try:
         forecast_result, relevant_articles, similar_events = await _run_forecast_pipeline()
+        
+        # If pipeline returned no articles, fall back to ChromaDB cached articles
+        if not relevant_articles:
+            logger.info("No in-memory news cache. Loading classified articles from ChromaDB.")
+            memory = MarketMemory()
+            if memory.is_available():
+                cached_classified = memory.get_recent_classified_articles(limit=20)
+                relevant_articles = [
+                    a.model_dump() for a in cached_classified if a.is_relevant
+                ]
+                # Also search for similar events if we now have articles
+                if relevant_articles and not similar_events:
+                    most_impactful = max(relevant_articles, key=lambda x: abs(x.get('impact_score', 0)))
+                    query_text = most_impactful.get('article', {}).get('title', '')
+                    if query_text:
+                        search_results = await memory.search_similar(query=query_text, n_results=5)
+                        for res in search_results:
+                            metadata = res.get('metadata', {})
+                            def get_change(key):
+                                val = metadata.get(key)
+                                if val is None or val == -1.0 or val == -9999.0 or val <= -9990:
+                                    return None
+                                return val
+                            similar_events.append({
+                                "title": res.get('document', '').split('\n')[0].replace('Title: ', ''),
+                                "similarity": 1.0 - res.get('distance', 1.0),
+                                "wti_change_7d": get_change('wti_change_7d'),
+                                "dubai_change_7d": get_change('dubai_change_7d'),
+                                "brent_change_7d": get_change('brent_change_7d'),
+                            })
+                logger.info(f"Loaded {len(relevant_articles)} articles from ChromaDB for briefing.")
         
         briefing = await generator.generate_briefing(
             forecast=forecast_result,
@@ -48,6 +82,34 @@ async def generate_briefing() -> Briefing:
 
     try:
         forecast_result, relevant_articles, similar_events = await _run_forecast_pipeline()
+        
+        # If pipeline returned no articles, fall back to ChromaDB cached articles
+        if not relevant_articles:
+            memory = MarketMemory()
+            if memory.is_available():
+                cached_classified = memory.get_recent_classified_articles(limit=20)
+                relevant_articles = [
+                    a.model_dump() for a in cached_classified if a.is_relevant
+                ]
+                if relevant_articles and not similar_events:
+                    most_impactful = max(relevant_articles, key=lambda x: abs(x.get('impact_score', 0)))
+                    query_text = most_impactful.get('article', {}).get('title', '')
+                    if query_text:
+                        search_results = await memory.search_similar(query=query_text, n_results=5)
+                        for res in search_results:
+                            metadata = res.get('metadata', {})
+                            def get_change(key):
+                                val = metadata.get(key)
+                                if val is None or val == -1.0 or val == -9999.0 or val <= -9990:
+                                    return None
+                                return val
+                            similar_events.append({
+                                "title": res.get('document', '').split('\n')[0].replace('Title: ', ''),
+                                "similarity": 1.0 - res.get('distance', 1.0),
+                                "wti_change_7d": get_change('wti_change_7d'),
+                                "dubai_change_7d": get_change('dubai_change_7d'),
+                                "brent_change_7d": get_change('brent_change_7d'),
+                            })
         
         briefing = await generator.generate_briefing(
             forecast=forecast_result,

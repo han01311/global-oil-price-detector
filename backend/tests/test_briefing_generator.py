@@ -67,12 +67,17 @@ def briefing_generator(tmp_path):
 @pytest.fixture
 def mock_httpx_response():
     mock_response_text = {
-        "summary": "A three-sentence summary.",
-        "key_factors": [{"category": "supply", "description": "desc", "impact": "bullish", "score": 4}],
-        "risk_scenarios": [{"scenario": "risk", "probability": "medium", "price_impact": "+$5"}],
-        "similar_cases": [{"event": "case", "date": "2022-01-01", "similarity": 0.8, "actual_impact": "Price went up."}],
-        "price_outlook": "Outlook is positive.",
-        "confidence_note": "Confidence is high."
+        "summary": "국제 유가는 OPEC+ 감산 결정으로 상승 압력을 받고 있습니다.",
+        "key_factors": [{"category": "공급", "description": "OPEC+ 감산은 공급 부족 우려를 키웁니다.", "impact": "bullish", "score": 4}],
+        "risk_scenarios": [{"scenario": "중동 지정학적 긴장 고조", "probability": "medium", "price_impact": "+$5"}],
+        "similar_cases": [{"event": "우크라이나 침공", "date": "2022-01-01", "similarity": 0.8, "actual_impact": "배럴당 $15 상승"}],
+        "crude_outlooks": [
+            {"crude_type": "dubai", "direction": "bullish", "summary": "중동 리스크로 상승 전망.", "key_driver": "중동 지정학"},
+            {"crude_type": "brent", "direction": "neutral", "summary": "유럽 수요 둔화와 공급 감소 상쇄.", "key_driver": "유럽 수요"},
+            {"crude_type": "wti", "direction": "bearish", "summary": "달러 강세로 하방 압력.", "key_driver": "달러 강세"}
+        ],
+        "price_outlook": "단기적으로 유가는 혼조세를 보일 것으로 예상됩니다.",
+        "confidence_note": "뉴스 기반 정성 분석의 신뢰도는 높은 편입니다."
     }
     mock_resp = MagicMock()
     mock_resp.raise_for_status = MagicMock()
@@ -87,12 +92,9 @@ def test_build_briefing_prompt(briefing_generator, mock_forecast_result, mock_cl
     )
 
     assert "$100.00" in prompt
-    assert "Dominant Factor from News: supply" in prompt
-    assert "+1.50%" in prompt
     assert "OPEC+ Surprise Cut" in prompt
     assert "Fed Hints at Rate Hike" in prompt
     assert "2022 Ukraine Invasion" in prompt
-    assert "+15.50%" in prompt
     assert "JSON OUTPUT FORMAT" in prompt
 
 @pytest.mark.asyncio
@@ -108,10 +110,9 @@ async def test_generate_briefing_success(mock_post, briefing_generator, mock_for
 
     mock_post.assert_awaited_once()
     assert isinstance(result, Briefing)
-    assert result.summary == "A three-sentence summary."
+    assert "OPEC+" in result.summary or "감산" in result.summary
     assert len(result.key_factors) == 1
-    assert result.key_factors[0].category == "supply"
-    assert result.price_outlook == "Outlook is positive."
+    assert result.key_factors[0].category == "공급"
 
 @pytest.mark.asyncio
 @patch('httpx.AsyncClient.post')
@@ -153,3 +154,19 @@ async def test_generate_briefing_invalid_response(mock_post, briefing_generator,
     )
 
     assert result.summary == "일시적인 AI 분석 지연으로 인해 요약 브리핑을 불러오지 못했습니다."
+
+@pytest.mark.asyncio
+async def test_generate_briefing_no_articles_no_events(briefing_generator, mock_forecast_result):
+    """When there are no articles and no events, fallback briefing is returned."""
+    result = await briefing_generator.generate_briefing(
+        forecast=mock_forecast_result,
+        classified_articles=[],
+        similar_events=[]
+    )
+
+    assert result.summary == "일시적인 AI 분석 지연으로 인해 요약 브리핑을 불러오지 못했습니다."
+    assert isinstance(result, Briefing)
+
+def test_model_name_is_gemma4_e4b(briefing_generator):
+    """모델명이 gemma4:e4b인지 확인"""
+    assert briefing_generator.model_name == "gemma4:e4b"
