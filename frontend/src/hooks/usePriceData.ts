@@ -19,6 +19,9 @@ export interface ChartDataPoint {
   brentForecastFund?: number;
   dubaiForecastTech?: number;
   dubaiForecastFund?: number;
+  wtiCurrent?: number | null;
+  brentCurrent?: number | null;
+  dubaiCurrent?: number | null;
   article?: ClassifiedArticle;
   dbArticleCount?: number;
   filterDate?: string;
@@ -170,6 +173,9 @@ export function usePriceData(period: Period): PriceData {
         brentForecastFund: forecast.method_b.forecasts_by_crude['brent']?.estimated_7d,
         dubaiForecastTech: forecast.method_a.forecasts_by_crude['dubai']?.estimated_7d,
         dubaiForecastFund: forecast.method_b.forecasts_by_crude['dubai']?.estimated_7d,
+        wtiCurrent: lastDataPoint.wti,
+        brentCurrent: lastDataPoint.brent,
+        dubaiCurrent: lastDataPoint.dubai,
       });
     }
 

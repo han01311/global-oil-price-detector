@@ -124,19 +124,57 @@ function chg(curr: number | null | undefined, prev: number | null | undefined) {
 const ChartTooltip: React.FC<any> = ({ active, payload, label, interval }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
+  
+  const isForecastPoint = d.dubai === null && d.dubaiForecastTech != null;
+
+  const renderForecastInfo = (
+    name: string,
+    color: string,
+    current: number | null | undefined,
+    tech: number | undefined,
+    fund: number | undefined
+  ) => {
+    if (!tech && !fund) return null;
+    return (
+      <div style={{ marginBottom: '8px' }}>
+        <p className="tooltip-item" style={{ color, fontWeight: 700 }}>{name} (7일 뒤 전망)</p>
+        {current != null && <p className="tooltip-item" style={{ color, fontSize: '11px', opacity: 0.85 }}>현재가: ${current.toFixed(2)}</p>}
+        {tech != null && current != null && (
+          <p className="tooltip-item" style={{ color, fontSize: '11px' }}>
+            ↳ AI 퀀트: ${tech.toFixed(2)} {tech > current ? '▲' : tech < current ? '▼' : '-'}
+          </p>
+        )}
+        {fund != null && current != null && (
+          <p className="tooltip-item" style={{ color, fontSize: '11px' }}>
+            ↳ 매크로·수급: ${fund.toFixed(2)} {fund > current ? '▲' : fund < current ? '▼' : '-'}
+          </p>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="chart-tooltip-content">
-      <p className="tooltip-label">{new Date(label).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-      {d.dubai != null && <p className="tooltip-item" style={{ color: 'var(--color-primary)' }}>Dubai: ${d.dubai?.toFixed(2)}</p>}
-      {d.dubaiForecastTech != null && <p className="tooltip-item" style={{ color: 'var(--color-primary)', fontSize: '10px' }}>↳ Dubai (기술적): ${d.dubaiForecastTech?.toFixed(2)}</p>}
-      {d.dubaiForecastFund != null && <p className="tooltip-item" style={{ color: 'var(--color-primary)', fontSize: '10px' }}>↳ Dubai (펀더멘탈): ${d.dubaiForecastFund?.toFixed(2)}</p>}
-      {d.wti != null && <p className="tooltip-item" style={{ color: '#34C759' }}>WTI: ${d.wti?.toFixed(2)}</p>}
-      {d.wtiForecastTech != null && <p className="tooltip-item" style={{ color: '#34C759', fontSize: '10px' }}>↳ WTI (기술적): ${d.wtiForecastTech?.toFixed(2)}</p>}
-      {d.wtiForecastFund != null && <p className="tooltip-item" style={{ color: '#34C759', fontSize: '10px' }}>↳ WTI (펀더멘탈): ${d.wtiForecastFund?.toFixed(2)}</p>}
-      {d.brent != null && <p className="tooltip-item" style={{ color: '#FF9F0A' }}>Brent: ${d.brent?.toFixed(2)}</p>}
-      {d.brentForecastTech != null && <p className="tooltip-item" style={{ color: '#FF9F0A', fontSize: '10px' }}>↳ Brent (기술적): ${d.brentForecastTech?.toFixed(2)}</p>}
-      {d.brentForecastFund != null && <p className="tooltip-item" style={{ color: '#FF9F0A', fontSize: '10px' }}>↳ Brent (펀더멘탈): ${d.brentForecastFund?.toFixed(2)}</p>}
-      {d.dbArticleCount && d.dbArticleCount > 0 && (
+      <p className="tooltip-label">
+        {new Date(label).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })}
+        {isForecastPoint ? ' (전망 시점)' : ''}
+      </p>
+      
+      {!isForecastPoint ? (
+        <>
+          {d.dubai != null && <p className="tooltip-item" style={{ color: 'var(--color-primary)' }}>Dubai: ${d.dubai?.toFixed(2)}</p>}
+          {d.wti != null && <p className="tooltip-item" style={{ color: '#34C759' }}>WTI: ${d.wti?.toFixed(2)}</p>}
+          {d.brent != null && <p className="tooltip-item" style={{ color: '#FF9F0A' }}>Brent: ${d.brent?.toFixed(2)}</p>}
+        </>
+      ) : (
+        <div style={{ marginTop: '8px' }}>
+          {renderForecastInfo('Dubai', 'var(--color-primary)', d.dubaiCurrent, d.dubaiForecastTech, d.dubaiForecastFund)}
+          {renderForecastInfo('WTI', '#34C759', d.wtiCurrent, d.wtiForecastTech, d.wtiForecastFund)}
+          {renderForecastInfo('Brent', '#FF9F0A', d.brentCurrent, d.brentForecastTech, d.brentForecastFund)}
+        </div>
+      )}
+
+      {d.dbArticleCount && d.dbArticleCount > 0 && !isForecastPoint && (
         <>
           <div className="tooltip-db-news">
             <span style={{ fontSize: '13px' }}>📰</span> 관련 기사 {d.dbArticleCount}건 수집됨
