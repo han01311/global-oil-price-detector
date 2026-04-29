@@ -147,7 +147,7 @@ JSON Output Format:
 {{
   "is_relevant": boolean,
   "category": "string (one of {', '.join(self.CATEGORIES)})",
-  "sub_categories": ["string"],
+  "sub_categories": ["string (MUST be in Korean)"],
   "impact_by_crude": {{
     "dubai": {{"direction": "string", "score": integer, "rationale": "string (in Korean, 2-3 sentences, evidence-based)"}},
     "brent": {{"direction": "string", "score": integer, "rationale": "string (in Korean, 2-3 sentences, evidence-based)"}},
