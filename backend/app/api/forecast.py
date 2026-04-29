@@ -77,7 +77,10 @@ async def _run_forecast_pipeline():
                 metadata = res.get('metadata', {})
                 def get_change(key):
                     val = metadata.get(key)
-                    return None if val == -1.0 else val
+                    # ChromaDB stores None as -9999.0 sentinel value
+                    if val is None or val == -1.0 or val == -9999.0 or val <= -9990:
+                        return None
+                    return val
                 
                 event = {
                     "title": res.get('document', '').split('\n')[0].replace('Title: ', ''),
