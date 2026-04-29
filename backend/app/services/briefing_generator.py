@@ -243,43 +243,44 @@ Use the provided data to construct your analysis. You MUST respond ONLY with a v
 
 [TASK]
 Based on the contextual data, generate the daily briefing with independent per-crude outlooks.
+CRITICAL: You must be extremely concise. Keep all text descriptions as short as possible. Limit key_factors to max 3 items, risk_scenarios to max 2 items, and similar_cases to max 2 items.
 
 [JSON OUTPUT FORMAT]
 {{
-  "summary": "string (반드시 한국어로 작성. 3개 유종을 모두 아우르는 3문장 이내의 핵심 요약)",
+  "summary": "string (반드시 한국어로 작성. 2문장 이내, 100자 이하의 매우 간결한 핵심 요약)",
   "key_factors": [
     {{
-      "category": "string (예: '공급', '지정학', '수요' 등 한국어로 작성)",
-      "description": "string (반드시 한국어로 작성. 이 요인이 유가에 미치는 영향에 대한 상세 분석)",
+      "category": "string (예: '공급', '지정학', '수요' 등 짧은 단어)",
+      "description": "string (반드시 한국어로 작성. 1문장, 50자 이내의 아주 짧은 핵심 설명)",
       "impact": "string ('bullish', 'bearish', 또는 'neutral' 중 하나로 영문 유지)",
       "score": "integer (-5 to 5)"
     }}
   ],
   "risk_scenarios": [
     {{
-      "scenario": "string (반드시 한국어로 작성. 발생 가능한 시장 리스크 시나리오)",
+      "scenario": "string (반드시 한국어로 작성. 1문장, 40자 이내의 짧은 리스크 명칭)",
       "probability": "string ('high', 'medium', 또는 'low' 중 하나로 영문 유지)",
       "price_impact": "string (예: '+$3-5/bbl')"
     }}
   ],
   "similar_cases": [
     {{
-      "event": "string (과거 유사 사례 이벤트명, 한국어로 작성)",
+      "event": "string (과거 유사 사례 이벤트명, 20자 이내 한국어)",
       "date": "string",
       "similarity": "float",
-      "actual_impact": "string (실제 가격에 미친 영향, 한국어로 작성)"
+      "actual_impact": "string (예: '배럴당 $15 상승' 등 20자 이내의 짧은 결과 문구)"
     }}
   ],
   "crude_outlooks": [
     {{
       "crude_type": "string ('dubai', 'brent', 또는 'wti')",
       "direction": "string ('bullish', 'bearish', 또는 'neutral')",
-      "summary": "string (반드시 한국어로 작성. 해당 유종에 특화된 2문장 이내의 전망)",
-      "key_driver": "string (반드시 한국어로 작성. 해당 유종의 가격 변동을 이끄는 핵심 동인)"
+      "summary": "string (반드시 한국어로 작성. 1문장, 50자 이내의 매우 짧은 유종별 전망)",
+      "key_driver": "string (해당 유종의 가격을 이끄는 핵심 동인 1가지 단어/구)"
     }}
   ],
-  "price_outlook": "string (반드시 한국어로 작성. 종합적인 유가 방향성 결론)",
-  "confidence_note": "string (반드시 한국어로 작성. 예측 신뢰도 및 한계점에 대한 코멘트)"
+  "price_outlook": "string (반드시 한국어로 작성. 1문장, 50자 이내의 종합 방향성 결론)",
+  "confidence_note": "string (반드시 한국어로 작성. 1문장, 30자 이내의 짧은 코멘트)"
 }}
 """
         return prompt

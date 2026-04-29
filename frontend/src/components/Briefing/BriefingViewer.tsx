@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useBriefing } from '../../hooks/useBriefing';
 import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';
@@ -92,45 +92,62 @@ const CrudeOutlooks: React.FC<{ outlooks: CrudeOutlook[] }> = ({ outlooks }) => 
   </div>
 );
 
-const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => (
-  <div className="briefing-viewer">
-    <BriefingSection title="핵심 요약" icon="📋">
-      <div className="briefing-summary">
-        <p>{briefing.summary}</p>
-        <p style={{ marginTop: '8px', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
-          {briefing.price_outlook}
-        </p>
+const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  return (
+    <div className="briefing-content-wrapper">
+      <div className={`briefing-viewer ${isExpanded ? 'expanded' : 'collapsed'}`}>
+        <BriefingSection title="핵심 요약" icon="📋">
+          <div className="briefing-summary">
+            <p>{briefing.summary}</p>
+            <p style={{ marginTop: '8px', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
+              {briefing.price_outlook}
+            </p>
+          </div>
+        </BriefingSection>
+
+        {briefing.crude_outlooks && briefing.crude_outlooks.length > 0 && (
+          <BriefingSection title="유종별 독립 전망" icon="🛢️">
+            <CrudeOutlooks outlooks={briefing.crude_outlooks} />
+          </BriefingSection>
+        )}
+
+        {briefing.key_factors.length > 0 && (
+          <BriefingSection title="주요 요인" icon="📊">
+            <KeyFactors factors={briefing.key_factors} />
+          </BriefingSection>
+        )}
+
+        {briefing.risk_scenarios.length > 0 && (
+          <BriefingSection title="리스크 시나리오" icon="⚠">
+            <RiskScenarios scenarios={briefing.risk_scenarios} />
+          </BriefingSection>
+        )}
+
+        {briefing.similar_cases.length > 0 && (
+          <BriefingSection title="과거 유사 사례" icon="📜">
+            <Tooltip content="Market Memory: ChromaDB 벡터 검색으로 현재 뉴스와 유사한 과거 이벤트를 코사인 유사도 기반으로 매칭한 결과입니다.">
+              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Market Memory</span>
+            </Tooltip>
+            <SimilarCases cases={briefing.similar_cases} />
+          </BriefingSection>
+        )}
       </div>
-    </BriefingSection>
-
-    {briefing.crude_outlooks && briefing.crude_outlooks.length > 0 && (
-      <BriefingSection title="유종별 독립 전망" icon="🛢️">
-        <CrudeOutlooks outlooks={briefing.crude_outlooks} />
-      </BriefingSection>
-    )}
-
-    {briefing.key_factors.length > 0 && (
-      <BriefingSection title="주요 요인" icon="📊">
-        <KeyFactors factors={briefing.key_factors} />
-      </BriefingSection>
-    )}
-
-    {briefing.risk_scenarios.length > 0 && (
-      <BriefingSection title="리스크 시나리오" icon="⚠">
-        <RiskScenarios scenarios={briefing.risk_scenarios} />
-      </BriefingSection>
-    )}
-
-    {briefing.similar_cases.length > 0 && (
-      <BriefingSection title="과거 유사 사례" icon="📜">
-        <Tooltip content="Market Memory: ChromaDB 벡터 검색으로 현재 뉴스와 유사한 과거 이벤트를 코사인 유사도 기반으로 매칭한 결과입니다.">
-          <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Market Memory</span>
-        </Tooltip>
-        <SimilarCases cases={briefing.similar_cases} />
-      </BriefingSection>
-    )}
-  </div>
-);
+      
+      {!isExpanded && <div className="briefing-fade-overlay" />}
+      
+      <div className={`briefing-toggle-container ${isExpanded ? 'expanded' : ''}`}>
+        <button 
+          className="briefing-toggle-btn" 
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          {isExpanded ? '▲ 접기' : '▼ 더보기'}
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export const BriefingViewer: React.FC = () => {
   const { currentBriefing, loading, error, goToPrevious, goToNext, hasPrevious, hasNext, refetch } = useBriefing();
