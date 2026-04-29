@@ -63,8 +63,8 @@ const SimilarCases: React.FC<{ cases: SimilarCase[] }> = ({ cases }) => (
 );
 
 const CRUDE_LABELS: Record<string, string> = {
-  dubai: '두바이유',
-  brent: '브렌트유',
+  dubai: 'Dubai',
+  brent: 'Brent',
   wti: 'WTI',
 };
 
@@ -85,8 +85,7 @@ const CrudeOutlooks: React.FC<{ outlooks: CrudeOutlook[] }> = ({ outlooks }) => 
             {' '}{DIRECTION_LABELS[outlook.direction] || outlook.direction}
           </span>
         </div>
-        <p className="crude-outlook-summary">{outlook.summary}</p>
-        <p className="crude-outlook-driver">핵심 동인: {outlook.key_driver}</p>
+        <p className="crude-outlook-driver">{outlook.key_driver}</p>
       </div>
     ))}
   </div>

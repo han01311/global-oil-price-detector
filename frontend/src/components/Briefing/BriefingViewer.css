@@ -8,6 +8,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
 }
 
 .briefing-date {
@@ -57,6 +58,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  margin: 0;
 }
 
 .briefing-summary p {
@@ -168,12 +170,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: nowrap;
+  gap: 4px;
 }
 
 .crude-outlook-label {
   font-size: 13px;
   font-weight: 600;
   color: var(--color-text-primary);
+  white-space: nowrap;
 }
 
 .crude-outlook-direction {
@@ -181,6 +186,8 @@
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .crude-outlook-direction.bullish {
   color: var(--color-bull);
@@ -199,11 +206,15 @@
   font-size: 12px;
   line-height: 1.5;
   color: var(--color-text-body);
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .crude-outlook-driver {
-  font-size: 11px;
-  color: var(--color-text-muted);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-body);
+  word-break: keep-all;
 }
 
 /* Expand / Collapse Section */
