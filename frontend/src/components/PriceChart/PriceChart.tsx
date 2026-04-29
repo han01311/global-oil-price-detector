@@ -372,6 +372,11 @@ export const PriceChart: React.FC = () => {
   const handleElementClick = (data: any) => {
     if (dragState.current.isPanning) return;
     if (data) {
+      // 미래 전망 시점(실제 유가 데이터가 없는 미래 날짜)인 경우 클릭 무시
+      if (data.dubai === null && data.wti === null && data.dubaiForecastTech != null) {
+        return;
+      }
+
       if (interval !== 'day' && data.groupStartDate && data.groupEndDate) {
         setSelectedDateRange({ start: data.groupStartDate, end: data.groupEndDate });
       } else if (data.filterDate || data.date) {
