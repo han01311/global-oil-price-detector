@@ -53,9 +53,9 @@ const CRUDE_LABELS: Record<string, string> = {
 };
 
 const DIRECTION_LABELS: Record<string, string> = {
-  bullish: '상승',
-  bearish: '하락',
-  neutral: '보합',
+  bullish: '상승 모멘텀',
+  bearish: '하락 압력 우세',
+  neutral: '혼조 / 관망세',
 };
 
 const CRUDE_ORDER = ['dubai', 'wti', 'brent'];
@@ -71,9 +71,8 @@ const CrudeDailyAssessments: React.FC<{ assessments: CrudeDailyAssessment[] }> =
           <div className="crude-assessment-header">
             <span className="crude-assessment-label">{CRUDE_LABELS[item.crude_type] || item.crude_type}</span>
             <span className={`crude-assessment-change ${item.direction}`}>
-              {item.direction === 'bullish' ? '▲' : item.direction === 'bearish' ? '▼' : '—'}
+              {item.direction === 'bullish' ? '📈' : item.direction === 'bearish' ? '📉' : '➖'}
               {' '}{DIRECTION_LABELS[item.direction] || item.direction}
-              {' '}{item.change_pct > 0 ? '+' : ''}{item.change_pct.toFixed(2)}%
             </span>
           </div>
           <p className="crude-assessment-driver">{item.key_driver}</p>
@@ -102,11 +101,11 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
           <BriefingSection 
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                유종별 최근 시세 변동
+                유종별 AI 뉴스 모멘텀
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 'normal' }}>
                   {briefing.data_as_of
-                    ? `(${new Date(briefing.data_as_of + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 기준 · 직전 거래일 대비)`
-                    : '(직전 거래일 대비)'}
+                    ? `(${new Date(briefing.data_as_of + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 기준)`
+                    : '(최신 뉴스 기반)'}
                 </span>
               </div>
             } 
@@ -126,6 +125,21 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
           <BriefingSection title="리스크 시나리오" icon="⚠">
             <RiskScenarios scenarios={briefing.risk_scenarios} />
           </BriefingSection>
+        )}
+
+        {briefing.confidence_note && (
+          <div className="briefing-confidence-note" style={{
+            marginTop: '16px',
+            padding: '12px',
+            backgroundColor: 'rgba(79, 142, 247, 0.05)',
+            borderLeft: '3px solid var(--color-primary)',
+            borderRadius: '0 4px 4px 0',
+            fontSize: '12px',
+            color: 'var(--color-text-secondary)'
+          }}>
+            <span style={{ marginRight: '6px' }}>💡</span>
+            <strong>분석 신뢰도:</strong> {briefing.confidence_note}
+          </div>
         )}
       </div>
       

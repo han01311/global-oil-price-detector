@@ -78,22 +78,24 @@ class BriefingGenerator:
         crude_drivers = self._extract_crude_drivers(classified_articles)
         
         for crude in CRUDE_TYPES:
-            prices = price_data.get(crude, {})
-            today_price = prices.get("today", 0)
-            yesterday_price = prices.get("yesterday", 0)
+            # 뉴스 기사들의 Impact Score를 합산하여 AI 센티먼트 방향성 평가
+            total_score = 0
+            for article in classified_articles:
+                crude_impact = article.get("impact_by_crude", {}).get(crude, {})
+                if isinstance(crude_impact, dict):
+                    score = crude_impact.get("score", 0)
+                    total_score += score
             
-            if yesterday_price and yesterday_price > 0:
-                change_pct = round((today_price - yesterday_price) / yesterday_price * 100, 2)
-            else:
-                change_pct = 0.0
-            
-            # 방향성 결정: ±0.1% 이내면 보합
-            if change_pct > 0.1:
+            # 방향성 결정: 0 이상이면 상승 압력, 0 미만이면 하락 압력, 0이면 관망세
+            if total_score > 0:
                 direction = "bullish"
-            elif change_pct < -0.1:
+            elif total_score < 0:
                 direction = "bearish"
             else:
                 direction = "neutral"
+            
+            # 프론트엔드 타입 호환성을 위해 change_pct는 total_score로 전달 (UI에서는 사용 안함)
+            change_pct = float(total_score)
             
             key_driver = crude_drivers.get(crude, "데이터 부족")
             
@@ -107,21 +109,12 @@ class BriefingGenerator:
         return assessments
 
     def _extract_crude_drivers(self, articles: List[Dict[str, Any]]) -> Dict[str, str]:
-        """분류된 뉴스 기사에서 유종별 가장 영향력 높은 요인의 카테고리를 키워드로 추출"""
-        CATEGORY_KR = {
-            "geopolitics": "지정학 리스크",
-            "supply": "공급 변동",
-            "demand": "수요 변화",
-            "macro": "거시경제",
-            "climate": "기후/ESG",
-            "speculation": "투기/심리",
-        }
-        
+        """분류된 뉴스 기사에서 유종별 가장 영향력 높은 요인의 기사 요약을 추출"""
         crude_drivers: Dict[str, str] = {}
         
         for crude in CRUDE_TYPES:
             best_score = 0
-            best_category = ""
+            best_summary = ""
             
             for article in articles:
                 if not article.get("is_relevant"):
@@ -130,12 +123,21 @@ class BriefingGenerator:
                 crude_impact = impact_by_crude.get(crude, {})
                 if isinstance(crude_impact, dict):
                     score = abs(crude_impact.get("score", 0))
-                    if score > best_score:
+                    # 더 높은 점수를 가진 기사를 찾거나, 점수가 같으면 첫 번째 기사를 유지
+                    if score > best_score or (score > 0 and not best_summary):
                         best_score = score
-                        best_category = article.get("category", "")
+                        # impact_summary에서 첫 문장만 추출 (너무 길지 않도록)
+                        summary_text = article.get("impact_summary", "")
+                        if summary_text:
+                            first_sentence = summary_text.split(". ")[0]
+                            if not first_sentence.endswith("."):
+                                first_sentence += "."
+                            best_summary = first_sentence
+                        else:
+                            best_summary = article.get("category", "")
             
-            if best_category:
-                crude_drivers[crude] = CATEGORY_KR.get(best_category, best_category)
+            if best_summary:
+                crude_drivers[crude] = best_summary
             else:
                 crude_drivers[crude] = "특이사항 없음"
         
@@ -224,6 +226,40 @@ class BriefingGenerator:
                 response_data.pop("crude_outlooks", None)
                 response_data.pop("crude_assessments", None)
                 response_data.pop("similar_cases", None)
+                response_data.pop("confidence_note", None) # LLM이 생성한 건 버리고 아래에서 결정론적으로 생성
+
+                # 결정론적 신뢰도 코멘트 생성 (날짜 범위 추가)
+                num_articles = len(relevant_articles)
+                
+                date_range_str = ""
+                dates = []
+                for a in relevant_articles:
+                    # 기사 dict 안에 중첩되어 있을 수 있으므로 방어적 접근
+                    pub_date = a.get("article", {}).get("published_at") or a.get("published_at")
+                    if pub_date:
+                        try:
+                            # '2026-04-28T17:21:42Z' 형태 파싱
+                            dt = datetime.fromisoformat(pub_date.replace("Z", "+00:00"))
+                            dates.append(dt)
+                        except Exception:
+                            pass
+                
+                if dates:
+                    min_date = min(dates)
+                    max_date = max(dates)
+                    
+                    # 같은 날짜면 하루만 표기, 다르면 시작~끝 표기
+                    if min_date.date() == max_date.date():
+                        date_range_str = f"({min_date.month}월 {min_date.day}일) "
+                    else:
+                        date_range_str = f"({min_date.month}월 {min_date.day}일 ~ {max_date.month}월 {max_date.day}일) "
+                        
+                if num_articles >= 5:
+                    confidence_note = f"{date_range_str}발행된 최신 핵심 뉴스 {num_articles}건을 교차 검증하여 분석 신뢰도가 높습니다."
+                elif num_articles >= 3:
+                    confidence_note = f"{date_range_str}발행된 최신 뉴스 {num_articles}건을 바탕으로 분석하여 신뢰도가 양호합니다."
+                else:
+                    confidence_note = f"{date_range_str}수집된 유효 뉴스가 {num_articles}건으로 부족하여 분석 신뢰도가 제한적일 수 있습니다."
 
                 briefing = Briefing(
                     date=today,
@@ -231,6 +267,7 @@ class BriefingGenerator:
                     generated_at=datetime.now(timezone.utc).isoformat(),
                     crude_assessments=crude_assessments,
                     has_news=True,
+                    confidence_note=confidence_note,
                     **response_data
                 )
                 if not self._is_korean_briefing(briefing):
