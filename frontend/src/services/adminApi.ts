@@ -92,6 +92,20 @@ export async function fetchAdminInventory(
   return apiFetch(`/api/admin/data/inventory?${params.toString()}`);
 }
 
+export async function fetchAdminProduction(
+  startDate?: string,
+  endDate?: string,
+  limit = 50,
+  offset = 0
+): Promise<PaginatedDataResponse> {
+  const params = new URLSearchParams();
+  if (startDate) params.set('start_date', startDate);
+  if (endDate) params.set('end_date', endDate);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  return apiFetch(`/api/admin/data/production?${params.toString()}`);
+}
+
 // --- Rate Limits ---
 export async function fetchRateLimits(): Promise<RateLimitStatus[]> {
   return apiFetch('/api/admin/rate-limits');

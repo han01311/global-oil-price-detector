@@ -214,6 +214,33 @@ class Database:
             result = await session.execute(stmt)
             return [_row_to_dict(r) for r in result.scalars().all()]
 
+    async def get_oil_production(
+        self, start_date: str | None = None, end_date: str | None = None,
+        limit: int = 500, offset: int = 0
+    ) -> list[dict]:
+        """생산량 데이터 페이지네이션 조회"""
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            stmt = select(OilProductionModel)
+            if start_date:
+                stmt = stmt.where(OilProductionModel.date >= start_date)
+            if end_date:
+                stmt = stmt.where(OilProductionModel.date <= end_date)
+            stmt = stmt.order_by(OilProductionModel.date.desc()).limit(limit).offset(offset)
+            result = await session.execute(stmt)
+            return [_row_to_dict(r) for r in result.scalars().all()]
+
+    async def get_oil_production_count(self, start_date: str | None = None, end_date: str | None = None) -> int:
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            stmt = select(func.count(OilProductionModel.id))
+            if start_date:
+                stmt = stmt.where(OilProductionModel.date >= start_date)
+            if end_date:
+                stmt = stmt.where(OilProductionModel.date <= end_date)
+            result = await session.execute(stmt)
+            return result.scalar_one()
+
     # ──────────────────────────────────────────────
     # 거시 경제 CRUD
     # ──────────────────────────────────────────────

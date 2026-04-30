@@ -125,6 +125,20 @@ async def get_inventory_data(
     return PaginatedDataResponse(data=data, total=total, limit=limit, offset=offset)
 
 
+@router.get("/data/production", response_model=PaginatedDataResponse)
+async def get_production_data(
+    start_date: str | None = Query(default=None),
+    end_date: str | None = Query(default=None),
+    limit: int = Query(default=50, le=500),
+    offset: int = Query(default=0, ge=0),
+) -> PaginatedDataResponse:
+    """생산량 데이터 조회 (페이지네이션)"""
+    db = Database()
+    data = await db.get_oil_production(start_date=start_date, end_date=end_date, limit=limit, offset=offset)
+    total = await db.get_oil_production_count()
+    return PaginatedDataResponse(data=data, total=total, limit=limit, offset=offset)
+
+
 # ──────────────────────────────────────────────
 # Rate Limits
 # ──────────────────────────────────────────────

@@ -11,6 +11,7 @@ import {
   fetchAdminMacro,
   fetchAdminNews,
   fetchAdminInventory,
+  fetchAdminProduction,
   startCrawl,
   stopCrawl,
   fetchCrawlStatus,
@@ -41,7 +42,7 @@ import type {
 import './AdminPanel.css';
 
 type TabId = 'overview' | 'logs' | 'data' | 'trigger' | 'crawl' | 'pipeline';
-type DataTab = 'prices' | 'macro' | 'news' | 'inventory';
+type DataTab = 'prices' | 'macro' | 'news' | 'inventory' | 'production';
 
 // ═══════════════════════════════════════════════
 // Helper Components
@@ -348,6 +349,9 @@ const DataExplorerSection: React.FC = () => {
         case 'inventory':
           res = await fetchAdminInventory(undefined, undefined, limit, offset);
           break;
+        case 'production':
+          res = await fetchAdminProduction(undefined, undefined, limit, offset);
+          break;
       }
       setData(res);
     } catch (e) {
@@ -379,16 +383,36 @@ const DataExplorerSection: React.FC = () => {
     });
   }
 
+  const formatColumnName = (col: string) => {
+    const formatMap: Record<string, string> = {
+      'date': '기준일',
+      'dubai': 'Dubai (USD/bbl)',
+      'wti': 'WTI (USD/bbl)',
+      'brent': 'Brent (USD/bbl)',
+      'source': '데이터 소스',
+      'inventory_mbbl': '재고량 (천 배럴)',
+      'production_mbbl_d': '일일 생산량 (천 배럴/일)',
+      'fed_rate': '기준금리 (%)',
+      'dollar_index': '달러 인덱스',
+      'title': '기사 제목',
+      'description': '기사 요약',
+      'url': '링크',
+      'published_at': '발행 일시',
+      'collected_at': '수집 일시'
+    };
+    return formatMap[col] || col;
+  };
+
   return (
     <>
       <div className="data-tabs">
-        {(['prices', 'macro', 'news', 'inventory'] as DataTab[]).map((tab) => (
+        {(['prices', 'macro', 'news', 'inventory', 'production'] as DataTab[]).map((tab) => (
           <button
             key={tab}
             className={`data-tab ${activeTab === tab ? 'active' : ''}`}
             onClick={() => setActiveTab(tab)}
           >
-            {tab === 'prices' ? '📈 Prices' : tab === 'macro' ? '🏛 Macro' : tab === 'news' ? '📰 News' : '🛢 Inventory'}
+            {tab === 'prices' ? '📈 유가' : tab === 'macro' ? '🏛 거시경제' : tab === 'news' ? '📰 뉴스' : tab === 'inventory' ? '🛢 재고' : '⚙️ 생산'}
           </button>
         ))}
       </div>
@@ -398,7 +422,7 @@ const DataExplorerSection: React.FC = () => {
           <thead>
             <tr>
               {columns.map((col) => (
-                <th key={col}>{col}</th>
+                <th key={col}>{formatColumnName(col)}</th>
               ))}
             </tr>
           </thead>
