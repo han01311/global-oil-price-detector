@@ -60,6 +60,14 @@ export interface CrudeDailyAssessment {
   key_driver: string; // 핵심 상승/하락 요인 키워드
 }
 
+export interface AnalyzedArticle {
+  title: string;
+  url: string;
+  source: string;
+  published_at: string;
+  impact_score: number;
+}
+
 export interface Briefing {
   date: string;
   data_as_of?: string;   // 유가 데이터의 마지막 날짜
@@ -70,6 +78,7 @@ export interface Briefing {
   confidence_note: string;
   crude_assessments: CrudeDailyAssessment[]; // 유종별 시세 변동 평가
   has_news: boolean;
+  analyzed_articles?: AnalyzedArticle[]; // 분석에 사용된 기사 목록
   generated_at: string;
 }
 

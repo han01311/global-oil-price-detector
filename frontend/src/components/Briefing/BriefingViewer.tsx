@@ -4,7 +4,7 @@ import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';
 import { EmptyState } from '../common/EmptyState';
 import './BriefingViewer.css';
-import type { Briefing, BriefingKeyFactor, RiskScenario, CrudeDailyAssessment } from '../../types/forecast';
+import type { Briefing, BriefingKeyFactor, RiskScenario, CrudeDailyAssessment, AnalyzedArticle } from '../../types/forecast';
 
 const BriefingSection: React.FC<{ title: React.ReactNode; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
   <div className="briefing-section">
@@ -82,6 +82,65 @@ const CrudeDailyAssessments: React.FC<{ assessments: CrudeDailyAssessment[] }> =
   );
 };
 
+const AnalyzedArticles: React.FC<{ articles: AnalyzedArticle[] }> = ({ articles }) => {
+  if (!articles || articles.length === 0) return null;
+  return (
+    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {articles.map((article, index) => {
+        const isPositive = article.impact_score > 0;
+        const isNegative = article.impact_score < 0;
+        const scoreColor = isPositive ? 'var(--color-bullish)' : isNegative ? 'var(--color-bearish)' : 'var(--color-text-muted)';
+        const scoreLabel = isPositive ? '상승' : isNegative ? '하락' : '중립';
+        const pubDate = article.published_at
+          ? new Date(article.published_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+          : '';
+
+        return (
+          <li key={index} style={{
+            padding: '10px 12px',
+            backgroundColor: 'rgba(255,255,255,0.02)',
+            border: '1px solid var(--color-border)',
+            borderRadius: '6px',
+            fontSize: '12px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+              <a
+                href={article.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  color: 'var(--color-text-primary)',
+                  textDecoration: 'none',
+                  lineHeight: '1.4',
+                  flex: 1,
+                  fontWeight: 500,
+                }}
+                title={article.url}
+              >
+                {article.title}
+              </a>
+              <span style={{
+                flexShrink: 0,
+                padding: '2px 6px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 600,
+                color: scoreColor,
+                backgroundColor: isPositive ? 'rgba(34,197,94,0.1)' : isNegative ? 'rgba(239,68,68,0.1)' : 'rgba(128,128,128,0.1)',
+              }}>
+                {scoreLabel} {article.impact_score > 0 ? '+' : ''}{article.impact_score}
+              </span>
+            </div>
+            <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--color-text-muted)' }}>
+              {article.source}{pubDate ? ` · ${pubDate}` : ''}
+            </div>
+          </li>
+        );
+      })}
+    </ul>
+  );
+};
+
 const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -140,6 +199,12 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
             <span style={{ marginRight: '6px' }}>💡</span>
             <strong>분석 신뢰도:</strong> {briefing.confidence_note}
           </div>
+        )}
+
+        {briefing.analyzed_articles && briefing.analyzed_articles.length > 0 && (
+          <BriefingSection title="분석 대상 뉴스" icon="📰">
+            <AnalyzedArticles articles={briefing.analyzed_articles} />
+          </BriefingSection>
         )}
       </div>
       

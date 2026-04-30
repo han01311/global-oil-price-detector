@@ -121,6 +121,13 @@ class CrudeDailyAssessment(BaseModel):
     key_driver: str         # 핵심 상승/하락 요인 키워드
 
 
+class AnalyzedArticle(BaseModel):
+    title: str
+    url: str
+    source: str
+    published_at: str
+    impact_score: int
+
 class Briefing(BaseModel):
     date: str
     data_as_of: str = ""                          # 유가 데이터의 마지막 날짜
@@ -131,5 +138,6 @@ class Briefing(BaseModel):
     confidence_note: str                   # 신뢰도/한계 코멘트
     crude_assessments: list[CrudeDailyAssessment] = []  # 유종별 당일 시세 평가
     has_news: bool = True                 # 뉴스 기사 기반 여부
+    analyzed_articles: list[AnalyzedArticle] = [] # 분석 대상 기사 목록
     generated_at: str
 

@@ -10,7 +10,7 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import settings
-from app.schemas.forecast import ForecastResult, Briefing, CrudeDailyAssessment
+from app.schemas.forecast import ForecastResult, Briefing, CrudeDailyAssessment, AnalyzedArticle
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
@@ -170,11 +170,37 @@ class BriefingGenerator:
                 logger.info("Loaded briefing from cache.")
                 return cached_briefing
 
+        # ── data_as_of 기준 뉴스 필터링 ──
+        # "직전 거래일(_prev_date) 이후에 발행된 뉴스"만 분석 대상으로 삼는다.
+        # 예: data_as_of=4/29, prev_date=4/28 → 4/28 이후 뉴스 = 시장에 영향을 준 뉴스
+        # 평일: ~24h, 주말/연휴: 자동으로 48~72h 포함
+        filtered_articles = classified_articles
+        cutoff_date_str = price_prev_date or price_data_as_of
+        if cutoff_date_str:
+            try:
+                cutoff = datetime.strptime(cutoff_date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+                filtered_articles = []
+                for article in classified_articles:
+                    article_data = article.get("article", {}) if isinstance(article.get("article"), dict) else article
+                    pub = article_data.get("published_at") or article.get("published_at")
+                    if pub:
+                        try:
+                            dt = datetime.fromisoformat(pub.replace("Z", "+00:00"))
+                            if dt >= cutoff:
+                                filtered_articles.append(article)
+                        except (ValueError, TypeError):
+                            filtered_articles.append(article)  # 파싱 실패 시 포함
+                    else:
+                        filtered_articles.append(article)  # 날짜 정보 없으면 포함
+                logger.info(f"[Briefing] {cutoff_date_str} 이후 뉴스 필터링: {len(classified_articles)}건 → {len(filtered_articles)}건")
+            except ValueError:
+                logger.warning(f"[Briefing] cutoff 날짜 파싱 실패: {cutoff_date_str}, 필터링 스킵")
+
         # 유종별 최근 거래일 시세 결정론적 계산
-        crude_assessments = self._compute_crude_assessments(price_data, classified_articles)
+        crude_assessments = self._compute_crude_assessments(price_data, filtered_articles)
 
         # 뉴스가 없으면 최소 브리핑만 저장
-        relevant_articles = [a for a in classified_articles if a.get("is_relevant")]
+        relevant_articles = [a for a in filtered_articles if a.get("is_relevant")]
         if not relevant_articles:
             logger.warning("No relevant news articles. Generating minimal briefing.")
             briefing = Briefing(
@@ -261,6 +287,20 @@ class BriefingGenerator:
                 else:
                     confidence_note = f"{date_range_str}수집된 유효 뉴스가 {num_articles}건으로 부족하여 분석 신뢰도가 제한적일 수 있습니다."
 
+                # ── 분석 대상 기사 메타데이터 추출 ──
+                analyzed_articles_meta = []
+                for a in relevant_articles:
+                    article_data = a.get("article", {}) if isinstance(a.get("article"), dict) else a
+                    analyzed_articles_meta.append(AnalyzedArticle(
+                        title=a.get("translated_title") or article_data.get("title", "제목 없음"),
+                        url=article_data.get("url", ""),
+                        source=article_data.get("source_name") or article_data.get("data_source", "알 수 없음"),
+                        published_at=article_data.get("published_at", ""),
+                        impact_score=a.get("impact_score", 0),
+                    ))
+                # 영향력 높은 순으로 정렬
+                analyzed_articles_meta.sort(key=lambda x: abs(x.impact_score), reverse=True)
+
                 briefing = Briefing(
                     date=today,
                     data_as_of=price_data_as_of,
@@ -268,6 +308,7 @@ class BriefingGenerator:
                     crude_assessments=crude_assessments,
                     has_news=True,
                     confidence_note=confidence_note,
+                    analyzed_articles=analyzed_articles_meta,
                     **response_data
                 )
                 if not self._is_korean_briefing(briefing):
