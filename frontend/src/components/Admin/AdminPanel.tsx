@@ -67,14 +67,16 @@ const formatDate = (iso: string | null): string => {
   }
 };
 
-const getTimeUntil = (iso: string | null): string => {
+const getTimeUntil = (iso: string | null, nowMs: number): string => {
   if (!iso) return '';
-  const diffMs = new Date(iso).getTime() - Date.now();
+  const diffMs = new Date(iso).getTime() - nowMs;
   if (diffMs <= 0) return '곧 실행됨';
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
   const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  const secs = Math.floor((diffMs % (1000 * 60)) / 1000);
   if (hours > 0) return `(약 ${hours}시간 ${mins}분 후)`;
-  return `(약 ${mins}분 후)`;
+  if (mins > 0) return `(약 ${mins}분 ${secs}초 후)`;
+  return `(약 ${secs}초 후)`;
 };
 
 const formatNumber = (n: number): string =>
@@ -513,6 +515,12 @@ const CrawlCenterSection: React.FC = () => {
   // Auto Crawl
   const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
   const [intervalHours, setIntervalHours] = useState(6);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+  
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   
   // Manual Crawl
   const [status, setStatus] = useState<CrawlStatus | null>(null);
@@ -759,7 +767,14 @@ const CrawlCenterSection: React.FC = () => {
                 <div className="crawl-status-indicator">
                   <div className={`scheduler-status-dot ${scheduler?.is_running ? 'running' : 'stopped'}`} />
                   <span className="crawl-status-text">
-                    {scheduler?.is_running ? `스케줄러 활성 — ${scheduler?.job_count} Jobs` : '스케줄러 중지'}
+                    {scheduler?.is_running ? (
+                      <>
+                        스케줄러 활성 — {scheduler?.jobs?.length || 0} Jobs
+                        <span style={{ fontSize: 12, color: 'rgba(0, 212, 255, 0.8)', marginLeft: 8, fontWeight: 500 }}>
+                          (실시간 모니터링 중... {new Date(currentTime).toLocaleTimeString('en-US', { hour12: false })})
+                        </span>
+                      </>
+                    ) : '스케줄러 중지'}
                   </span>
                 </div>
                 <button 
@@ -773,23 +788,38 @@ const CrawlCenterSection: React.FC = () => {
               {message && <span className="crawl-message">{message}</span>}
             </div>
 
-            <div className="crawl-controls">
-              <div className="crawl-input-group">
-                <label>스케줄 간격 (시간)</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="number"
-                    className="filter-input"
-                    value={intervalHours}
-                    onChange={(e) => setIntervalHours(Number(e.target.value))}
-                    min={1} max={24}
-                  />
-                  <button className="crawl-start-btn" onClick={handleUpdateConfig} style={{ padding: '0 16px' }}>적용</button>
+            <div className="crawl-controls" style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'flex-end', 
+              padding: '16px 20px', 
+              background: 'rgba(255, 255, 255, 0.02)', 
+              borderRadius: '8px', 
+              border: '1px solid rgba(255, 255, 255, 0.05)', 
+              marginBottom: '24px',
+              marginTop: '16px'
+            }}>
+              <div className="crawl-input-group" style={{ margin: 0, gap: '10px' }}>
+                <label style={{ fontSize: '13px', color: '#e4e8ef', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  ⏳ 자동 수집 간격 설정
+                </label>
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '6px', padding: '4px 12px' }}>
+                    <input
+                      type="number"
+                      value={intervalHours}
+                      onChange={(e) => setIntervalHours(Number(e.target.value))}
+                      min={1} max={24}
+                      style={{ width: '40px', background: 'transparent', border: 'none', color: '#fff', fontSize: '15px', fontWeight: 500, textAlign: 'center', outline: 'none' }}
+                    />
+                    <span style={{ color: 'rgba(255, 255, 255, 0.5)', fontSize: '13px', marginLeft: '4px' }}>시간마다</span>
+                  </div>
+                  <button className="action-btn small primary" onClick={handleUpdateConfig} style={{ padding: '6px 16px' }}>적용</button>
                 </div>
               </div>
-              <div className="crawl-buttons" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
-                <button className="crawl-start-btn" onClick={handleTriggerNews} disabled={actionLoading}>
-                  🚀 지금 뉴스 수집 실행
+              <div className="crawl-buttons" style={{ margin: 0, padding: 0 }}>
+                <button className="action-btn secondary" onClick={handleTriggerNews} disabled={actionLoading} style={{ padding: '8px 20px' }}>
+                  🚀 수동 수집 (지금 1회 실행)
                 </button>
               </div>
             </div>
@@ -822,7 +852,7 @@ const CrawlCenterSection: React.FC = () => {
                         {job.next_run ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <span>{formatDate(job.next_run)}</span>
-                            <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)' }}>{getTimeUntil(job.next_run)}</span>
+                            <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)' }}>{getTimeUntil(job.next_run, currentTime)}</span>
                           </div>
                         ) : '예약 없음 (스케줄러 중지)'}
                       </td>

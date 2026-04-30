@@ -478,3 +478,277 @@ INFO:apscheduler.scheduler:Added job "뉴스 수집 (NewsAPI + GNews + GDELT)" t
 INFO:apscheduler.scheduler:Scheduler started
 INFO:app.services.scheduler:[Scheduler] 시작됨 (수집 주기: 6시간)
 INFO:     127.0.0.1:57698 - "POST /api/admin/scheduler/toggle HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:57768 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:57768 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:57768 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:57768 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57779 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57780 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:57783 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57784 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57786 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57788 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57822 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57823 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57828 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57830 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57831 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57826 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57853 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57854 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:57856 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57859 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57861 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57860 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57875 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57878 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57882 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57885 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57884 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57880 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57904 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57907 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57908 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57911 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57912 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57914 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57947 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57948 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57953 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57956 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57955 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57951 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57984 - "OPTIONS /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57986 - "OPTIONS /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57984 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57989 - "OPTIONS /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57986 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57991 - "OPTIONS /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57992 - "OPTIONS /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57994 - "OPTIONS /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:57989 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57984 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57986 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:57992 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58014 - "OPTIONS /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58015 - "OPTIONS /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:58014 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:58014 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:58014 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientStartEvent: capture() takes 1 positional argument but 3 were given
+ERROR:chromadb.telemetry.product.posthog:Failed to send telemetry event ClientCreateCollectionEvent: capture() takes 1 positional argument but 3 were given
+INFO:     127.0.0.1:58014 - "GET /api/news/factors/summary HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58047 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58049 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58052 - "OPTIONS /api/admin/crawl/history?limit=20&date=2026-04-30 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58049 - "GET /api/admin/crawl/history?limit=20&date=2026-04-30 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58055 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58054 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58050 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58050 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58054 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58049 - "OPTIONS /api/admin/crawl/history?limit=20&date=2026-04-29 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:58055 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58047 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58050 - "GET /api/admin/crawl/history?limit=20&date=2026-04-29 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58052 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58052 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58050 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58054 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58055 - "GET /api/admin/crawl/history?limit=20&date=2026-04-30 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58049 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58047 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58047 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58049 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58054 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:58055 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58050 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58052 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58052 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58050 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58054 - "GET /api/admin/crawl/history?limit=20&date=2026-04-30 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58047 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58049 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58055 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58055 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58049 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:58047 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58054 - "GET /api/admin/crawl/history?limit=20&date=2026-04-29 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58050 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58052 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58052 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58050 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:58054 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58047 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58055 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58049 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58055 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58049 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:58047 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58054 - "GET /api/admin/crawl/history?limit=20&date=2026-04-30 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58052 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58050 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58050 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58052 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:58054 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58047 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58049 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58055 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58105 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58106 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58111 - "GET /api/admin/crawl/history?limit=20&date=2026-04-30 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58114 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58113 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58108 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58108 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58114 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:58113 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58111 - "GET /api/admin/crawl/history?limit=20&date=2026-04-29 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58105 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58106 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58105 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58106 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:     127.0.0.1:58111 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58113 - "GET /api/admin/crawl/history?limit=20&date=2026-04-30 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58114 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58108 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58108 - "GET /api/admin/scheduler/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58114 - "GET /api/admin/crawl/status HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB initialized (SQLAlchemy)
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58111 - "GET /api/admin/crawl/history?limit=20 HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58105 - "GET /api/admin/news/integrity HTTP/1.1" 200 OK
+INFO:     127.0.0.1:58113 - "GET /api/admin/crawl/stats HTTP/1.1" 200 OK
+INFO:app.core.database:PostgreSQL DB engine disposed.
+INFO:     127.0.0.1:58106 - "GET /api/admin/crawl/source-health HTTP/1.1" 200 OK

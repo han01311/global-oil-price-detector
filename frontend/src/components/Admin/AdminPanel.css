@@ -215,25 +215,36 @@
 }
 
 .scheduler-status-dot {
+  position: relative;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  animation: pulse-dot 2s ease infinite;
 }
 
 .scheduler-status-dot.running {
   background: #00D4FF;
-  box-shadow: 0 0 8px rgba(0, 212, 255, 0.5);
+  box-shadow: 0 0 8px rgba(0, 212, 255, 0.8);
+}
+
+.scheduler-status-dot.running::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 2px solid #00D4FF;
+  animation: sonar-pulse 1.5s infinite cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .scheduler-status-dot.stopped {
   background: rgba(255, 255, 255, 0.2);
-  animation: none;
 }
 
-@keyframes pulse-dot {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+@keyframes sonar-pulse {
+  0% { transform: scale(0.5); opacity: 1; }
+  100% { transform: scale(2.5); opacity: 0; }
 }
 
 .scheduler-label {
