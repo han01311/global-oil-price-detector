@@ -216,8 +216,11 @@ class FREDCollector(BaseCollector):
             if not df.empty:
                 merged_df = pd.merge(merged_df, df, on='date', how='outer')
         
-        merged_df = merged_df.sort_values('date').ffill().bfill()
+        merged_df = merged_df.sort_values('date')
         merged_df = merged_df[(merged_df['date'] >= start_date) & (merged_df['date'] <= end_date)]
+        
+        # SQLite 저장을 위해 NaN을 None으로 변환
+        merged_df = merged_df.where(pd.notnull(merged_df), None)
         return merged_df
 
 
@@ -474,9 +477,14 @@ class DataCollector:
             logger.info(f"[DataCollector] Using {len(db_rows)} macro records from SQLite (skipping API)")
             df = pd.DataFrame(db_rows)
             df = df[['date', 'fed_rate', 'dollar_index']].sort_values('date')
+            df[['fed_rate', 'dollar_index']] = df[['fed_rate', 'dollar_index']].ffill().bfill()
             return df
 
         macro_history = await self.collect_macro_data(start_date.isoformat(), end_date.isoformat())
         if not macro_history or not macro_history.indicators:
-            return pd.DataFrame()
-        return pd.DataFrame([i.model_dump() for i in macro_history.indicators])
+            return pd.DataFrame(columns=['date', 'fed_rate', 'dollar_index'])
+
+        df = pd.DataFrame([{"date": i.date, "fed_rate": i.fed_rate, "dollar_index": i.dollar_index} for i in macro_history.indicators])
+        df = df.sort_values('date')
+        df[['fed_rate', 'dollar_index']] = df[['fed_rate', 'dollar_index']].ffill().bfill()
+        return df

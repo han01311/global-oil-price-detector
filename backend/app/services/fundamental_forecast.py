@@ -584,4 +584,5 @@ class FundamentalForecastEngine:
         for col in ["dollar_index", "fed_rate"]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
+                df[col] = df[col].ffill().bfill()
         return df

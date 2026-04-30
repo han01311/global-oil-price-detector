@@ -511,7 +511,7 @@ const TriggerSection: React.FC = () => {
 
 const CrawlCenterSection: React.FC = () => {
   const [subTab, setSubTab] = useState<'auto' | 'manual'>('auto');
-  const [bottomTab, setBottomTab] = useState<'history' | 'health' | 'integrity'>('history');
+  const [bottomTab, setBottomTab] = useState<'history' | 'health' | 'integrity' | 'schema'>('history');
   
   // Auto Crawl
   const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
@@ -979,6 +979,9 @@ const CrawlCenterSection: React.FC = () => {
         <button className={`crawl-subtab ${bottomTab === 'integrity' ? 'active' : ''}`} onClick={() => setBottomTab('integrity')}>
           🔍 데이터 완결성 검증
         </button>
+        <button className={`crawl-subtab ${bottomTab === 'schema' ? 'active' : ''}`} onClick={() => setBottomTab('schema')}>
+          📊 데이터 스키마
+        </button>
       </div>
 
       {bottomTab === 'health' && (
@@ -990,6 +993,7 @@ const CrawlCenterSection: React.FC = () => {
                   <th>분류</th>
                   <th>소스</th>
                   <th>최신 데이터</th>
+                  <th>업데이트 주기</th>
                   <th>에러율</th>
                   <th>평균 응답</th>
                 </tr>
@@ -997,15 +1001,28 @@ const CrawlCenterSection: React.FC = () => {
               <tbody>
                 {health.map(h => {
                   const errorRate = h.total_runs ? ((h.error_runs || 0) / h.total_runs) * 100 : 0;
-                  const isStale = h.newest_article && (new Date().getTime() - new Date(h.newest_article).getTime() > 30 * 24 * 3600 * 1000);
-                  const isInactive = !h.newest_article || (new Date().getTime() - new Date(h.newest_article).getTime() > 365 * 24 * 3600 * 1000);
+                  const daysDiff = h.newest_article ? (new Date().getTime() - new Date(h.newest_article).getTime()) / (1000 * 3600 * 24) : Infinity;
+                  
+                  let isStale = false;
+                  let isInactive = false;
+                  
+                  if (h.data_source === 'opinet') {
+                    isStale = daysDiff > 4;    // 주말 휴장 고려 4일
+                    isInactive = daysDiff > 14;
+                  } else if (['eia_inventory', 'eia_production', 'fred'].includes(h.data_source)) {
+                    isStale = daysDiff > 12;   // 주간 리포트 딜레이 고려 12일
+                    isInactive = daysDiff > 30;
+                  } else {
+                    isStale = daysDiff > 7;    // 뉴스 수집 지연 7일
+                    isInactive = daysDiff > 30;
+                  }
                   
                   const getSourceInfo = (src: string) => {
-                    if (src === 'opinet') return { cat: '유가 (Price)', desc: '한국석유공사 Opinet (국제 및 국내 유가 데이터)' };
-                    if (src === 'eia_inventory') return { cat: '수급 (Supply)', desc: '미국 에너지정보청(EIA) 주간 원유 재고 데이터' };
-                    if (src === 'eia_production') return { cat: '수급 (Supply)', desc: '미국 에너지정보청(EIA) 주간 원유 생산량 데이터' };
-                    if (src === 'fred') return { cat: '거시경제 (Macro)', desc: '세인트루이스 연방준비은행 (달러 인덱스, 금리 등)' };
-                    return { cat: '뉴스 (News)', desc: '글로벌 원유 시장 동향 뉴스 기사 수집' };
+                    if (src === 'opinet') return { cat: '유가 (Price)', cycle: '매일 (Daily)', desc: '한국석유공사 Opinet (국제 및 국내 유가 데이터)' };
+                    if (src === 'eia_inventory') return { cat: '수급 (Supply)', cycle: '매주 수요일 (금요일 마감 기준)', desc: '미국 에너지정보청(EIA) 주간 원유 재고 데이터' };
+                    if (src === 'eia_production') return { cat: '수급 (Supply)', cycle: '매주 수요일 (금요일 마감 기준)', desc: '미국 에너지정보청(EIA) 주간 원유 생산량 데이터' };
+                    if (src === 'fred') return { cat: '거시경제 (Macro)', cycle: '매주 월요일 (금요일 마감 기준)', desc: '세인트루이스 연방준비은행 (달러 인덱스, 금리 등)' };
+                    return { cat: '뉴스 (News)', cycle: '수시 (Real-time)', desc: '글로벌 원유 시장 동향 뉴스 기사 수집' };
                   };
                   
                   const info = getSourceInfo(h.data_source);
@@ -1014,9 +1031,16 @@ const CrawlCenterSection: React.FC = () => {
                     <tr key={h.data_source} title={info.desc} style={{ cursor: 'help' }}>
                       <td><span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>{info.cat}</span></td>
                       <td><SourceTag source={h.data_source} /></td>
-                      <td style={{ color: isInactive ? '#ff4d4d' : isStale ? '#ffb84d' : '#fff' }}>
-                        {h.newest_article?.slice(0, 10) || '—'} {isInactive ? '❌' : isStale ? '⚠️' : '✅'}
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                           <span style={{ color: '#fff' }}>{h.newest_article?.slice(0, 10) || '—'}</span>
+                           {!h.newest_article ? <span className="issue-badge" style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#aaa', borderColor: 'rgba(255, 255, 255, 0.2)' }}>데이터 없음</span> :
+                            isInactive ? <span className="issue-badge" style={{ background: 'rgba(255, 77, 77, 0.1)', color: '#ff4d4d', borderColor: 'rgba(255, 77, 77, 0.3)' }}>❌ 수집 단절</span> :
+                            isStale ? <span className="issue-badge" style={{ background: 'rgba(255, 184, 77, 0.1)', color: '#ffb84d', borderColor: 'rgba(255, 184, 77, 0.3)' }}>⚠️ 지연됨</span> :
+                            <span className="issue-badge" style={{ background: 'rgba(0, 212, 150, 0.1)', color: '#00D496', borderColor: 'rgba(0, 212, 150, 0.3)' }}>✅ 최신 상태</span>}
+                        </div>
                       </td>
+                      <td style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px' }}>{info.cycle}</td>
                       <td>{errorRate.toFixed(1)}%</td>
                       <td>{h.avg_duration_ms ? `${h.avg_duration_ms}ms` : '—'}</td>
                     </tr>
@@ -1210,6 +1234,93 @@ const CrawlCenterSection: React.FC = () => {
         </div>
       )}
 
+      {bottomTab === 'schema' && (
+        <div className="crawl-panel">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '20px' }}>
+            {[
+              {
+                title: '유가 수집 (Opinet)',
+                table: 'oil_prices',
+                desc: '국내외 원유 가격 정보',
+                columns: [
+                  { name: 'date', type: 'VARCHAR(20)', desc: '기준일 (YYYY-MM-DD)' },
+                  { name: 'dubai', type: 'FLOAT', desc: '두바이유 (USD/bbl)' },
+                  { name: 'wti', type: 'FLOAT', desc: '서부텍사스산원유 (USD/bbl)' },
+                  { name: 'brent', type: 'FLOAT', desc: '브렌트유 (USD/bbl)' },
+                  { name: 'source', type: 'VARCHAR(50)', desc: '데이터 소스' }
+                ]
+              },
+              {
+                title: '재고 수집 (EIA Inventory)',
+                table: 'oil_inventory',
+                desc: '미국 원유 재고량',
+                columns: [
+                  { name: 'date', type: 'VARCHAR(20)', desc: '기준 주간 마감일' },
+                  { name: 'inventory_mbbl', type: 'FLOAT', desc: '재고량 (단위: 천 배럴)' }
+                ]
+              },
+              {
+                title: '생산량 수집 (EIA Production)',
+                table: 'oil_production',
+                desc: '미국 원유 생산량',
+                columns: [
+                  { name: 'date', type: 'VARCHAR(20)', desc: '기준 주간 마감일' },
+                  { name: 'production_mbbl_d', type: 'FLOAT', desc: '일일 생산량 (단위: 천 배럴/일)' }
+                ]
+              },
+              {
+                title: '거시경제 수집 (FRED)',
+                table: 'macro_indicators',
+                desc: '주요 거시 경제 지표',
+                columns: [
+                  { name: 'date', type: 'VARCHAR(20)', desc: '기준일 (YYYY-MM-DD)' },
+                  { name: 'fed_rate', type: 'FLOAT', desc: '미 연준 기준금리 (%)' },
+                  { name: 'dollar_index', type: 'FLOAT', desc: '명목 달러 인덱스 (Broad)' }
+                ]
+              },
+              {
+                title: '뉴스 수집 (News)',
+                table: 'news_articles',
+                desc: '석유/에너지 관련 글로벌 기사',
+                columns: [
+                  { name: 'id', type: 'VARCHAR', desc: '고유 해시 ID' },
+                  { name: 'title', type: 'VARCHAR', desc: '기사 제목' },
+                  { name: 'description', type: 'TEXT', desc: '기사 요약' },
+                  { name: 'source', type: 'VARCHAR', desc: '출처 (NYT, Guardian 등)' },
+                  { name: 'url', type: 'VARCHAR', desc: '기사 링크' },
+                  { name: 'published_at', type: 'VARCHAR(50)', desc: '발행 일시' }
+                ]
+              }
+            ].map(s => (
+              <div key={s.table} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h4 style={{ margin: 0, color: '#fff', fontSize: '15px' }}>{s.title}</h4>
+                  <span className="source-tag" style={{ fontSize: '11px', background: 'rgba(255,255,255,0.1)' }}>{s.table}</span>
+                </div>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', margin: '0 0 16px 0' }}>{s.desc}</p>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+                      <th style={{ textAlign: 'left', padding: '8px 4px', color: 'rgba(255,255,255,0.5)', fontWeight: 'normal' }}>Column</th>
+                      <th style={{ textAlign: 'left', padding: '8px 4px', color: 'rgba(255,255,255,0.5)', fontWeight: 'normal' }}>Type</th>
+                      <th style={{ textAlign: 'left', padding: '8px 4px', color: 'rgba(255,255,255,0.5)', fontWeight: 'normal' }}>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.columns.map(c => (
+                      <tr key={c.name} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                        <td style={{ padding: '8px 4px', color: '#00D496', fontFamily: 'monospace' }}>{c.name}</td>
+                        <td style={{ padding: '8px 4px', color: '#ffb84d', fontFamily: 'monospace' }}>{c.type}</td>
+                        <td style={{ padding: '8px 4px', color: 'rgba(255,255,255,0.8)' }}>{c.desc}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Log Detail Modal */}
       {isLogModalOpen && (
