@@ -523,10 +523,10 @@ class FundamentalForecastEngine:
     # ──────────────────────────────────────────────
 
     async def _load_prices(self) -> pd.DataFrame:
-        """유가 시계열 로드 (최근 5년)"""
+        """유가 시계열 로드 (최대 20년)"""
         end = date.today()
-        start = end - timedelta(days=365 * 5)
-        rows = await self.db.get_oil_prices(start.isoformat(), end.isoformat(), limit=5000)
+        start = end - timedelta(days=365 * 20)
+        rows = await self.db.get_oil_prices(start.isoformat(), end.isoformat(), limit=10000)
         if not rows:
             return pd.DataFrame()
         df = pd.DataFrame(rows)
@@ -538,8 +538,8 @@ class FundamentalForecastEngine:
         return df[["dubai", "wti", "brent"]].apply(pd.to_numeric, errors="coerce")
 
     async def _load_inventory(self) -> pd.DataFrame:
-        """원유 재고 데이터 로드"""
-        rows = await self.db.get_oil_inventory(limit=500)
+        """원유 재고 데이터 로드 (최대 20년)"""
+        rows = await self.db.get_oil_inventory(limit=1500)
         if not rows:
             return pd.DataFrame()
         df = pd.DataFrame(rows)
@@ -548,11 +548,11 @@ class FundamentalForecastEngine:
         return df.sort_values("date").reset_index(drop=True)
 
     async def _load_production(self) -> pd.DataFrame:
-        """원유 생산량 데이터 로드"""
+        """원유 생산량 데이터 로드 (최대 20년)"""
         end = date.today()
-        start = end - timedelta(days=365 * 5)
+        start = end - timedelta(days=365 * 20)
         try:
-            rows = await self.db.get_oil_production_range(start.isoformat(), end.isoformat())
+            rows = await self.db.get_oil_production_range(start.isoformat(), end.isoformat(), limit=1500)
         except Exception:
             rows = []
         if not rows:
@@ -563,10 +563,10 @@ class FundamentalForecastEngine:
         return df.sort_values("date").reset_index(drop=True)
 
     async def _load_macro(self) -> pd.DataFrame:
-        """거시경제 지표 로드"""
+        """거시경제 지표 로드 (최대 20년)"""
         end = date.today()
-        start = end - timedelta(days=365 * 5)
-        rows = await self.db.get_macro_indicators(start.isoformat(), end.isoformat(), limit=5000)
+        start = end - timedelta(days=365 * 20)
+        rows = await self.db.get_macro_indicators(start.isoformat(), end.isoformat(), limit=10000)
         if not rows:
             return pd.DataFrame()
         df = pd.DataFrame(rows)
