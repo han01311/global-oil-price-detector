@@ -160,7 +160,7 @@ JSON Output Format:
 }}
 """
 
-    async def classify_article(self, article: dict) -> ClassifiedArticle | None:
+    async def classify_article(self, article: dict) -> dict:
         """단일 기사를 분류하고 유종별 영향도를 독립 평가한다"""
         async with self.semaphore:
             if "source" not in article and "source_name" in article:
@@ -168,8 +168,9 @@ JSON Output Format:
             try:
                 article_model = NewsArticle(**article)
             except ValidationError as e:
-                logger.error(f"Invalid article format: {e}")
-                return None
+                err_msg = f"Invalid article format: {e}"
+                logger.error(err_msg)
+                return {"status": "error", "article_id": article.get("id"), "error": err_msg}
 
             # Title Validation
             bad_titles = ["untitled", "no title", ""]
@@ -258,18 +259,21 @@ JSON Output Format:
                 }
                 
                 classified_article = ClassifiedArticle(**result_data)
-                return classified_article
+                return {"status": "success", "result": classified_article}
 
             except httpx.HTTPError as e:
-                logger.error(f"Ollama API request failed for article '{article_model.title}': {e}")
-                return None
+                err_msg = f"Ollama API request failed: {e}"
+                logger.error(f"{err_msg} for article '{article_model.title}'")
+                return {"status": "error", "article_id": article_model.id, "error": err_msg}
             except (json.JSONDecodeError, ValidationError) as e:
                 resp_text = response.text if 'response' in locals() else 'N/A'
-                logger.error(f"Failed to parse or validate Gemma 4 response for article '{article_model.title}': {e}\nResponse text: {resp_text}")
-                return None
+                err_msg = f"Failed to parse or validate Gemma 4 response: {e}"
+                logger.error(f"{err_msg} for article '{article_model.title}'\nResponse text: {resp_text}")
+                return {"status": "error", "article_id": article_model.id, "error": err_msg}
             except Exception as e:
-                logger.error(f"An unexpected error occurred during classification for article '{article_model.title}': {e}")
-                return None
+                err_msg = f"An unexpected error occurred: {e}"
+                logger.error(f"{err_msg} for article '{article_model.title}'")
+                return {"status": "error", "article_id": article_model.id, "error": err_msg}
 
     async def classify_batch(self, articles: list[dict]) -> list[ClassifiedArticle]:
         """여러 기사를 배치로 분류 (rate limit 고려 및 기분류 기사 스킵)"""
@@ -350,9 +354,10 @@ JSON Output Format:
         if tasks:
             results = await asyncio.gather(*tasks)
         
-        valid_results = [result for result in results if result is not None]
+        valid_results = [result["result"] for result in results if result and result.get("status") == "success"]
+        failed_results = [result for result in results if result and result.get("status") == "error"]
         
-        if valid_results:
+        if valid_results or failed_results:
             try:
                 from sqlalchemy import update
                 from app.core.database import get_session_factory
@@ -366,11 +371,21 @@ JSON Output Format:
                             .where(NewsArticleModel.id == res.article.id)
                             .values(
                                 is_classified=1,
-                                classification_result=res.model_dump()
+                                classification_result=res.model_dump(),
+                                classification_error=None
+                            )
+                        )
+                    for res in failed_results:
+                        await db_session.execute(
+                            update(NewsArticleModel)
+                            .where(NewsArticleModel.id == res["article_id"])
+                            .values(
+                                is_classified=-1,
+                                classification_error=res["error"]
                             )
                         )
                     await db_session.commit()
-                    logger.info(f"Updated {len(valid_results)} articles in SQLite as classified.")
+                    logger.info(f"Updated {len(valid_results)} success, {len(failed_results)} failures in SQLite.")
                     
                     # Store relevant articles to MarketMemory for FactorGauge to pick up
                     if memory.is_available():

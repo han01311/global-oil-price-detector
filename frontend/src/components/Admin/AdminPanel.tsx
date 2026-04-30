@@ -23,10 +23,13 @@ import {
   fetchCrawlHistory,
   fetchSourceHealth,
   fetchIntegrityReport,
-  holdArticles,
+  updateArticleHoldStatus,
   retryIntegrity,
   fetchCrawlLogArticles,
   fetchArticlesByDate,
+  fetchPipelineQueue,
+  fetchPipelineQA,
+  retryPipelineItems,
 } from '../../services/adminApi';
 import type {
   OverviewResponse,
@@ -37,7 +40,8 @@ import type {
 } from '../../types/admin';
 import type {
   CrawlStatus, CrawlStats, ClassificationStats, BriefingStats,
-  CrawlHistoryItem, SourceHealthItem, IntegrityReport, CrawlArticleDetail
+  CrawlHistoryItem, SourceHealthItem, IntegrityReport, CrawlArticleDetail,
+  PipelineQueueItem, PipelineQAItem
 } from '../../services/adminApi';
 import './AdminPanel.css';
 
@@ -729,7 +733,7 @@ const CrawlCenterSection: React.FC = () => {
   const handleHold = async (ids: string[], holdStatus: number) => {
     if (ids.length === 0) return;
     try {
-      await holdArticles(ids, holdStatus);
+      await updateArticleHoldStatus(ids, holdStatus);
       setSelectedIds(new Set());
       loadAll();
     } catch (e) { console.error(e); }
@@ -1426,25 +1430,45 @@ const CATEGORY_KR: Record<string, string> = {
 const PipelineSection: React.FC = () => {
   const [clsStats, setClsStats] = useState<ClassificationStats | null>(null);
   const [briefingStats, setBriefingStats] = useState<BriefingStats | null>(null);
+  const [queueItems, setQueueItems] = useState<PipelineQueueItem[]>([]);
+  const [qaItems, setQaItems] = useState<PipelineQAItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const loadAll = async () => {
+    try {
+      setLoading(true);
+      const [cls, br, q, qa] = await Promise.all([
+        fetchClassificationStats(),
+        fetchBriefingStats(),
+        fetchPipelineQueue(),
+        fetchPipelineQA(),
+      ]);
+      setClsStats(cls);
+      setBriefingStats(br);
+      setQueueItems(q);
+      setQaItems(qa);
+    } catch (e) {
+      console.error('Failed to load pipeline data:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        const [cls, br] = await Promise.all([
-          fetchClassificationStats(),
-          fetchBriefingStats(),
-        ]);
-        setClsStats(cls);
-        setBriefingStats(br);
-      } catch (e) {
-        console.error('Failed to load pipeline stats:', e);
-      } finally {
-        setLoading(false);
-      }
-    };
-    load();
+    loadAll();
   }, []);
+
+  const handleRetry = async (ids: string[]) => {
+    try {
+      await retryPipelineItems(ids);
+      alert('재시도 요청이 백그라운드 작업으로 등록되었습니다.');
+      // Refresh after a short delay
+      setTimeout(loadAll, 2000);
+    } catch (e) {
+      console.error('Retry failed:', e);
+      alert('재시도 요청에 실패했습니다.');
+    }
+  };
 
   if (loading) {
     return (
@@ -1487,11 +1511,18 @@ const PipelineSection: React.FC = () => {
           </div>
         </div>
         <div className="overview-card">
-          <div className="overview-card-label">미분류</div>
+          <div className="overview-card-label">분류 대기</div>
           <div className="overview-card-value" style={{ color: clsStats.unclassified > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)' }}>
             {clsStats.unclassified.toLocaleString()}
           </div>
-          <div className="overview-card-meta">분류 대기 중인 기사</div>
+          <div className="overview-card-meta">큐에 대기 중인 기사</div>
+        </div>
+        <div className="overview-card" style={{ borderLeft: clsStats.failed > 0 ? '4px solid var(--color-danger)' : 'none' }}>
+          <div className="overview-card-label">분류 에러</div>
+          <div className="overview-card-value" style={{ color: clsStats.failed > 0 ? 'var(--color-danger)' : 'var(--color-text-muted)' }}>
+            {clsStats.failed.toLocaleString()}
+          </div>
+          <div className="overview-card-meta">에러 발생 및 재시도 필요</div>
         </div>
         <div className="overview-card">
           <div className="overview-card-label">유가 관련성</div>
@@ -1659,6 +1690,100 @@ const PipelineSection: React.FC = () => {
           </div>
         </>
       )}
+
+      {/* Queue Table */}
+      <h3 className="section-title">분류 대기/에러 큐 (Queue)</h3>
+      <div className="admin-table-wrapper" style={{ marginBottom: 20 }}>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>ID / 제목</th>
+              <th>발행일</th>
+              <th>상태</th>
+              <th>에러 내용</th>
+              <th>재시도</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {queueItems.length === 0 ? (
+              <tr><td colSpan={6} style={{ textAlign: 'center' }}>큐가 비어있습니다.</td></tr>
+            ) : queueItems.map(item => (
+              <tr key={item.id}>
+                <td style={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.title}>
+                  <div style={{ fontSize: '0.8em', color: '#888' }}>{item.id.slice(0, 8)}...</div>
+                  {item.title}
+                </td>
+                <td>{formatDate(item.published_at || '')}</td>
+                <td>
+                  <StatusBadge status={item.is_classified === -1 ? 'error' : 'pending'} />
+                </td>
+                <td style={{ maxWidth: 200, color: 'var(--color-danger)', fontSize: '0.9em' }} title={item.classification_error || ''}>
+                  {item.classification_error ? (item.classification_error.length > 30 ? item.classification_error.slice(0, 30) + '...' : item.classification_error) : '-'}
+                </td>
+                <td>{item.retry_count}회</td>
+                <td>
+                  <button className="admin-btn primary" onClick={() => handleRetry([item.id])}>
+                    Retry
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {queueItems.length > 0 && (
+          <div style={{ marginTop: 10, textAlign: 'right' }}>
+            <button className="admin-btn primary" onClick={() => handleRetry(queueItems.map(i => i.id))}>
+              Retry All Failed/Pending
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* QA Table */}
+      <h3 className="section-title">AI 분류 검수 (QA)</h3>
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>기사 제목</th>
+              <th>카테고리</th>
+              <th>스코어 (W/B/D)</th>
+              <th>분석 시각</th>
+            </tr>
+          </thead>
+          <tbody>
+            {qaItems.length === 0 ? (
+              <tr><td colSpan={4} style={{ textAlign: 'center' }}>최근 분류된 기사가 없습니다.</td></tr>
+            ) : qaItems.map(item => {
+              const res = item.classification_result || {};
+              const impact = res.impact_by_crude || {};
+              const wti = impact.wti?.score || 0;
+              const brent = impact.brent?.score || 0;
+              const dubai = impact.dubai?.score || 0;
+              const overall = res.impact_score || 0;
+              
+              return (
+                <tr key={item.id}>
+                  <td style={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={item.title}>
+                    {item.title}
+                  </td>
+                  <td><span className={`source-tag ${res.category || 'unknown'}`}>{CATEGORY_KR[res.category || 'other'] || res.category}</span></td>
+                  <td>
+                    <span style={{ color: overall > 0 ? 'var(--color-success)' : overall < 0 ? 'var(--color-danger)' : 'inherit' }}>
+                      {overall > 0 ? '+' : ''}{overall}
+                    </span>
+                    <span style={{ fontSize: '0.8em', color: '#888', marginLeft: 8 }}>
+                      (W:{wti} B:{brent} D:{dubai})
+                    </span>
+                  </td>
+                  <td>{res.classified_at ? formatDate(res.classified_at) : '-'}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 };

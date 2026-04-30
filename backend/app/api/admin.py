@@ -331,18 +331,20 @@ async def get_classification_stats():
     from app.models.news_article import NewsArticle as NA
 
     async with session_factory() as session:
-        # 1. 전체 / 분류완료 / 미분류 건수
+        # 1. 전체 / 분류완료 / 미분류 / 실패 건수
         result = await session.execute(
             select(
                 func.count(NA.id).label("total"),
                 func.sum(case((NA.is_classified == 1, 1), else_=0)).label("classified"),
                 func.sum(case((NA.is_classified == 0, 1), else_=0)).label("unclassified"),
+                func.sum(case((NA.is_classified == -1, 1), else_=0)).label("failed"),
             )
         )
         row = result.one()
         total = row.total or 0
         classified = row.classified or 0
         unclassified = row.unclassified or 0
+        failed = row.failed or 0
 
         # 2. 카테고리별 분류 분포 (classification_result->'category')
         cat_result = await session.execute(text("""
@@ -405,6 +407,7 @@ async def get_classification_stats():
         "total": total,
         "classified": classified,
         "unclassified": unclassified,
+        "failed": failed,
         "classification_rate": round(classified / max(total, 1) * 100, 1),
         "category_distribution": category_distribution,
         "relevance_distribution": relevance_distribution,
@@ -445,6 +448,114 @@ async def get_briefing_stats():
         "recent": briefings[:10],
     }
 
+
+@router.get("/pipeline/queue")
+async def get_pipeline_queue():
+    """분류 대기 중이거나 실패한 기사 큐 조회"""
+    db = Database()
+    session_factory = get_session_factory()
+    from app.models.news_article import NewsArticle as NA
+
+    async with session_factory() as session:
+        result = await session.execute(
+            select(NA.id, NA.title, NA.published_at, NA.is_classified, NA.classification_error, NA.retry_count)
+            .where(NA.is_classified.in_([0, -1]))
+            .order_by(NA.published_at.desc())
+            .limit(100)
+        )
+        return [dict(r._mapping) for r in result.all()]
+
+from pydantic import BaseModel
+class PipelineRetryRequest(BaseModel):
+    article_ids: list[str]
+
+@router.post("/pipeline/retry")
+async def retry_classification(req: PipelineRetryRequest, background_tasks: BackgroundTasks):
+    """지정된 기사들의 재분류를 백그라운드에서 실행"""
+    from app.services.news_classifier import NewsClassifier
+    
+    async def process_retry(ids):
+        db = Database()
+        session_factory = get_session_factory()
+        from app.models.news_article import NewsArticle as NA
+        
+        async with session_factory() as session:
+            result = await session.execute(select(NA).where(NA.id.in_(ids)))
+            articles = result.scalars().all()
+            
+            # Increment retry count
+            for a in articles:
+                a.retry_count = (a.retry_count or 0) + 1
+            await session.commit()
+            
+            # Convert to dicts for classifier
+            article_dicts = [
+                {
+                    "id": a.id, "title": a.title, "description": a.description,
+                    "source": a.source_name, "url": a.url, "published_at": a.published_at,
+                    "content_snippet": a.content_snippet, "data_source": a.data_source
+                } for a in articles
+            ]
+            
+        if article_dicts:
+            classifier = NewsClassifier()
+            try:
+                await classifier.classify_batch(article_dicts)
+            except Exception as e:
+                pass
+                
+    background_tasks.add_task(process_retry, req.article_ids)
+    return {"message": f"Started retry for {len(req.article_ids)} articles"}
+
+class OverrideRequest(BaseModel):
+    article_id: str
+    category: str
+    impact_score: float
+
+@router.put("/pipeline/override")
+async def override_classification(req: OverrideRequest):
+    """기존 분류 결과를 수동으로 오버라이드"""
+    session_factory = get_session_factory()
+    from app.models.news_article import NewsArticle as NA
+    import copy
+    
+    async with session_factory() as session:
+        result = await session.execute(select(NA).where(NA.id == req.article_id))
+        article = result.scalar_one_or_none()
+        
+        if not article:
+            raise HTTPException(status_code=404, detail="Article not found")
+            
+        if not article.classification_result:
+            raise HTTPException(status_code=400, detail="Cannot override unclassified article")
+            
+        # Copy and update result
+        new_result = copy.deepcopy(article.classification_result)
+        new_result["category"] = req.category
+        new_result["impact_score"] = req.impact_score
+        
+        # Save
+        article.classification_result = new_result
+        await session.commit()
+        
+    return {"message": "Classification overridden successfully"}
+
+
+@router.get("/pipeline/qa")
+async def get_pipeline_qa(limit: int = 50):
+    """최근 분류 완료된 기사 QA 검수용 조회"""
+    db = Database()
+    session_factory = get_session_factory()
+    from app.models.news_article import NewsArticle as NA
+
+    async with session_factory() as session:
+        result = await session.execute(
+            select(NA.id, NA.title, NA.published_at, NA.classification_result)
+            .where(NA.is_classified == 1)
+            .order_by(NA.published_at.desc())
+            .limit(limit)
+        )
+        return [dict(r._mapping) for r in result.all()]
 
 # ──────────────────────────────────────────────
 # Crawl Center (크롤링 관리)

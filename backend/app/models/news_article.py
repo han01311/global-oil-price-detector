@@ -19,6 +19,9 @@ class NewsArticle(Base):
     content_snippet: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     data_source: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     collected_at: Mapped[str] = mapped_column(Text, nullable=False)
-    is_classified: Mapped[int] = mapped_column(Integer, default=0)
+    is_classified: Mapped[int] = mapped_column(Integer, default=0) # 0: unclassified, 1: classified, -1: failed
     classification_result: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    classification_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    retry_count: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     hold_status: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # 0: 정상, 1: 보류, 2: 수동입력
+

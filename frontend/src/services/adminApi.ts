@@ -206,11 +206,28 @@ export interface ClassificationStats {
   total: number;
   classified: number;
   unclassified: number;
+  failed: number;
   classification_rate: number;
   category_distribution: CategoryStat[];
   relevance_distribution: RelevanceStat[];
   daily_pipeline: DailyPipelineStat[];
   source_classification: SourceClassificationStat[];
+}
+
+export interface PipelineQueueItem {
+  id: string;
+  title: string;
+  published_at: string;
+  is_classified: number;
+  classification_error: string | null;
+  retry_count: number;
+}
+
+export interface PipelineQAItem {
+  id: string;
+  title: string;
+  published_at: string;
+  classification_result: any;
 }
 
 export interface BriefingHistoryItem {
@@ -313,10 +330,33 @@ export async function fetchIntegrityReport(): Promise<IntegrityReport> {
   return apiFetch('/api/admin/news/integrity');
 }
 
-export async function holdArticles(ids: string[], holdStatus: number): Promise<{ status: string; updated_count: number }> {
-  return apiFetch('/api/admin/news/hold', {
+export async function updateArticleHoldStatus(ids: string[], holdStatus: number): Promise<{ updated: number }> {
+  return apiFetch('/api/admin/data/hold', {
+    method: 'PUT',
+    body: JSON.stringify({ article_ids: ids, hold_status: holdStatus }),
+  });
+}
+
+// --- Pipeline Control ---
+export async function fetchPipelineQueue(): Promise<PipelineQueueItem[]> {
+  return apiFetch('/api/admin/pipeline/queue');
+}
+
+export async function fetchPipelineQA(): Promise<PipelineQAItem[]> {
+  return apiFetch('/api/admin/pipeline/qa');
+}
+
+export async function retryPipelineItems(ids: string[]): Promise<{ message: string }> {
+  return apiFetch('/api/admin/pipeline/retry', {
     method: 'POST',
-    body: JSON.stringify({ ids, hold_status: holdStatus }),
+    body: JSON.stringify({ article_ids: ids }),
+  });
+}
+
+export async function overridePipelineClassification(id: string, category: string, impactScore: number): Promise<{ message: string }> {
+  return apiFetch('/api/admin/pipeline/override', {
+    method: 'PUT',
+    body: JSON.stringify({ article_id: id, category: category, impact_score: impactScore }),
   });
 }
 
