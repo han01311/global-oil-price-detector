@@ -1,35 +1,35 @@
 :root {
-  /* 배경 */
-  --color-bg: #0a0a0a;
-  --color-card: #141414;
-  --color-card-hover: #1a1a1a;
-  --color-border: #262626;
+  /* 배경 — 순수 검정 대신 약간의 블루-그레이 톤으로 자연스럽게 */
+  --color-bg: #0d0f13;
+  --color-card: #161920;
+  --color-card-hover: #1d2028;
+  --color-border: #252830;
 
   /* 스켈레톤 */
-  --color-skeleton-base: #262626;
-  --color-skeleton-pulse: #333333;
+  --color-skeleton-base: #252830;
+  --color-skeleton-pulse: #2e333d;
 
-  /* 텍스트 */
-  --color-text-primary: #ffffff;
-  --color-text-body: #d4d4d4;
-  --color-text-secondary: #a3a3a3;
-  --color-text-muted: #737373;
+  /* 텍스트 — 순백 대신 약간 따뜻하게 */
+  --color-text-primary: #f0f2f5;
+  --color-text-body: #c8cdd6;
+  --color-text-secondary: #8e95a3;
+  --color-text-muted: #5a6070;
 
-  /* 시맨틱 */
-  --color-primary: #A855F7;
-  --color-bull: #FF6B35;
-  --color-bear: #00D4FF;
-  --color-neutral: #525252;
-  --color-warning: #FBBF24;
-  --color-error: #EF4444;
+  /* 시맨틱 — 금융 표준 색상으로 */
+  --color-primary: #4F8EF7;        /* 차분한 인디고 블루 */
+  --color-bull: #34C77B;           /* 상승: 자연스러운 그린 */
+  --color-bear: #F0524F;           /* 하락: 차분한 레드 */
+  --color-neutral: #5a6070;
+  --color-warning: #F0A030;        /* 경고: 황금색 계열 */
+  --color-error: #E05252;
 
-  /* 카테고리 */
-  --color-cat-geopolitics: #EF4444;
-  --color-cat-supply: #F97316;
-  --color-cat-demand: #3B82F6;
-  --color-cat-macro: #8B5CF6;
-  --color-cat-climate: #10B981;
-  --color-cat-speculation: #EC4899;
+  /* 카테고리 — 채도 낮춰서 세련되게 */
+  --color-cat-geopolitics: #E05252;
+  --color-cat-supply: #E08A3A;
+  --color-cat-demand: #4F8EF7;
+  --color-cat-macro: #8B72D8;
+  --color-cat-climate: #2EBD7A;
+  --color-cat-speculation: #C55FA6;
 
   /* 서체 */
   font-family: 'Inter', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
