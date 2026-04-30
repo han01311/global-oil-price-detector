@@ -135,7 +135,7 @@ class Briefing(BaseModel):
     key_factors: list[BriefingKeyFactor]   # 주요 요인 (최대 3개)
     risk_scenarios: list[RiskScenario]     # 리스크 시나리오 (최대 2개)
     price_outlook: str                     # 가격 방향성 결론
-    confidence_note: str                   # 신뢰도/한계 코멘트
+    confidence_note: str = ""              # 신뢰도/한계 코멘트 (Deprecated)
     crude_assessments: list[CrudeDailyAssessment] = []  # 유종별 당일 시세 평가
     has_news: bool = True                 # 뉴스 기사 기반 여부
     analyzed_articles: list[AnalyzedArticle] = [] # 분석 대상 기사 목록

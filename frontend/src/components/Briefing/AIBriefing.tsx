@@ -4,7 +4,7 @@ import { BriefingViewer } from './BriefingViewer';
 
 export const AIBriefing: React.FC = () => {
   return (
-    <Card title="AI Daily Briefing">
+    <Card title="AI News Impact Report">
       <BriefingViewer />
     </Card>
   );

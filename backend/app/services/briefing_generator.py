@@ -210,7 +210,6 @@ class BriefingGenerator:
                 key_factors=[],
                 risk_scenarios=[],
                 price_outlook="뉴스 기반 분석 불가. 정량 모델 전망만 참고하시기 바랍니다.",
-                confidence_note="뉴스 데이터 부재로 신뢰도 낮음.",
                 crude_assessments=crude_assessments,
                 has_news=False,
                 generated_at=datetime.now(timezone.utc).isoformat(),
@@ -252,40 +251,7 @@ class BriefingGenerator:
                 response_data.pop("crude_outlooks", None)
                 response_data.pop("crude_assessments", None)
                 response_data.pop("similar_cases", None)
-                response_data.pop("confidence_note", None) # LLM이 생성한 건 버리고 아래에서 결정론적으로 생성
-
-                # 결정론적 신뢰도 코멘트 생성 (날짜 범위 추가)
-                num_articles = len(relevant_articles)
-                
-                date_range_str = ""
-                dates = []
-                for a in relevant_articles:
-                    # 기사 dict 안에 중첩되어 있을 수 있으므로 방어적 접근
-                    pub_date = a.get("article", {}).get("published_at") or a.get("published_at")
-                    if pub_date:
-                        try:
-                            # '2026-04-28T17:21:42Z' 형태 파싱
-                            dt = datetime.fromisoformat(pub_date.replace("Z", "+00:00"))
-                            dates.append(dt)
-                        except Exception:
-                            pass
-                
-                if dates:
-                    min_date = min(dates)
-                    max_date = max(dates)
-                    
-                    # 같은 날짜면 하루만 표기, 다르면 시작~끝 표기
-                    if min_date.date() == max_date.date():
-                        date_range_str = f"({min_date.month}월 {min_date.day}일) "
-                    else:
-                        date_range_str = f"({min_date.month}월 {min_date.day}일 ~ {max_date.month}월 {max_date.day}일) "
-                        
-                if num_articles >= 5:
-                    confidence_note = f"{date_range_str}발행된 최신 핵심 뉴스 {num_articles}건을 교차 검증하여 분석 신뢰도가 높습니다."
-                elif num_articles >= 3:
-                    confidence_note = f"{date_range_str}발행된 최신 뉴스 {num_articles}건을 바탕으로 분석하여 신뢰도가 양호합니다."
-                else:
-                    confidence_note = f"{date_range_str}수집된 유효 뉴스가 {num_articles}건으로 부족하여 분석 신뢰도가 제한적일 수 있습니다."
+                response_data.pop("confidence_note", None)
 
                 # ── 분석 대상 기사 메타데이터 추출 ──
                 analyzed_articles_meta = []
@@ -307,7 +273,6 @@ class BriefingGenerator:
                     generated_at=datetime.now(timezone.utc).isoformat(),
                     crude_assessments=crude_assessments,
                     has_news=True,
-                    confidence_note=confidence_note,
                     analyzed_articles=analyzed_articles_meta,
                     **response_data
                 )
@@ -341,7 +306,6 @@ class BriefingGenerator:
             key_factors=[BriefingKeyFactor(category="unknown", description="분석 지연 중임.", impact="neutral", score=0)],
             risk_scenarios=[RiskScenario(scenario="수집/분석 지연", probability="low", price_impact="N/A")],
             price_outlook="정량 모델 기반으로 당분간 밴드 내 변동성을 보일 것으로 예상됨.",
-            confidence_note="AI 응답 지연으로 신뢰도 낮음.",
             crude_assessments=crude_assessments,
             has_news=False,
         )

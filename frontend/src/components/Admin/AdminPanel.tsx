@@ -1503,7 +1503,7 @@ const PipelineSection: React.FC = () => {
         <div className="overview-card">
           <div className="overview-card-label">생성된 브리핑</div>
           <div className="overview-card-value">{briefingStats?.total_briefings ?? 0}</div>
-          <div className="overview-card-meta">일자별 AI Daily Briefing</div>
+          <div className="overview-card-meta">일자별 AI News Impact Report</div>
         </div>
         <div className="overview-card">
           <div className="overview-card-label">분류 카테고리</div>

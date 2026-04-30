@@ -6,13 +6,10 @@ import { EmptyState } from '../common/EmptyState';
 import './BriefingViewer.css';
 import type { Briefing, BriefingKeyFactor, RiskScenario, CrudeDailyAssessment, AnalyzedArticle } from '../../types/forecast';
 
-const BriefingSection: React.FC<{ title: React.ReactNode; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
+const BriefingSection: React.FC<{ title: React.ReactNode; children: React.ReactNode }> = ({ title, children }) => (
   <div className="briefing-section">
     <h4 className="briefing-section-title">
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span>{icon}</span>
-        <span>{title}</span>
-      </div>
+      {title}
     </h4>
     {children}
   </div>
@@ -147,7 +144,7 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
   return (
     <div className="briefing-content-wrapper">
       <div className={`briefing-viewer ${isExpanded ? 'expanded' : 'collapsed'}`}>
-        <BriefingSection title="핵심 요약" icon="📋">
+        <BriefingSection title="핵심 요약">
           <div className="briefing-summary">
             <p>{briefing.summary}</p>
             <p style={{ marginTop: '8px', color: 'var(--color-text-secondary)', fontStyle: 'italic' }}>
@@ -168,41 +165,25 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
                 </span>
               </div>
             } 
-            icon="🛢️"
           >
             <CrudeDailyAssessments assessments={briefing.crude_assessments} />
           </BriefingSection>
         )}
 
         {briefing.key_factors.length > 0 && (
-          <BriefingSection title="주요 요인" icon="📊">
+          <BriefingSection title="주요 요인">
             <KeyFactors factors={briefing.key_factors} />
           </BriefingSection>
         )}
 
         {briefing.risk_scenarios.length > 0 && (
-          <BriefingSection title="리스크 시나리오" icon="⚠">
+          <BriefingSection title="리스크 시나리오">
             <RiskScenarios scenarios={briefing.risk_scenarios} />
           </BriefingSection>
         )}
 
-        {briefing.confidence_note && (
-          <div className="briefing-confidence-note" style={{
-            marginTop: '16px',
-            padding: '12px',
-            backgroundColor: 'rgba(79, 142, 247, 0.05)',
-            borderLeft: '3px solid var(--color-primary)',
-            borderRadius: '0 4px 4px 0',
-            fontSize: '12px',
-            color: 'var(--color-text-secondary)'
-          }}>
-            <span style={{ marginRight: '6px' }}>💡</span>
-            <strong>분석 신뢰도:</strong> {briefing.confidence_note}
-          </div>
-        )}
-
         {briefing.analyzed_articles && briefing.analyzed_articles.length > 0 && (
-          <BriefingSection title="분석 대상 뉴스" icon="📰">
+          <BriefingSection title="분석 대상 뉴스">
             <AnalyzedArticles articles={briefing.analyzed_articles} />
           </BriefingSection>
         )}

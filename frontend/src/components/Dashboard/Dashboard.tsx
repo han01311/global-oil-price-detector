@@ -68,7 +68,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       <div className="dashboard-briefing fade-in" style={{ animationDelay: '0.2s' }}>
-        <ErrorBoundary moduleName="AI Daily Briefing">
+        <ErrorBoundary moduleName="AI News Impact Report">
           <AIBriefing />
         </ErrorBoundary>
       </div>

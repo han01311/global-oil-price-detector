@@ -75,7 +75,7 @@ export interface Briefing {
   key_factors: BriefingKeyFactor[];
   risk_scenarios: RiskScenario[];
   price_outlook: string;
-  confidence_note: string;
+  confidence_note?: string;
   crude_assessments: CrudeDailyAssessment[]; // 유종별 시세 변동 평가
   has_news: boolean;
   analyzed_articles?: AnalyzedArticle[]; // 분석에 사용된 기사 목록
