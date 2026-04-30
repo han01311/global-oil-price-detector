@@ -129,7 +129,7 @@ async def collect_fred_macro():
 
 
 async def collect_all_news():
-    """뉴스 수집 (NewsAPI + GNews + GDELT) 및 백그라운드 AI 분류"""
+    """뉴스 수집 (NewsAPI + GNews + GDELT) → AI 분류 → 일일 브리핑 자동 생성"""
     from app.services.data_collector import DataCollector
     from app.services.news_classifier import NewsClassifier
     
@@ -139,10 +139,95 @@ async def collect_all_news():
         collector.collect_news,
     )
     
-    # 수집 완료 후 백그라운드에서 AI 분류 진행
+    # 수집 완료 후 AI 분류 진행 (await로 완료 대기)
+    classified_articles = []
     if articles:
         classifier = NewsClassifier()
-        asyncio.create_task(classifier.classify_batch(articles))
+        try:
+            classified_articles = await classifier.classify_batch(articles)
+            logger.info(f"[Scheduler] 뉴스 AI 분류 완료: {len(classified_articles)}건")
+        except Exception as e:
+            logger.error(f"[Scheduler] 뉴스 AI 분류 실패: {e}")
+    
+    # 분류된 뉴스가 있으면 일일 브리핑 자동 생성
+    if classified_articles:
+        asyncio.create_task(_generate_daily_briefing_after_classification(classified_articles))
+    else:
+        logger.info("[Scheduler] 분류된 뉴스 0건 — 일일 브리핑 생성 스킵")
+
+
+async def _generate_daily_briefing_after_classification(classified_articles):
+    """뉴스 분류 완료 후 자동으로 일일 브리핑을 생성한다."""
+    try:
+        from app.services.briefing_generator import BriefingGenerator
+        from app.api.forecast import _run_forecast_pipeline
+        from app.core.database import Database
+
+        logger.info("[Scheduler] 일일 브리핑 자동 생성 시작...")
+
+        # 1. 유종별 당일/전일 가격 데이터 조회
+        db = Database()
+        price_data = await _fetch_crude_price_data(db)
+
+        # 2. 예측 파이프라인 실행 (key_factors 등에 필요한 forecast 데이터)
+        forecast_result, _, _ = await _run_forecast_pipeline()
+
+        # 3. 분류된 기사를 dict로 변환
+        articles_as_dicts = []
+        for a in classified_articles:
+            if hasattr(a, 'model_dump'):
+                articles_as_dicts.append(a.model_dump())
+            elif isinstance(a, dict):
+                articles_as_dicts.append(a)
+
+        # 4. 브리핑 생성 (캐시 강제 갱신)
+        generator = BriefingGenerator()
+        briefing = await generator.generate_briefing(
+            forecast=forecast_result,
+            classified_articles=articles_as_dicts,
+            price_data=price_data,
+            force=True,
+        )
+        logger.info(f"[Scheduler] 일일 브리핑 자동 생성 완료: {briefing.date}")
+
+    except Exception as e:
+        logger.error(f"[Scheduler] 일일 브리핑 자동 생성 실패: {e}")
+
+
+async def _fetch_crude_price_data(db) -> dict:
+    """DB에서 유종별 최근 2일 가격을 조회하여 today/yesterday 딕셔너리로 반환"""
+    price_data = {}
+    try:
+        rows = await db.get_oil_prices(limit=10)
+        if not rows:
+            return price_data
+
+        # 날짜별로 그룹핑
+        dates = sorted(set(r["date"] for r in rows), reverse=True)
+        today_date = dates[0] if len(dates) > 0 else None
+        yesterday_date = dates[1] if len(dates) > 1 else None
+
+        for crude in ["dubai", "brent", "wti"]:
+            today_price = None
+            yesterday_price = None
+
+            for r in rows:
+                price_field = f"{crude}_price" if f"{crude}_price" in r else crude
+                price_val = r.get(price_field) or r.get(crude)
+                if price_val and price_val > 0:
+                    if r["date"] == today_date and today_price is None:
+                        today_price = price_val
+                    elif r["date"] == yesterday_date and yesterday_price is None:
+                        yesterday_price = price_val
+
+            price_data[crude] = {
+                "today": today_price or 0,
+                "yesterday": yesterday_price or 0,
+            }
+    except Exception as e:
+        logger.error(f"[Scheduler] 유가 데이터 조회 실패: {e}")
+
+    return price_data
 
 
 class CollectionScheduler:

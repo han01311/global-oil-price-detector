@@ -10,17 +10,17 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import settings
-from app.schemas.forecast import ForecastResult, Briefing, CrudeOutlook
+from app.schemas.forecast import ForecastResult, Briefing, CrudeDailyAssessment
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
 CRUDE_TYPES = ["dubai", "brent", "wti"]
-CRUDE_LABELS = {"dubai": "두바이유", "brent": "브렌트유", "wti": "WTI"}
+CRUDE_LABELS = {"dubai": "Dubai", "brent": "Brent", "wti": "WTI"}
 
 
 class BriefingGenerator:
-    """AI 유가 브리핑 자동 생성기 — 유종별 독립 전망 포함"""
+    """AI 유가 브리핑 자동 생성기 — 뉴스 분류 완료 후 실행, 일자별 저장"""
 
     CACHE_DIR = str(os.path.join(os.path.dirname(__file__), "..", "..", "data", "processed", "briefings"))
 
@@ -29,12 +29,12 @@ class BriefingGenerator:
         self.model_name = "gemma4:e4b"
         os.makedirs(self.CACHE_DIR, exist_ok=True)
 
-    def _get_cache_path(self) -> str:
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        return os.path.join(self.CACHE_DIR, f"{today}.json")
+    def _get_cache_path(self, target_date: str | None = None) -> str:
+        date_str = target_date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        return os.path.join(self.CACHE_DIR, f"{date_str}.json")
 
-    def _load_from_cache(self) -> Briefing | None:
-        cache_path = self._get_cache_path()
+    def _load_from_cache(self, target_date: str | None = None) -> Briefing | None:
+        cache_path = self._get_cache_path(target_date)
         if os.path.exists(cache_path):
             try:
                 with open(cache_path, 'r', encoding='utf-8') as f:
@@ -50,32 +50,144 @@ class BriefingGenerator:
         return None
 
     def _save_to_cache(self, briefing: Briefing):
-        cache_path = self._get_cache_path()
+        cache_path = self._get_cache_path(briefing.date)
         try:
             with open(cache_path, 'w', encoding='utf-8') as f:
                 json.dump(briefing.model_dump(), f, ensure_ascii=False, indent=2)
+            logger.info(f"Briefing saved to cache: {cache_path}")
         except IOError as e:
             logger.error(f"Failed to save briefing to cache: {e}")
 
-    async def generate_briefing(self, forecast: ForecastResult,
-                                 classified_articles: List[Dict[str, Any]],
-                                 similar_events: List[Dict[str, Any]]) -> Briefing:
-        """일일 유가 브리핑 생성. 캐시를 먼저 확인."""
-        cached_briefing = self._load_from_cache()
-        if cached_briefing:
-            logger.info("Loaded briefing from cache.")
-            return cached_briefing
+    # ──────────────────────────────────────────────
+    # 유종별 당일 시세 평가 — 결정론적 계산
+    # ──────────────────────────────────────────────
+    def _compute_crude_assessments(
+        self,
+        price_data: Dict[str, Dict[str, float]],
+        classified_articles: List[Dict[str, Any]]
+    ) -> List[CrudeDailyAssessment]:
+        """
+        DB에서 조회한 유종별 당일/전일 가격과 분류된 뉴스로부터
+        결정론적으로 당일 시세 평가를 산출한다.
+        
+        price_data 형식: {"dubai": {"today": 70.5, "yesterday": 69.8}, ...}
+        """
+        assessments = []
+        
+        # 뉴스 기사에서 유종별 dominant factor 추출
+        crude_drivers = self._extract_crude_drivers(classified_articles)
+        
+        for crude in CRUDE_TYPES:
+            prices = price_data.get(crude, {})
+            today_price = prices.get("today", 0)
+            yesterday_price = prices.get("yesterday", 0)
+            
+            if yesterday_price and yesterday_price > 0:
+                change_pct = round((today_price - yesterday_price) / yesterday_price * 100, 2)
+            else:
+                change_pct = 0.0
+            
+            # 방향성 결정: ±0.1% 이내면 보합
+            if change_pct > 0.1:
+                direction = "bullish"
+            elif change_pct < -0.1:
+                direction = "bearish"
+            else:
+                direction = "neutral"
+            
+            key_driver = crude_drivers.get(crude, "데이터 부족")
+            
+            assessments.append(CrudeDailyAssessment(
+                crude_type=crude,
+                direction=direction,
+                change_pct=change_pct,
+                key_driver=key_driver,
+            ))
+        
+        return assessments
 
-        if not classified_articles and not similar_events:
-            briefing = self._get_fallback_briefing(forecast)
+    def _extract_crude_drivers(self, articles: List[Dict[str, Any]]) -> Dict[str, str]:
+        """분류된 뉴스 기사에서 유종별 가장 영향력 높은 요인의 카테고리를 키워드로 추출"""
+        CATEGORY_KR = {
+            "geopolitics": "지정학 리스크",
+            "supply": "공급 변동",
+            "demand": "수요 변화",
+            "macro": "거시경제",
+            "climate": "기후/ESG",
+            "speculation": "투기/심리",
+        }
+        
+        crude_drivers: Dict[str, str] = {}
+        
+        for crude in CRUDE_TYPES:
+            best_score = 0
+            best_category = ""
+            
+            for article in articles:
+                if not article.get("is_relevant"):
+                    continue
+                impact_by_crude = article.get("impact_by_crude", {})
+                crude_impact = impact_by_crude.get(crude, {})
+                if isinstance(crude_impact, dict):
+                    score = abs(crude_impact.get("score", 0))
+                    if score > best_score:
+                        best_score = score
+                        best_category = article.get("category", "")
+            
+            if best_category:
+                crude_drivers[crude] = CATEGORY_KR.get(best_category, best_category)
+            else:
+                crude_drivers[crude] = "특이사항 없음"
+        
+        return crude_drivers
+
+    # ──────────────────────────────────────────────
+    # 메인 생성 로직
+    # ──────────────────────────────────────────────
+    async def generate_briefing(
+        self,
+        forecast: ForecastResult,
+        classified_articles: List[Dict[str, Any]],
+        price_data: Dict[str, Dict[str, float]],
+        force: bool = False,
+    ) -> Briefing:
+        """
+        일일 유가 브리핑 생성.
+        - 뉴스 기사가 없으면 생성하지 않음 (None 반환 대신 has_news=False 마킹)
+        - crude_assessments는 결정론적으로 계산 (LLM 의존 X)
+        - LLM은 summary, key_factors, risk_scenarios 등 텍스트만 담당
+        """
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        if not force:
+            cached_briefing = self._load_from_cache(today)
+            if cached_briefing:
+                logger.info("Loaded briefing from cache.")
+                return cached_briefing
+
+        # 유종별 당일 시세 결정론적 계산
+        crude_assessments = self._compute_crude_assessments(price_data, classified_articles)
+
+        # 뉴스가 없으면 최소 브리핑만 저장
+        relevant_articles = [a for a in classified_articles if a.get("is_relevant")]
+        if not relevant_articles:
+            logger.warning("No relevant news articles. Generating minimal briefing.")
+            briefing = Briefing(
+                date=today,
+                summary="금일 분석 대상 뉴스가 수집되지 않아 정성 분석을 수행하지 못했습니다.",
+                key_factors=[],
+                risk_scenarios=[],
+                price_outlook="뉴스 기반 분석 불가. 정량 모델 전망만 참고하시기 바랍니다.",
+                confidence_note="뉴스 데이터 부재로 신뢰도 낮음.",
+                crude_assessments=crude_assessments,
+                has_news=False,
+                generated_at=datetime.now(timezone.utc).isoformat(),
+            )
             self._save_to_cache(briefing)
             return briefing
 
-        prompt = self._build_briefing_prompt(
-            forecast=forecast,
-            articles=classified_articles,
-            similar_events=similar_events,
-        )
+        # LLM 프롬프트 구성 (텍스트 분석만)
+        prompt = self._build_briefing_prompt(forecast=forecast, articles=relevant_articles)
 
         max_retries = 1
         for attempt in range(max_retries + 1):
@@ -104,24 +216,21 @@ class BriefingGenerator:
                         else:
                             raise ValueError("No JSON object could be extracted from response.")
 
-                # Parse crude_outlooks
-                raw_outlooks = response_data.pop("crude_outlooks", [])
-                crude_outlooks = []
-                for outlook in raw_outlooks:
-                    try:
-                        crude_outlooks.append(CrudeOutlook(**outlook))
-                    except (ValidationError, TypeError) as e:
-                        logger.warning(f"Failed to parse crude outlook: {e}")
+                # 불필요한 필드 제거 (LLM이 혹시 넣었을 경우)
+                response_data.pop("crude_outlooks", None)
+                response_data.pop("crude_assessments", None)
+                response_data.pop("similar_cases", None)
 
                 briefing = Briefing(
-                    date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+                    date=today,
                     generated_at=datetime.now(timezone.utc).isoformat(),
-                    crude_outlooks=crude_outlooks,
+                    crude_assessments=crude_assessments,
+                    has_news=True,
                     **response_data
                 )
                 if not self._is_korean_briefing(briefing):
-                    logger.warning("LLM returned a non-Korean briefing. Returning fallback briefing.")
-                    briefing = self._get_fallback_briefing(forecast)
+                    logger.warning("LLM returned a non-Korean briefing. Returning minimal briefing.")
+                    briefing = self._get_fallback_briefing(today, crude_assessments)
                 
                 self._save_to_cache(briefing)
                 return briefing
@@ -130,32 +239,26 @@ class BriefingGenerator:
                 logger.error(f"Attempt {attempt + 1}: Failed to generate briefing. Error: {e}")
                 if attempt == max_retries:
                     logger.warning("All attempts failed. Returning fallback briefing.")
-                    return self._get_fallback_briefing(forecast)
+                    briefing = self._get_fallback_briefing(today, crude_assessments)
+                    self._save_to_cache(briefing)
+                    return briefing
 
-    def _get_fallback_briefing(self, forecast: ForecastResult) -> Briefing:
-        from app.schemas.forecast import BriefingKeyFactor, RiskScenario, SimilarCase, CrudeOutlook
-
-        # Generate fallback crude outlooks from forecasts_by_crude
-        crude_outlooks = []
-        for crude, cf in forecast.forecasts_by_crude.items():
-            direction = "bullish" if cf.news_adjustment_pct > 0 else ("bearish" if cf.news_adjustment_pct < 0 else "neutral")
-            crude_outlooks.append(CrudeOutlook(
-                crude_type=crude,
-                direction=direction,
-                summary=f"{CRUDE_LABELS.get(crude, crude)} 기본 추정 모델 기반 전망입니다.",
-                key_driver="정량 모델 기반 (정성 분석 지연)"
-            ))
-
+    def _get_fallback_briefing(
+        self,
+        today: str,
+        crude_assessments: List[CrudeDailyAssessment],
+    ) -> Briefing:
+        from app.schemas.forecast import BriefingKeyFactor, RiskScenario
         return Briefing(
-            date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            date=today,
             generated_at=datetime.now(timezone.utc).isoformat(),
             summary="일시적인 AI 분석 지연으로 인해 요약 브리핑을 불러오지 못했습니다.",
-            key_factors=[BriefingKeyFactor(category="unknown", description="현재 구체적인 요인을 분석할 수 없습니다.", impact="neutral", score=0)],
+            key_factors=[BriefingKeyFactor(category="unknown", description="분석 지연 중임.", impact="neutral", score=0)],
             risk_scenarios=[RiskScenario(scenario="수집/분석 지연", probability="low", price_impact="N/A")],
-            similar_cases=[],
-            crude_outlooks=crude_outlooks,
-            price_outlook="기본 추정 모델에 따라 당분간 밴드 내 변동성을 보일 것으로 예상됩니다.",
-            confidence_note="AI 모델 응답 지연으로 정성적 보정 신뢰도가 임시로 낮아졌습니다."
+            price_outlook="정량 모델 기반으로 당분간 밴드 내 변동성을 보일 것으로 예상됨.",
+            confidence_note="AI 응답 지연으로 신뢰도 낮음.",
+            crude_assessments=crude_assessments,
+            has_news=False,
         )
 
     def _has_hangul(self, value: str | None) -> bool:
@@ -169,89 +272,44 @@ class BriefingGenerator:
         ]
         text_values.extend(f.description for f in briefing.key_factors)
         text_values.extend(s.scenario for s in briefing.risk_scenarios)
-        text_values.extend(o.summary for o in briefing.crude_outlooks)
         required = [value for value in text_values if value]
         return bool(required) and sum(1 for value in required if self._has_hangul(value)) >= max(1, len(required) // 2)
 
     def _build_briefing_prompt(self, forecast: ForecastResult,
-                               articles: List[Dict[str, Any]],
-                               similar_events: List[Dict[str, Any]]) -> str:
-        """브리핑 생성을 위한 프롬프트 구성 — 유종별 독립 전망 포함"""
-
-        # Build per-crude forecast summary
-        crude_forecast_lines = []
-        for crude in CRUDE_TYPES:
-            cf = forecast.forecasts_by_crude.get(crude)
-            if cf:
-                label = CRUDE_LABELS.get(crude, crude.upper())
-                crude_forecast_lines.append(f"""
-  [{label}]
-  - Current Price: ${cf.current_price:.2f}
-  - 7-Day Forecast: ${cf.estimated_7d_low:.2f} - ${cf.estimated_7d_high:.2f} (Mid: ${cf.estimated_7d:.2f})
-  - 30-Day Forecast: ${cf.estimated_30d_low:.2f} - ${cf.estimated_30d_high:.2f} (Mid: ${cf.estimated_30d:.2f})
-  - News Adjustment: {cf.news_adjustment_pct:+.2%}
-  - Dominant Factor: {cf.dominant_factor or 'N/A'}
-  - Confidence: {cf.confidence:.1%}""")
-
-        crude_forecasts_str = "\n".join(crude_forecast_lines) if crude_forecast_lines else "No per-crude forecasts available."
-
-        # Legacy WTI summary for backward compat
-        forecast_str = f"""
-- Overall Current Price (WTI): ${forecast.current_price:.2f}
-- 7-Day Forecast: ${forecast.estimated_7d_low:.2f} - ${forecast.estimated_7d_high:.2f} (Mid: ${forecast.estimated_7d:.2f})
-- 30-Day Forecast: ${forecast.estimated_30d_low:.2f} - ${forecast.estimated_30d_high:.2f} (Mid: ${forecast.estimated_30d:.2f})
-- Model Confidence: {forecast.confidence:.1%}
-"""
+                               articles: List[Dict[str, Any]]) -> str:
+        """브리핑 생성을 위한 프롬프트 — LLM은 텍스트 분석만 담당"""
 
         articles_str = "\n".join([
-            f"- Title: {a.get('article', {}).get('title', 'N/A')}\n  Category: {a.get('category', 'N/A')}, Impact Score: {a.get('impact_score', 0)}\n  Summary: {a.get('impact_summary', 'N/A')}\n  Dubai Impact: {a.get('impact_by_crude', {}).get('dubai', {}).get('score', 'N/A') if isinstance(a.get('impact_by_crude', {}).get('dubai'), dict) else 'N/A'}, Brent: {a.get('impact_by_crude', {}).get('brent', {}).get('score', 'N/A') if isinstance(a.get('impact_by_crude', {}).get('brent'), dict) else 'N/A'}, WTI: {a.get('impact_by_crude', {}).get('wti', {}).get('score', 'N/A') if isinstance(a.get('impact_by_crude', {}).get('wti'), dict) else 'N/A'}"
-            for a in articles if a.get('is_relevant')
+            f"- Title: {a.get('article', {}).get('title', 'N/A')}\n  Category: {a.get('category', 'N/A')}, Impact Score: {a.get('impact_score', 0)}\n  Summary: {a.get('impact_summary', 'N/A')}"
+            for a in articles
         ][:5])
-
-        def _fmt_change(val):
-            if val is None or val == -9999.0:
-                return "N/A"
-            return f"{val:+.2f}%"
-
-        similar_events_str = "\n".join([
-            f"- Event: {e.get('title', 'N/A')} ({e.get('date', 'N/A')})\n  Similarity: {e.get('similarity', 0):.1%}\n  WTI 7d: {_fmt_change(e.get('wti_change_7d'))}"
-            for e in similar_events
-        ][:3])
 
         prompt = f"""
 You are a senior oil market analyst at a top financial institution. Your task is to generate a daily oil price briefing for professional clients. The briefing must be objective, data-driven, and concise.
 
 IMPORTANT: All text values in the JSON output MUST be written in Korean (한국어). Do NOT translate the JSON keys.
+IMPORTANT: All description fields MUST use Korean 음슴체 style (e.g. ~함, ~임, ~됨).
 
-CRITICAL: You must provide INDEPENDENT outlooks for each crude type (Dubai, Brent, WTI). Each crude type has different geopolitical sensitivities, so their outlooks may differ significantly.
-
-Use the provided data to construct your analysis. You MUST respond ONLY with a valid JSON object in the specified format.
+Use the provided news data to construct your analysis. You MUST respond ONLY with a valid JSON object in the specified format.
 
 [CONTEXTUAL DATA]
 
-1. Overall Quantitative Forecast:
-{forecast_str}
-
-2. Per-Crude Independent Forecasts:
-{crude_forecasts_str}
-
-3. Key News Articles (with per-crude impact):
+Key News Articles (analyzed with AI):
 {articles_str if articles_str else "No significant news in the last 24 hours."}
 
-4. Similar Historical Events:
-{similar_events_str if similar_events_str else "No similar historical events found."}
-
 [TASK]
-Based on the contextual data, generate the daily briefing with independent per-crude outlooks.
-CRITICAL: You must be extremely concise. Keep all text descriptions as short as possible. Limit key_factors to max 3 items, risk_scenarios to max 2 items, and similar_cases to max 2 items.
+Based on the news articles, generate a concise daily briefing.
+CRITICAL: You must be extremely concise. Keep all text descriptions as short as possible.
+- Limit key_factors to max 3 items
+- Limit risk_scenarios to max 2 items
 
 [JSON OUTPUT FORMAT]
 {{
-  "summary": "string (반드시 한국어로 작성. 2문장 이내, 100자 이하의 매우 간결한 핵심 요약)",
+  "summary": "string (반드시 한국어 음슴체로 작성. 2문장 이내, 100자 이하의 매우 간결한 핵심 요약)",
   "key_factors": [
     {{
       "category": "string (예: '공급', '지정학', '수요' 등 짧은 단어)",
-      "description": "string (반드시 한국어로 작성. 1문장, 50자 이내의 아주 짧은 핵심 설명)",
+      "description": "string (반드시 한국어 음슴체(~함, ~임)로 작성. 1문장, 50자 이내의 아주 짧은 핵심 설명)",
       "impact": "string ('bullish', 'bearish', 또는 'neutral' 중 하나로 영문 유지)",
       "score": "integer (-5 to 5)"
     }}
@@ -263,24 +321,8 @@ CRITICAL: You must be extremely concise. Keep all text descriptions as short as 
       "price_impact": "string (예: '+$3-5/bbl')"
     }}
   ],
-  "similar_cases": [
-    {{
-      "event": "string (과거 유사 사례 이벤트명, 20자 이내 한국어)",
-      "date": "string",
-      "similarity": "float",
-      "actual_impact": "string (예: '배럴당 $15 상승' 등 20자 이내의 짧은 결과 문구)"
-    }}
-  ],
-  "crude_outlooks": [
-    {{
-      "crude_type": "string ('dubai', 'brent', 또는 'wti')",
-      "direction": "string ('bullish', 'bearish', 또는 'neutral')",
-      "summary": "string (반드시 한국어로 작성. 1문장, 50자 이내의 매우 짧은 유종별 전망)",
-      "key_driver": "string (해당 유종의 가격을 이끄는 핵심 동인 1가지 단어/구)"
-    }}
-  ],
-  "price_outlook": "string (반드시 한국어로 작성. 1문장, 50자 이내의 종합 방향성 결론)",
-  "confidence_note": "string (반드시 한국어로 작성. 1문장, 30자 이내의 짧은 코멘트)"
+  "price_outlook": "string (반드시 한국어 음슴체로 작성. 1문장, 50자 이내의 종합 방향성 결론)",
+  "confidence_note": "string (반드시 한국어 음슴체로 작성. 1문장, 30자 이내의 짧은 코멘트)"
 }}
 """
         return prompt

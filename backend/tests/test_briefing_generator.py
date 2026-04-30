@@ -36,27 +36,34 @@ def mock_classified_articles():
             "is_relevant": True,
             "category": "supply",
             "impact_score": 4,
-            "impact_summary": "OPEC+ 감산은 공급 부족 우려를 키웁니다."
+            "impact_summary": "OPEC+ 감산은 공급 부족 우려를 키웁니다.",
+            "impact_by_crude": {
+                "dubai": {"score": 3, "direction": "bullish"},
+                "brent": {"score": 2, "direction": "bullish"},
+                "wti": {"score": 1, "direction": "neutral"},
+            }
         },
         {
             "article": {"title": "Fed Hints at Rate Hike"},
             "is_relevant": True,
             "category": "macro",
             "impact_score": -2,
-            "impact_summary": "금리 인상 가능성은 달러 강세를 유발합니다."
+            "impact_summary": "금리 인상 가능성은 달러 강세를 유발합니다.",
+            "impact_by_crude": {
+                "dubai": {"score": -1, "direction": "bearish"},
+                "brent": {"score": -1, "direction": "bearish"},
+                "wti": {"score": -2, "direction": "bearish"},
+            }
         }
     ]
 
 @pytest.fixture
-def mock_similar_events():
-    return [
-        {
-            "title": "2022 Ukraine Invasion",
-            "date": "2022-02-24",
-            "similarity": 0.85,
-            "wti_change_7d": 15.5
-        }
-    ]
+def mock_price_data():
+    return {
+        "dubai": {"today": 71.5, "yesterday": 70.0},
+        "brent": {"today": 75.0, "yesterday": 75.5},
+        "wti": {"today": 68.0, "yesterday": 68.0},
+    }
 
 @pytest.fixture
 def briefing_generator(tmp_path):
@@ -67,45 +74,76 @@ def briefing_generator(tmp_path):
 @pytest.fixture
 def mock_httpx_response():
     mock_response_text = {
-        "summary": "국제 유가는 OPEC+ 감산 결정으로 상승 압력을 받고 있습니다.",
-        "key_factors": [{"category": "공급", "description": "OPEC+ 감산은 공급 부족 우려를 키웁니다.", "impact": "bullish", "score": 4}],
+        "summary": "국제 유가는 OPEC+ 감산 결정으로 상승 압력을 받고 있음.",
+        "key_factors": [{"category": "공급", "description": "OPEC+ 감산은 공급 부족 우려를 키움.", "impact": "bullish", "score": 4}],
         "risk_scenarios": [{"scenario": "중동 지정학적 긴장 고조", "probability": "medium", "price_impact": "+$5"}],
-        "similar_cases": [{"event": "우크라이나 침공", "date": "2022-01-01", "similarity": 0.8, "actual_impact": "배럴당 $15 상승"}],
-        "crude_outlooks": [
-            {"crude_type": "dubai", "direction": "bullish", "summary": "중동 리스크로 상승 전망.", "key_driver": "중동 지정학"},
-            {"crude_type": "brent", "direction": "neutral", "summary": "유럽 수요 둔화와 공급 감소 상쇄.", "key_driver": "유럽 수요"},
-            {"crude_type": "wti", "direction": "bearish", "summary": "달러 강세로 하방 압력.", "key_driver": "달러 강세"}
-        ],
-        "price_outlook": "단기적으로 유가는 혼조세를 보일 것으로 예상됩니다.",
-        "confidence_note": "뉴스 기반 정성 분석의 신뢰도는 높은 편입니다."
+        "price_outlook": "단기적으로 유가는 혼조세를 보일 것으로 예상됨.",
+        "confidence_note": "뉴스 기반 분석 신뢰도 높음."
     }
     mock_resp = MagicMock()
     mock_resp.raise_for_status = MagicMock()
     mock_resp.json.return_value = {"response": json.dumps(mock_response_text)}
     return mock_resp
 
-def test_build_briefing_prompt(briefing_generator, mock_forecast_result, mock_classified_articles, mock_similar_events):
+
+def test_compute_crude_assessments(briefing_generator, mock_price_data, mock_classified_articles):
+    """유종별 당일 시세 평가가 결정론적으로 정확히 계산되는지 확인"""
+    assessments = briefing_generator._compute_crude_assessments(mock_price_data, mock_classified_articles)
+    
+    assert len(assessments) == 3
+    
+    # Dubai: (71.5 - 70.0) / 70.0 * 100 = 2.14% → bullish
+    dubai = next(a for a in assessments if a.crude_type == "dubai")
+    assert dubai.direction == "bullish"
+    assert dubai.change_pct == pytest.approx(2.14, abs=0.01)
+    assert dubai.key_driver  # 키워드가 채워져 있어야 함
+    
+    # Brent: (75.0 - 75.5) / 75.5 * 100 = -0.66% → bearish
+    brent = next(a for a in assessments if a.crude_type == "brent")
+    assert brent.direction == "bearish"
+    assert brent.change_pct == pytest.approx(-0.66, abs=0.01)
+    
+    # WTI: (68.0 - 68.0) / 68.0 * 100 = 0.0% → neutral
+    wti = next(a for a in assessments if a.crude_type == "wti")
+    assert wti.direction == "neutral"
+    assert wti.change_pct == pytest.approx(0.0, abs=0.01)
+
+
+def test_extract_crude_drivers(briefing_generator, mock_classified_articles):
+    """뉴스 기사에서 유종별 핵심 요인 키워드를 정확히 추출하는지 확인"""
+    drivers = briefing_generator._extract_crude_drivers(mock_classified_articles)
+    
+    assert "dubai" in drivers
+    assert "brent" in drivers
+    assert "wti" in drivers
+    # Dubai에서 가장 높은 영향도는 supply(score=3)
+    assert "공급" in drivers["dubai"]
+    # WTI에서 가장 높은 영향도는 macro(score=2)
+    assert "거시" in drivers["wti"]
+
+
+def test_build_briefing_prompt(briefing_generator, mock_forecast_result, mock_classified_articles):
     prompt = briefing_generator._build_briefing_prompt(
         forecast=mock_forecast_result,
         articles=mock_classified_articles,
-        similar_events=mock_similar_events
     )
 
-    assert "$100.00" in prompt
     assert "OPEC+ Surprise Cut" in prompt
     assert "Fed Hints at Rate Hike" in prompt
-    assert "2022 Ukraine Invasion" in prompt
     assert "JSON OUTPUT FORMAT" in prompt
+    # crude_outlooks 관련 내용이 없어야 함
+    assert "crude_outlooks" not in prompt
+
 
 @pytest.mark.asyncio
 @patch('httpx.AsyncClient.post')
-async def test_generate_briefing_success(mock_post, briefing_generator, mock_forecast_result, mock_classified_articles, mock_similar_events, mock_httpx_response):
+async def test_generate_briefing_success(mock_post, briefing_generator, mock_forecast_result, mock_classified_articles, mock_price_data, mock_httpx_response):
     mock_post.return_value = mock_httpx_response
 
     result = await briefing_generator.generate_briefing(
         forecast=mock_forecast_result,
         classified_articles=mock_classified_articles,
-        similar_events=mock_similar_events
+        price_data=mock_price_data,
     )
 
     mock_post.assert_awaited_once()
@@ -113,16 +151,20 @@ async def test_generate_briefing_success(mock_post, briefing_generator, mock_for
     assert "OPEC+" in result.summary or "감산" in result.summary
     assert len(result.key_factors) == 1
     assert result.key_factors[0].category == "공급"
+    # crude_assessments는 결정론적으로 채워져야 함
+    assert len(result.crude_assessments) == 3
+    assert result.has_news is True
+
 
 @pytest.mark.asyncio
 @patch('httpx.AsyncClient.post')
-async def test_caching_mechanism(mock_post, briefing_generator, mock_forecast_result, mock_classified_articles, mock_similar_events, mock_httpx_response):
+async def test_caching_mechanism(mock_post, briefing_generator, mock_forecast_result, mock_classified_articles, mock_price_data, mock_httpx_response):
     mock_post.return_value = mock_httpx_response
 
     result1 = await briefing_generator.generate_briefing(
         forecast=mock_forecast_result,
         classified_articles=mock_classified_articles,
-        similar_events=mock_similar_events
+        price_data=mock_price_data,
     )
     mock_post.assert_awaited_once()
     
@@ -133,39 +175,28 @@ async def test_caching_mechanism(mock_post, briefing_generator, mock_forecast_re
     result2 = await briefing_generator.generate_briefing(
         forecast=mock_forecast_result,
         classified_articles=mock_classified_articles,
-        similar_events=mock_similar_events
+        price_data=mock_price_data,
     )
     assert mock_post.call_count == 1
     
     assert result1.model_dump() == result2.model_dump()
 
-@pytest.mark.asyncio
-@patch('httpx.AsyncClient.post')
-async def test_generate_briefing_invalid_response(mock_post, briefing_generator, mock_forecast_result, mock_classified_articles, mock_similar_events):
-    invalid_json_resp = MagicMock()
-    invalid_json_resp.raise_for_status = MagicMock()
-    invalid_json_resp.json.return_value = {"response": '{"summary": "incomplete...'}
-    mock_post.return_value = invalid_json_resp
-
-    result = await briefing_generator.generate_briefing(
-        forecast=mock_forecast_result,
-        classified_articles=mock_classified_articles,
-        similar_events=mock_similar_events
-    )
-
-    assert result.summary == "일시적인 AI 분석 지연으로 인해 요약 브리핑을 불러오지 못했습니다."
 
 @pytest.mark.asyncio
-async def test_generate_briefing_no_articles_no_events(briefing_generator, mock_forecast_result):
-    """When there are no articles and no events, fallback briefing is returned."""
+async def test_generate_briefing_no_articles(briefing_generator, mock_forecast_result, mock_price_data):
+    """뉴스 기사 없으면 has_news=False로 최소 브리핑 반환"""
     result = await briefing_generator.generate_briefing(
         forecast=mock_forecast_result,
         classified_articles=[],
-        similar_events=[]
+        price_data=mock_price_data,
     )
 
-    assert result.summary == "일시적인 AI 분석 지연으로 인해 요약 브리핑을 불러오지 못했습니다."
+    assert result.has_news is False
+    assert "수집되지 않" in result.summary
     assert isinstance(result, Briefing)
+    # 가격 데이터는 있으므로 crude_assessments는 채워져야 함
+    assert len(result.crude_assessments) == 3
+
 
 def test_model_name_is_gemma4_e4b(briefing_generator):
     """모델명이 gemma4:e4b인지 확인"""

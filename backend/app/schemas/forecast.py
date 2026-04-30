@@ -111,30 +111,22 @@ class RiskScenario(BaseModel):
     probability: str        # "high" | "medium" | "low"
     price_impact: str       # 예: "+$3~5"
 
-class SimilarCase(BaseModel):
-    event: str              # 과거 이벤트명
-    date: str
-    similarity: float
-    actual_impact: str      # 당시 실제 유가 변동
-
-
-class CrudeOutlook(BaseModel):
-    """유종별 독립 전망"""
+class CrudeDailyAssessment(BaseModel):
+    """유종별 당일 시세 평가 — 실제 가격 등락 기반"""
     crude_type: str         # "dubai" | "brent" | "wti"
     direction: str          # "bullish" | "bearish" | "neutral"
-    summary: str            # 해당 유종의 전망 요약
-    key_driver: str         # 핵심 동인
+    change_pct: float       # 전일 대비 변동률 (%)
+    key_driver: str         # 핵심 상승/하락 요인 키워드
 
 
 class Briefing(BaseModel):
     date: str
-    summary: str                          # 3줄 핵심 요약
-    key_factors: list[BriefingKeyFactor]   # 주요 요인 (최대 5개)
-    risk_scenarios: list[RiskScenario]     # 리스크 시나리오 (최대 3개)
-    similar_cases: list[SimilarCase]       # 과거 유사 사례 (최대 3개)
-    price_outlook: str                     # 가격 방향성 전망
+    summary: str                          # 핵심 요약
+    key_factors: list[BriefingKeyFactor]   # 주요 요인 (최대 3개)
+    risk_scenarios: list[RiskScenario]     # 리스크 시나리오 (최대 2개)
+    price_outlook: str                     # 가격 방향성 결론
     confidence_note: str                   # 신뢰도/한계 코멘트
-    # 유종별 독립 전망 (하위호환: 빈 리스트면 기존 통합 전망 사용)
-    crude_outlooks: list[CrudeOutlook] = []
+    crude_assessments: list[CrudeDailyAssessment] = []  # 유종별 당일 시세 평가
+    has_news: bool = True                 # 뉴스 기사 기반 여부
     generated_at: str
 

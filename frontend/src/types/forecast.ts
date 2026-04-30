@@ -52,18 +52,11 @@ export interface RiskScenario {
   price_impact: string;
 }
 
-export interface SimilarCase {
-  event: string;
-  date: string;
-  similarity: number;
-  actual_impact: string;
-}
-
-export interface CrudeOutlook {
+export interface CrudeDailyAssessment {
   crude_type: string; // "dubai" | "brent" | "wti"
   direction: 'bullish' | 'bearish' | 'neutral';
-  summary: string;
-  key_driver: string;
+  change_pct: number; // 전일 대비 변동률 (%)
+  key_driver: string; // 핵심 상승/하락 요인 키워드
 }
 
 export interface Briefing {
@@ -71,10 +64,10 @@ export interface Briefing {
   summary: string;
   key_factors: BriefingKeyFactor[];
   risk_scenarios: RiskScenario[];
-  similar_cases: SimilarCase[];
   price_outlook: string;
   confidence_note: string;
-  crude_outlooks: CrudeOutlook[]; // 유종별 독립 전망
+  crude_assessments: CrudeDailyAssessment[]; // 유종별 당일 시세 평가
+  has_news: boolean;
   generated_at: string;
 }
 

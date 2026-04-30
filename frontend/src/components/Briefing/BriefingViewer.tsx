@@ -3,15 +3,16 @@ import { useBriefing } from '../../hooks/useBriefing';
 import { Skeleton } from '../common/Skeleton';
 import { Badge } from '../common/Badge';
 import { EmptyState } from '../common/EmptyState';
-import { Tooltip } from '../common/Tooltip';
 import './BriefingViewer.css';
-import type { Briefing, BriefingKeyFactor, RiskScenario, SimilarCase, CrudeOutlook } from '../../types/forecast';
+import type { Briefing, BriefingKeyFactor, RiskScenario, CrudeDailyAssessment } from '../../types/forecast';
 
-const BriefingSection: React.FC<{ title: string; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
+const BriefingSection: React.FC<{ title: React.ReactNode; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
   <div className="briefing-section">
     <h4 className="briefing-section-title">
-      <span>{icon}</span>
-      <span>{title}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span>{icon}</span>
+        <span>{title}</span>
+      </div>
     </h4>
     {children}
   </div>
@@ -45,23 +46,6 @@ const RiskScenarios: React.FC<{ scenarios: RiskScenario[] }> = ({ scenarios }) =
   </ul>
 );
 
-const SimilarCases: React.FC<{ cases: SimilarCase[] }> = ({ cases }) => (
-  <ul className="similar-cases-list">
-    {cases.map((c, index) => {
-      const isBull = c.actual_impact.includes('+');
-      const isBear = c.actual_impact.includes('-');
-      const impactClass = isBull ? 'bull' : isBear ? 'bear' : 'neutral';
-      return (
-        <li key={index} className="similar-case-item">
-          <span>·</span>
-          <span>{c.event} ({new Date(c.date).toLocaleDateString()})</span>
-          <span className={`similar-case-impact ${impactClass}`}>{c.actual_impact}</span>
-        </li>
-      );
-    })}
-  </ul>
-);
-
 const CRUDE_LABELS: Record<string, string> = {
   dubai: 'Dubai',
   brent: 'Brent',
@@ -74,18 +58,19 @@ const DIRECTION_LABELS: Record<string, string> = {
   neutral: '보합',
 };
 
-const CrudeOutlooks: React.FC<{ outlooks: CrudeOutlook[] }> = ({ outlooks }) => (
-  <div className="crude-outlooks-grid">
-    {outlooks.map((outlook) => (
-      <div key={outlook.crude_type} className="crude-outlook-card">
-        <div className="crude-outlook-header">
-          <span className="crude-outlook-label">{CRUDE_LABELS[outlook.crude_type] || outlook.crude_type}</span>
-          <span className={`crude-outlook-direction ${outlook.direction}`}>
-            {outlook.direction === 'bullish' ? '▲' : outlook.direction === 'bearish' ? '▼' : '—'}
-            {' '}{DIRECTION_LABELS[outlook.direction] || outlook.direction}
+const CrudeDailyAssessments: React.FC<{ assessments: CrudeDailyAssessment[] }> = ({ assessments }) => (
+  <div className="crude-assessments-grid">
+    {assessments.map((item) => (
+      <div key={item.crude_type} className={`crude-assessment-card ${item.direction}`}>
+        <div className="crude-assessment-header">
+          <span className="crude-assessment-label">{CRUDE_LABELS[item.crude_type] || item.crude_type}</span>
+          <span className={`crude-assessment-change ${item.direction}`}>
+            {item.direction === 'bullish' ? '▲' : item.direction === 'bearish' ? '▼' : '—'}
+            {' '}{DIRECTION_LABELS[item.direction] || item.direction}
+            {' '}{item.change_pct > 0 ? '+' : ''}{item.change_pct.toFixed(2)}%
           </span>
         </div>
-        <p className="crude-outlook-driver">{outlook.key_driver}</p>
+        <p className="crude-assessment-driver">{item.key_driver}</p>
       </div>
     ))}
   </div>
@@ -106,9 +91,19 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
           </div>
         </BriefingSection>
 
-        {briefing.crude_outlooks && briefing.crude_outlooks.length > 0 && (
-          <BriefingSection title="유종별 독립 전망" icon="🛢️">
-            <CrudeOutlooks outlooks={briefing.crude_outlooks} />
+        {briefing.crude_assessments && briefing.crude_assessments.length > 0 && (
+          <BriefingSection 
+            title={
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                유종별 당일 시세
+                <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 'normal' }}>
+                  (전일 종가 대비)
+                </span>
+              </div>
+            } 
+            icon="🛢️"
+          >
+            <CrudeDailyAssessments assessments={briefing.crude_assessments} />
           </BriefingSection>
         )}
 
@@ -121,15 +116,6 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
         {briefing.risk_scenarios.length > 0 && (
           <BriefingSection title="리스크 시나리오" icon="⚠">
             <RiskScenarios scenarios={briefing.risk_scenarios} />
-          </BriefingSection>
-        )}
-
-        {briefing.similar_cases.length > 0 && (
-          <BriefingSection title="과거 유사 사례" icon="📜">
-            <Tooltip content="Market Memory: ChromaDB 벡터 검색으로 현재 뉴스와 유사한 과거 이벤트를 코사인 유사도 기반으로 매칭한 결과입니다.">
-              <span style={{ fontSize: '11px', color: 'var(--color-text-muted)' }}>Market Memory</span>
-            </Tooltip>
-            <SimilarCases cases={briefing.similar_cases} />
           </BriefingSection>
         )}
       </div>

@@ -24,9 +24,14 @@ const categoryDisplay: Record<string, string> = {
 export const Badge: React.FC<BadgeProps> = ({ category, children, className }) => {
   let normalizedCategory = (category || 'default').toString().toLowerCase();
   
-  if (normalizedCategory === '기타') {
-    normalizedCategory = 'other';
-  }
+  // Reverse mapping for Korean inputs from LLM
+  if (normalizedCategory.includes('지정학')) normalizedCategory = 'geopolitics';
+  else if (normalizedCategory.includes('공급')) normalizedCategory = 'supply';
+  else if (normalizedCategory.includes('수요')) normalizedCategory = 'demand';
+  else if (normalizedCategory.includes('거시') || normalizedCategory.includes('경제')) normalizedCategory = 'macro';
+  else if (normalizedCategory.includes('기후') || normalizedCategory.includes('esg')) normalizedCategory = 'climate';
+  else if (normalizedCategory.includes('투기') || normalizedCategory.includes('심리') || normalizedCategory.includes('기술')) normalizedCategory = 'speculation';
+  else if (normalizedCategory === '기타') normalizedCategory = 'other';
   
   const isKnown = normalizedCategory in categoryDisplay;
   const badgeClass = isKnown ? normalizedCategory : 'other';

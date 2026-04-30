@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Query, HTTPException
-from typing import List
+from typing import List, Optional
 import os
 import json
 import logging
@@ -8,25 +8,45 @@ from pydantic import ValidationError
 
 from app.schemas.forecast import Briefing
 from app.services.briefing_generator import BriefingGenerator
-from app.services.market_memory import MarketMemory
-from app.api.forecast import _run_forecast_pipeline
 
 router = APIRouter(prefix="/api/briefing", tags=["briefing"])
 logger = logging.getLogger(__name__)
 
 @router.get("/today", response_model=Briefing)
 async def get_today_briefing() -> Briefing:
-    """오늘의 유가 브리핑 조회 (캐시 있으면 캐시 반환)"""
+    """오늘의 유가 브리핑 조회 — 캐시 읽기 전용 (on-demand 생성 안 함)"""
     generator = BriefingGenerator()
     
     cached_briefing = generator._load_from_cache()
     if cached_briefing:
         return cached_briefing
     
+    # 캐시에 없으면 브리핑이 아직 생성되지 않은 것
+    raise HTTPException(
+        status_code=404,
+        detail="오늘의 브리핑이 아직 생성되지 않았습니다. 뉴스 수집 및 분류 완료 후 자동 생성됩니다."
+    )
+
+
+@router.post("/generate", response_model=Briefing)
+async def generate_briefing() -> Briefing:
+    """브리핑 강제 재생성 (관리자용 — 수동 트리거)"""
+    from app.api.forecast import _run_forecast_pipeline
+    from app.services.market_memory import MarketMemory
+    from app.core.database import Database
+    from app.services.scheduler import _fetch_crude_price_data
+
+    generator = BriefingGenerator()
+
     try:
-        forecast_result, relevant_articles, similar_events = await _run_forecast_pipeline()
+        # 1. 가격 데이터 조회
+        db = Database()
+        price_data = await _fetch_crude_price_data(db)
+
+        # 2. 예측 파이프라인 실행
+        forecast_result, relevant_articles, _ = await _run_forecast_pipeline()
         
-        # If pipeline returned no articles, fall back to ChromaDB cached articles
+        # 3. 인메모리 기사 없으면 ChromaDB에서 로드
         if not relevant_articles:
             logger.info("No in-memory news cache. Loading classified articles from ChromaDB.")
             memory = MarketMemory()
@@ -35,86 +55,14 @@ async def get_today_briefing() -> Briefing:
                 relevant_articles = [
                     a.model_dump() for a in cached_classified if a.is_relevant
                 ]
-                # Also search for similar events if we now have articles
-                if relevant_articles and not similar_events:
-                    most_impactful = max(relevant_articles, key=lambda x: abs(x.get('impact_score', 0)))
-                    query_text = most_impactful.get('article', {}).get('title', '')
-                    if query_text:
-                        search_results = await memory.search_similar(query=query_text, n_results=5)
-                        for res in search_results:
-                            metadata = res.get('metadata', {})
-                            def get_change(key):
-                                val = metadata.get(key)
-                                if val is None or val == -1.0 or val == -9999.0 or val <= -9990:
-                                    return None
-                                return val
-                            similar_events.append({
-                                "title": res.get('document', '').split('\n')[0].replace('Title: ', ''),
-                                "similarity": 1.0 - res.get('distance', 1.0),
-                                "wti_change_7d": get_change('wti_change_7d'),
-                                "dubai_change_7d": get_change('dubai_change_7d'),
-                                "brent_change_7d": get_change('brent_change_7d'),
-                            })
                 logger.info(f"Loaded {len(relevant_articles)} articles from ChromaDB for briefing.")
-        
+
+        # 4. 브리핑 강제 재생성
         briefing = await generator.generate_briefing(
             forecast=forecast_result,
             classified_articles=relevant_articles,
-            similar_events=similar_events
-        )
-        return briefing
-    except HTTPException as e:
-        raise e
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to generate briefing: {str(e)}")
-
-@router.post("/generate", response_model=Briefing)
-async def generate_briefing() -> Briefing:
-    """브리핑 강제 재생성 (캐시 무시)"""
-    generator = BriefingGenerator()
-    
-    cache_path = generator._get_cache_path()
-    if os.path.exists(cache_path):
-        try:
-            os.remove(cache_path)
-        except OSError:
-            pass
-
-    try:
-        forecast_result, relevant_articles, similar_events = await _run_forecast_pipeline()
-        
-        # If pipeline returned no articles, fall back to ChromaDB cached articles
-        if not relevant_articles:
-            memory = MarketMemory()
-            if memory.is_available():
-                cached_classified = memory.get_recent_classified_articles(limit=20)
-                relevant_articles = [
-                    a.model_dump() for a in cached_classified if a.is_relevant
-                ]
-                if relevant_articles and not similar_events:
-                    most_impactful = max(relevant_articles, key=lambda x: abs(x.get('impact_score', 0)))
-                    query_text = most_impactful.get('article', {}).get('title', '')
-                    if query_text:
-                        search_results = await memory.search_similar(query=query_text, n_results=5)
-                        for res in search_results:
-                            metadata = res.get('metadata', {})
-                            def get_change(key):
-                                val = metadata.get(key)
-                                if val is None or val == -1.0 or val == -9999.0 or val <= -9990:
-                                    return None
-                                return val
-                            similar_events.append({
-                                "title": res.get('document', '').split('\n')[0].replace('Title: ', ''),
-                                "similarity": 1.0 - res.get('distance', 1.0),
-                                "wti_change_7d": get_change('wti_change_7d'),
-                                "dubai_change_7d": get_change('dubai_change_7d'),
-                                "brent_change_7d": get_change('brent_change_7d'),
-                            })
-        
-        briefing = await generator.generate_briefing(
-            forecast=forecast_result,
-            classified_articles=relevant_articles,
-            similar_events=similar_events
+            price_data=price_data,
+            force=True,
         )
         return briefing
     except HTTPException as e:
