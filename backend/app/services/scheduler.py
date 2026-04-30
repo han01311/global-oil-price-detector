@@ -224,6 +224,9 @@ async def _fetch_crude_price_data(db) -> dict:
                 "today": today_price or 0,
                 "yesterday": yesterday_price or 0,
             }
+
+        price_data["_data_as_of"] = today_date or ""
+        price_data["_prev_date"] = yesterday_date or ""
     except Exception as e:
         logger.error(f"[Scheduler] 유가 데이터 조회 실패: {e}")
 

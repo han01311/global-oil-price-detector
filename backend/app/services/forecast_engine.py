@@ -718,7 +718,8 @@ class HybridForecaster:
     async def forecast(self, current_prices: Dict[str, float],
                        current_features: pd.DataFrame,
                        classified_articles: List[Dict],
-                       similar_events: List[Dict]) -> ForecastResult:
+                       similar_events: List[Dict],
+                       data_as_of: str = "") -> ForecastResult:
         """유종별 독립 추정 밴드 산출"""
 
         forecasts_by_crude = {}
@@ -798,6 +799,7 @@ class HybridForecaster:
             extreme_volatility_warning=is_extreme,
             factor_breakdown=[FactorBreakdown(**fb) for fb in factor_breakdown_data],
             forecasts_by_crude=forecasts_by_crude,
+            data_as_of=data_as_of,
             generated_at=datetime.now(timezone.utc).isoformat(),
         )
 

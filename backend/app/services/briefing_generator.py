@@ -67,8 +67,8 @@ class BriefingGenerator:
         classified_articles: List[Dict[str, Any]]
     ) -> List[CrudeDailyAssessment]:
         """
-        DB에서 조회한 유종별 당일/전일 가격과 분류된 뉴스로부터
-        결정론적으로 당일 시세 평가를 산출한다.
+        DB에서 조회한 유종별 최근/직전 거래일 가격과 분류된 뉴스로부터
+        결정론적으로 시세 변동 평가를 산출한다.
         
         price_data 형식: {"dubai": {"today": 70.5, "yesterday": 69.8}, ...}
         """
@@ -158,6 +158,9 @@ class BriefingGenerator:
         - LLM은 summary, key_factors, risk_scenarios 등 텍스트만 담당
         """
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        # 실제 유가 데이터 기준일 (price_data에서 추출)
+        price_data_as_of = str(price_data.get("_data_as_of", ""))
+        price_prev_date = str(price_data.get("_prev_date", ""))
 
         if not force:
             cached_briefing = self._load_from_cache(today)
@@ -165,7 +168,7 @@ class BriefingGenerator:
                 logger.info("Loaded briefing from cache.")
                 return cached_briefing
 
-        # 유종별 당일 시세 결정론적 계산
+        # 유종별 최근 거래일 시세 결정론적 계산
         crude_assessments = self._compute_crude_assessments(price_data, classified_articles)
 
         # 뉴스가 없으면 최소 브리핑만 저장
@@ -174,6 +177,7 @@ class BriefingGenerator:
             logger.warning("No relevant news articles. Generating minimal briefing.")
             briefing = Briefing(
                 date=today,
+                data_as_of=price_data_as_of,
                 summary="금일 분석 대상 뉴스가 수집되지 않아 정성 분석을 수행하지 못했습니다.",
                 key_factors=[],
                 risk_scenarios=[],
@@ -223,6 +227,7 @@ class BriefingGenerator:
 
                 briefing = Briefing(
                     date=today,
+                    data_as_of=price_data_as_of,
                     generated_at=datetime.now(timezone.utc).isoformat(),
                     crude_assessments=crude_assessments,
                     has_news=True,
@@ -230,7 +235,7 @@ class BriefingGenerator:
                 )
                 if not self._is_korean_briefing(briefing):
                     logger.warning("LLM returned a non-Korean briefing. Returning minimal briefing.")
-                    briefing = self._get_fallback_briefing(today, crude_assessments)
+                    briefing = self._get_fallback_briefing(today, crude_assessments, price_data_as_of)
                 
                 self._save_to_cache(briefing)
                 return briefing
@@ -239,7 +244,7 @@ class BriefingGenerator:
                 logger.error(f"Attempt {attempt + 1}: Failed to generate briefing. Error: {e}")
                 if attempt == max_retries:
                     logger.warning("All attempts failed. Returning fallback briefing.")
-                    briefing = self._get_fallback_briefing(today, crude_assessments)
+                    briefing = self._get_fallback_briefing(today, crude_assessments, price_data_as_of)
                     self._save_to_cache(briefing)
                     return briefing
 
@@ -247,10 +252,12 @@ class BriefingGenerator:
         self,
         today: str,
         crude_assessments: List[CrudeDailyAssessment],
+        data_as_of: str = "",
     ) -> Briefing:
         from app.schemas.forecast import BriefingKeyFactor, RiskScenario
         return Briefing(
             date=today,
+            data_as_of=data_as_of,
             generated_at=datetime.now(timezone.utc).isoformat(),
             summary="일시적인 AI 분석 지연으로 인해 요약 브리핑을 불러오지 못했습니다.",
             key_factors=[BriefingKeyFactor(category="unknown", description="분석 지연 중임.", impact="neutral", score=0)],

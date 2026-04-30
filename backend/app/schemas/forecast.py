@@ -50,6 +50,7 @@ class ForecastResult(BaseModel):
     # 유종별 독립 예측 (하위호환: 빈 dict면 기존 WTI 단일 결과 사용)
     forecasts_by_crude: dict[str, CrudeForecast] = {}
 
+    data_as_of: str = ""  # 유가 데이터의 마지막 날짜 (e.g. "2026-04-29")
     generated_at: str
 
 
@@ -95,6 +96,7 @@ class DualForecastResult(BaseModel):
     method_a: ForecastResult                   # 기술적 분석 (XGBoost + 뉴스 보정)
     method_b: FundamentalForecastResult         # 펀더멘탈 분석 (수급 기반)
     consensus: bool = False                     # 두 방법이 같은 방향인지
+    data_as_of: str = ""                         # 유가 데이터의 마지막 날짜
     generated_at: str
 
 
@@ -121,6 +123,7 @@ class CrudeDailyAssessment(BaseModel):
 
 class Briefing(BaseModel):
     date: str
+    data_as_of: str = ""                          # 유가 데이터의 마지막 날짜
     summary: str                          # 핵심 요약
     key_factors: list[BriefingKeyFactor]   # 주요 요인 (최대 3개)
     risk_scenarios: list[RiskScenario]     # 리스크 시나리오 (최대 2개)

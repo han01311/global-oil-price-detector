@@ -118,8 +118,8 @@ export const FactorGauge: React.FC = () => {
             </span>
           </div>
           <div className="factor-gauge-meta">
-            <span>분석 기사: {totalArticles}건</span>
-            <span>갱신: {getTimeAgo(summary.updated_at)}</span>
+            <span>최근 48시간 뉴스 {totalArticles}건</span>
+            <span>{getTimeAgo(summary.updated_at)} 갱신</span>
           </div>
         </div>
       </div>

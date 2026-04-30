@@ -95,9 +95,11 @@ const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
           <BriefingSection 
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                유종별 당일 시세
+                유종별 최근 시세 변동
                 <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 'normal' }}>
-                  (전일 종가 대비)
+                  {briefing.data_as_of
+                    ? `(${new Date(briefing.data_as_of + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 기준 · 직전 거래일 대비)`
+                    : '(직전 거래일 대비)'}
                 </span>
               </div>
             } 
@@ -185,6 +187,11 @@ export const BriefingViewer: React.FC = () => {
       <div className="briefing-header">
         <span className="briefing-date">
           {new Date(currentBriefing.date).toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' })} Briefing
+          {currentBriefing.data_as_of && (
+            <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', marginLeft: '6px', fontWeight: 'normal' }}>
+              ({new Date(currentBriefing.data_as_of + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })} 유가 기준)
+            </span>
+          )}
         </span>
         <div className="briefing-nav">
           <button onClick={goToPrevious} disabled={!hasPrevious}>&lt; 이전</button>

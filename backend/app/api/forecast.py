@@ -42,6 +42,9 @@ async def _run_forecast_pipeline():
         if not current_prices:
             raise HTTPException(status_code=404, detail="No valid crude prices found in the latest data.")
 
+        # Extract data_as_of: the actual last date in the price data
+        data_as_of = str(prices_df.index.max().date()) if hasattr(prices_df.index.max(), 'date') else str(prices_df.index.max())
+
         macro_df = await collector.collect_macro_df_for_features()
 
         # 2. Feature Engineering
@@ -99,9 +102,10 @@ async def _run_forecast_pipeline():
             current_prices=current_prices,
             current_features=current_features,
             classified_articles=relevant_articles,
-            similar_events=similar_events
+            similar_events=similar_events,
+            data_as_of=data_as_of,
         )
-        return forecast_result, relevant_articles, similar_events
+        return forecast_result, relevant_articles, similar_events, data_as_of
 
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=f"Model not trained yet. Please train the model first. Details: {e}")
@@ -129,7 +133,7 @@ async def get_price_estimate(
         if _forecast_cache["data"] is not None and current_time < _forecast_cache["expires_at"]:
             return _forecast_cache["data"]
         
-        forecast_result, _, _ = await _run_forecast_pipeline()
+        forecast_result, _, _, _ = await _run_forecast_pipeline()
 
         _forecast_cache["data"] = forecast_result
         _forecast_cache["expires_at"] = time.time() + 3600
@@ -213,7 +217,7 @@ async def get_dual_forecast() -> DualForecastResult:
 
         try:
             # Method A: 기존 Hybrid Forecast
-            method_a_result, _, _ = await _run_forecast_pipeline()
+            method_a_result, _, _, data_as_of = await _run_forecast_pipeline()
 
             # Method B: 펀더멘탈 분석
             # Method A의 current_prices를 재사용
@@ -259,6 +263,7 @@ async def get_dual_forecast() -> DualForecastResult:
                 method_a=method_a_result,
                 method_b=method_b_result,
                 consensus=consensus,
+                data_as_of=data_as_of,
                 generated_at=datetime.now(timezone.utc).isoformat(),
             )
 

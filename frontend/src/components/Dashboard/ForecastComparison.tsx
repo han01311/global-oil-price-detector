@@ -332,8 +332,11 @@ export const ForecastComparison: React.FC = () => {
   const methodACrudes = dualData?.method_a?.forecasts_by_crude || {};
   const methodBCrudes = dualData?.method_b?.forecasts_by_crude || {};
   const generatedAt = dualData?.generated_at || '';
-  const baseDateLabel = generatedAt ? fmtDateShort(generatedAt) : '';
-  const targetDateLabel = generatedAt ? fmtTarget(generatedAt) : '';
+  const dataAsOf = dualData?.data_as_of || '';
+  // 기준일: 실제 유가 데이터의 마지막 날짜 (data_as_of) 사용
+  const baseDateLabel = dataAsOf ? fmtDateShort(dataAsOf) : (generatedAt ? fmtDateShort(generatedAt) : '');
+  // 전망일: 데이터 기준일 + 7일
+  const targetDateLabel = dataAsOf ? fmtTarget(dataAsOf) : (generatedAt ? fmtTarget(generatedAt) : '');
 
   if (error) {
     return (
@@ -370,7 +373,7 @@ export const ForecastComparison: React.FC = () => {
             <div className="fc-cell fc-cell-name" />
             <div className="fc-cell fc-cell-price">
               현재가
-              {baseDateLabel && <span className="fc-header-date">({baseDateLabel})</span>}
+              {baseDateLabel && <span className="fc-header-date">({baseDateLabel} 기준)</span>}
             </div>
             <div className="fc-cell fc-cell-forecast">
               <span>AI 퀀트 전망가</span>
@@ -457,9 +460,16 @@ export const ForecastComparison: React.FC = () => {
           })}
         </div>
 
-        {generatedAt && (
+        {(generatedAt || dataAsOf) && (
           <div className="fc-footer">
-            최근 갱신 · {new Date(generatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            {generatedAt && (
+              <span>
+                {new Date(generatedAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} 산출
+              </span>
+            )}
+            {dataAsOf && (
+              <span> · {new Date(dataAsOf + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' })} 유가 기준</span>
+            )}
           </div>
         )}
       </Card>

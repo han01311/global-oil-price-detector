@@ -36,6 +36,7 @@ export interface ForecastResult {
   extreme_volatility_warning?: boolean;
   factor_breakdown: FactorBreakdown[];
   forecasts_by_crude: Record<string, CrudeForecast>; // {"dubai": ..., "brent": ..., "wti": ...}
+  data_as_of?: string;   // 유가 데이터의 마지막 날짜 (e.g. "2026-04-29")
   generated_at: string;
 }
 
@@ -61,12 +62,13 @@ export interface CrudeDailyAssessment {
 
 export interface Briefing {
   date: string;
+  data_as_of?: string;   // 유가 데이터의 마지막 날짜
   summary: string;
   key_factors: BriefingKeyFactor[];
   risk_scenarios: RiskScenario[];
   price_outlook: string;
   confidence_note: string;
-  crude_assessments: CrudeDailyAssessment[]; // 유종별 당일 시세 평가
+  crude_assessments: CrudeDailyAssessment[]; // 유종별 시세 변동 평가
   has_news: boolean;
   generated_at: string;
 }
@@ -109,6 +111,7 @@ export interface DualForecastResult {
   method_a: ForecastResult;
   method_b: FundamentalForecastResult;
   consensus: boolean;
+  data_as_of?: string;   // 유가 데이터의 마지막 날짜
   generated_at: string;
 }
 
