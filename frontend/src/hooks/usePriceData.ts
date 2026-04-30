@@ -222,7 +222,7 @@ export function usePriceData(period: Period): PriceData {
     };
   }, [history, forecast, news, newsDateCounts]);
 
-  return { chartData, newsMarkers, dbNewsMarkers, rawNewsCounts, forecast, loading, error };
+  return { chartData, newsMarkers, dbNewsMarkers, rawNewsCounts: rawNewsCounts || {}, forecast, loading, error };
 }
 
 export { getCategoryColor };

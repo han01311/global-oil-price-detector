@@ -4,7 +4,7 @@ import { Card } from '../common/Card';
 import { Skeleton } from '../common/Skeleton';
 import { EmptyState } from '../common/EmptyState';
 import { fetchDualForecast, fetchPriceHistory } from '../../services/api';
-import type { DualForecastResult, FundamentalSignal } from '../../types/forecast';
+import type { DualForecastResult } from '../../types/forecast';
 import type { OilPrice } from '../../types/price';
 import './ForecastComparison.css';
 
@@ -23,13 +23,6 @@ function formatChange(from: number, to: number) {
     diff: `${diff >= 0 ? '+' : ''}$${Math.abs(diff).toFixed(2)}`,
     isUp: diff >= 0,
   };
-}
-
-function getTopSignal(signals?: FundamentalSignal[]): string {
-  if (!signals?.length) return '';
-  const active = signals.filter(s => s.change !== null && s.weight > 0);
-  if (!active.length) return '';
-  return active.reduce((a, b) => (a.weight > b.weight ? a : b)).name;
 }
 
 function fmtDateShort(d: string) { const dt = new Date(d); return `${dt.getMonth() + 1}/${dt.getDate()}`; }

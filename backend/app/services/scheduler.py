@@ -278,30 +278,31 @@ class CollectionScheduler:
             logger.error(f"[Scheduler] DB 조회 오류: {e}")
             run_now = datetime.now()
 
+        job_kwargs = {"replace_existing": True}
+        if run_now:
+            job_kwargs["next_run_time"] = run_now
+
         # Opinet 수집 (유가) — 매 interval 시간마다
         self._scheduler.add_job(
             collect_opinet_prices,
             IntervalTrigger(hours=interval_hours),
             id="opinet_prices",
             name="Opinet 유가 수집",
-            replace_existing=True,
-            next_run_time=run_now,
+            **job_kwargs,
         )
         self._scheduler.add_job(
             collect_eia_inventory,
             IntervalTrigger(hours=interval_hours),
             id="eia_inventory",
             name="EIA 재고 수집",
-            replace_existing=True,
-            next_run_time=run_now,
+            **job_kwargs,
         )
         self._scheduler.add_job(
             collect_eia_production,
             IntervalTrigger(hours=interval_hours),
             id="eia_production",
             name="EIA 생산량 수집",
-            replace_existing=True,
-            next_run_time=run_now,
+            **job_kwargs,
         )
 
         # FRED 수집 — 12시간마다 (거시경제 데이터는 자주 변하지 않음)
@@ -310,8 +311,7 @@ class CollectionScheduler:
             IntervalTrigger(hours=max(interval_hours, 12)),
             id="fred_macro",
             name="FRED 거시경제 수집",
-            replace_existing=True,
-            next_run_time=run_now,
+            **job_kwargs,
         )
 
         # 뉴스 수집 — 매 interval 시간마다
@@ -320,8 +320,7 @@ class CollectionScheduler:
             IntervalTrigger(hours=interval_hours),
             id="news_collect",
             name="뉴스 수집 (NewsAPI + GNews + GDELT)",
-            replace_existing=True,
-            next_run_time=run_now,
+            **job_kwargs,
         )
 
         self._scheduler.start()
@@ -372,3 +371,66 @@ class CollectionScheduler:
             return {"status": "success", "message": f"{source} collection triggered successfully."}
         except Exception as e:
             return {"status": "error", "message": str(e)}
+
+    def update_interval(self, hours: int) -> dict:
+        """실시간으로 스케줄 간격을 변경한다."""
+        if not self._scheduler or not self._is_running:
+            return {"status": "error", "message": "Scheduler is not running"}
+        if hours < 1 or hours > 24:
+            return {"status": "error", "message": "Interval must be 1-24 hours"}
+
+        job_ids = ["opinet_prices", "eia_inventory", "eia_production", "news_collect"]
+        for job_id in job_ids:
+            try:
+                self._scheduler.reschedule_job(
+                    job_id,
+                    trigger=IntervalTrigger(hours=hours),
+                )
+            except Exception as e:
+                logger.warning(f"[Scheduler] Failed to reschedule {job_id}: {e}")
+
+        # FRED는 최소 12시간
+        try:
+            self._scheduler.reschedule_job(
+                "fred_macro",
+                trigger=IntervalTrigger(hours=max(hours, 12)),
+            )
+        except Exception as e:
+            logger.warning(f"[Scheduler] Failed to reschedule fred_macro: {e}")
+
+        logger.info(f"[Scheduler] 간격 변경: {hours}시간")
+        return {
+            "status": "success",
+            "message": f"Interval updated to {hours} hours",
+            "interval_hours": hours,
+        }
+
+    def get_detailed_status(self) -> dict:
+        """각 Job별 상세 상태 (마지막/다음 실행, 최근 성공/실패)"""
+        jobs = []
+        if self._scheduler:
+            for job in self._scheduler.get_jobs():
+                next_run = job.next_run_time
+                jobs.append({
+                    "id": job.id,
+                    "name": job.name,
+                    "next_run": next_run.isoformat() if next_run else None,
+                })
+
+        # 현재 간격 추정 (첫 번째 job의 trigger에서)
+        current_interval = settings.COLLECTION_INTERVAL_HOURS
+        if self._scheduler:
+            try:
+                job = self._scheduler.get_job("opinet_prices")
+                if job and hasattr(job.trigger, 'interval'):
+                    current_interval = int(job.trigger.interval.total_seconds() / 3600)
+            except Exception:
+                pass
+
+        return {
+            "is_running": self._is_running,
+            "interval_hours": current_interval,
+            "jobs": jobs,
+            "job_count": len(jobs),
+        }
+

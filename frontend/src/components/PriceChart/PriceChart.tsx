@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import {
-  ResponsiveContainer, ComposedChart, Line, Area, XAxis, YAxis,
+  ResponsiveContainer, ComposedChart, Line, XAxis, YAxis,
   CartesianGrid, Tooltip, Bar, LabelList
 } from 'recharts';
 
@@ -194,7 +194,7 @@ const ChartTooltip: React.FC<any> = ({ active, payload, label, interval }) => {
 
 export const PriceChart: React.FC = () => {
   const [interval, setIv] = useState<Interval>('day');
-  const { chartData, forecast, loading, error, rawNewsCounts } = usePriceData('ALL');
+  const { chartData, loading, error, rawNewsCounts } = usePriceData('ALL');
   const { setSelectedDate, setSelectedDateRange } = useDashboardContext();
 
   const aggData = useMemo(() => aggregate(chartData, interval, rawNewsCounts), [chartData, interval, rawNewsCounts]);

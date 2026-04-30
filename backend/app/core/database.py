@@ -290,9 +290,11 @@ class Database:
                         data_source=a.get("data_source"),
                         collected_at=now,
                     )
-                    stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
-                    await session.execute(stmt)
-                    count += 1
+                    stmt = stmt.on_conflict_do_nothing(index_elements=["id"]).returning(NewsArticleModel.id)
+                    result = await session.execute(stmt)
+                    if result.scalar():
+                        count += 1
+                        a['_is_new'] = True
                 except Exception as e:
                     logger.warning(f"Failed to upsert news article: {e}")
             await session.commit()
@@ -643,3 +645,213 @@ class Database:
                     "last_collected": row[1],
                 }
         return overview
+
+    # ──────────────────────────────────────────────
+    # 크롤링 관리 (Crawl Center)
+    # ──────────────────────────────────────────────
+
+    async def get_crawl_history(self, limit: int = 50, target_date: str = None) -> list[dict]:
+        """최근 크롤링 이력 타임라인. target_date가 있으면 해당 일자(YYYY-MM-DD)만 필터링."""
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            stmt = select(CollectionLogModel)
+            
+            if target_date:
+                # started_at이 해당 일자로 시작하는 것들만 필터링
+                stmt = stmt.where(CollectionLogModel.started_at.startswith(target_date))
+                
+            stmt = stmt.order_by(CollectionLogModel.id.desc()).limit(limit)
+            result = await session.execute(stmt)
+            return [_row_to_dict(r) for r in result.scalars().all()]
+
+    async def get_articles_by_collected_date(self, target_date: str) -> list[dict]:
+        """특정 일자(YYYY-MM-DD)에 DB에 인서트된(collected_at) 모든 기사 목록 조회"""
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            stmt = (
+                select(NewsArticleModel)
+                .where(NewsArticleModel.collected_at.startswith(target_date))
+                .order_by(NewsArticleModel.published_at.desc())
+            )
+            result = await session.execute(stmt)
+            articles = result.scalars().all()
+            
+            res = []
+            for a in articles:
+                d = _row_to_dict(a)
+                issue = "none"
+                if not a.description:
+                    issue = "no_desc"
+                elif a.is_classified == 1 and not a.classification_result:
+                    issue = "cls_broken"
+                d["issue_type"] = issue
+                res.append(d)
+                
+            return res
+
+    async def get_articles_by_crawl_log(self, log_id: int) -> list[dict]:
+        """특정 크롤링 로그(작업)에서 수집된 기사 목록 상세 조회"""
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            # 1. 로그 정보 가져오기
+            log = await session.get(CollectionLogModel, log_id)
+            if not log or not log.started_at or not log.completed_at:
+                return []
+                
+            # 2. 해당 시간대에 수집된 기사 목록 가져오기
+            stmt = (
+                select(NewsArticleModel)
+                .where(NewsArticleModel.collected_at >= log.started_at)
+                .where(NewsArticleModel.collected_at <= log.completed_at)
+                .order_by(NewsArticleModel.published_at.desc())
+            )
+            result = await session.execute(stmt)
+            articles = result.scalars().all()
+            
+            # 3. 반환용으로 변환하면서 issue_type 추가
+            res = []
+            for a in articles:
+                d = _row_to_dict(a)
+                issue = "none"
+                if not a.description:
+                    issue = "no_desc"
+                elif a.is_classified == 1 and not a.classification_result:
+                    issue = "cls_broken"
+                d["issue_type"] = issue
+                res.append(d)
+                
+            return res
+
+    async def get_source_health(self) -> list[dict]:
+        """소스별 건강도 — 최신 기사 날짜, 마지막 수집, 평균 응답시간, 에러율"""
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            result = await session.execute(text("""
+                WITH news_freshness AS (
+                    SELECT data_source,
+                        COUNT(*) AS article_count,
+                        MAX(published_at) AS newest_article,
+                        MAX(collected_at) AS last_crawled
+                    FROM news_articles
+                    GROUP BY data_source
+                ),
+                log_stats AS (
+                    SELECT source,
+                        COUNT(*) AS total_runs,
+                        SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END) AS success_runs,
+                        SUM(CASE WHEN status = 'error' THEN 1 ELSE 0 END) AS error_runs,
+                        ROUND(AVG(CASE WHEN status = 'success' THEN duration_ms END)::numeric) AS avg_duration_ms,
+                        MAX(completed_at) AS last_log_at
+                    FROM collection_logs
+                    WHERE source IN ('news', 'opinet', 'eia', 'fred')
+                    GROUP BY source
+                )
+                SELECT
+                    nf.data_source,
+                    nf.article_count,
+                    nf.newest_article,
+                    nf.last_crawled,
+                    ls.total_runs,
+                    ls.success_runs,
+                    ls.error_runs,
+                    ls.avg_duration_ms,
+                    ls.last_log_at
+                FROM news_freshness nf
+                LEFT JOIN log_stats ls ON (
+                    CASE
+                        WHEN nf.data_source IN ('nyt', 'guardian', 'gnews', 'newsapi', 'gdelt', 'naver_news', 'naver_crawl') THEN 'news'
+                        ELSE nf.data_source
+                    END = ls.source
+                )
+                ORDER BY nf.article_count DESC
+            """))
+            return [dict(r._mapping) for r in result.all()]
+
+    async def get_news_integrity_report(self) -> dict:
+        """데이터 완결성 검증 리포트"""
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            # 1. 요약 통계
+            summary = await session.execute(text("""
+                SELECT
+                    SUM(CASE WHEN title IS NULL OR title = '' THEN 1 ELSE 0 END) AS no_title,
+                    SUM(CASE WHEN description IS NULL OR description = '' THEN 1 ELSE 0 END) AS no_desc,
+                    SUM(CASE WHEN url IS NULL OR url = '' THEN 1 ELSE 0 END) AS no_url,
+                    SUM(CASE WHEN published_at IS NULL THEN 1 ELSE 0 END) AS no_date,
+                    SUM(CASE WHEN is_classified = 1 AND classification_result IS NULL THEN 1 ELSE 0 END) AS cls_broken,
+                    SUM(CASE WHEN hold_status = 1 THEN 1 ELSE 0 END) AS held,
+                    SUM(CASE WHEN hold_status = 2 THEN 1 ELSE 0 END) AS manual_input
+                FROM news_articles
+            """))
+            summary_row = dict(summary.one()._mapping)
+
+            # 2. 중복 URL 수
+            dup_result = await session.execute(text("""
+                SELECT COUNT(*) AS dup_count FROM (
+                    SELECT url FROM news_articles GROUP BY url HAVING COUNT(*) > 1
+                ) sub
+            """))
+            summary_row["dup_urls"] = dup_result.scalar() or 0
+
+            # 3. 문제 기사 목록 (최대 50건)
+            problems = await session.execute(text("""
+                SELECT id, title, description, url, data_source, published_at, hold_status,
+                    CASE
+                        WHEN title IS NULL OR title = '' THEN 'no_title'
+                        WHEN description IS NULL OR description = '' THEN 'no_desc'
+                        WHEN is_classified = 1 AND classification_result IS NULL THEN 'cls_broken'
+                        ELSE 'other'
+                    END AS issue_type
+                FROM news_articles
+                WHERE (title IS NULL OR title = '')
+                    OR (description IS NULL OR description = '')
+                    OR (is_classified = 1 AND classification_result IS NULL)
+                ORDER BY collected_at DESC
+                LIMIT 50
+            """))
+            problem_list = [dict(r._mapping) for r in problems.all()]
+
+            return {
+                "summary": summary_row,
+                "problems": problem_list,
+            }
+
+    async def update_news_hold_status(self, article_ids: list[str], hold_status: int) -> int:
+        """기사 보류 상태 업데이트"""
+        session_factory = get_session_factory()
+        async with session_factory() as session:
+            stmt = (
+                update(NewsArticleModel)
+                .where(NewsArticleModel.id.in_(article_ids))
+                .values(hold_status=hold_status)
+            )
+            result = await session.execute(stmt)
+            await session.commit()
+            return result.rowcount
+
+    async def manual_insert_article(self, data: dict) -> str:
+        """관리자 수동 기사 입력"""
+        from hashlib import sha256
+        session_factory = get_session_factory()
+        article_id = data.get("id") or sha256(data["url"].encode()).hexdigest()
+        now = datetime.utcnow().isoformat()
+
+        async with session_factory() as session:
+            from sqlalchemy.dialects.postgresql import insert as pg_insert
+            stmt = pg_insert(NewsArticleModel).values(
+                id=article_id,
+                title=data["title"],
+                description=data.get("description", ""),
+                source_name=data.get("source_name", "manual"),
+                url=data["url"],
+                published_at=data.get("published_at", now),
+                content_snippet=data.get("description", "")[:200],
+                data_source="manual",
+                collected_at=now,
+                is_classified=0,
+                hold_status=2,  # 수동입력 표시
+            )
+            stmt = stmt.on_conflict_do_nothing(index_elements=["id"])
+            await session.execute(stmt)
+            await session.commit()
+        return article_id

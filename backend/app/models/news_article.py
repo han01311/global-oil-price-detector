@@ -21,3 +21,4 @@ class NewsArticle(Base):
     collected_at: Mapped[str] = mapped_column(Text, nullable=False)
     is_classified: Mapped[int] = mapped_column(Integer, default=0)
     classification_result: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
+    hold_status: Mapped[int] = mapped_column(Integer, default=0, server_default="0")  # 0: 정상, 1: 보류, 2: 수동입력

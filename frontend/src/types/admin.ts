@@ -56,6 +56,7 @@ export interface SchedulerStatus {
   is_running: boolean;
   interval_hours: number;
   jobs: SchedulerJob[];
+  job_count: number;
 }
 
 export interface SchedulerJob {

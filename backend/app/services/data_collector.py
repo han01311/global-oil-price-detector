@@ -414,7 +414,9 @@ class DataCollector:
         if all_articles:
             await self.db.upsert_news_articles(all_articles)
         
-        return all_articles
+        # 새롭게 DB에 인서트된 기사만 필터링하여 반환
+        new_articles = [a for a in all_articles if a.get('_is_new')]
+        return new_articles
 
     async def collect_all(self, start_date: str, end_date: str) -> Dict:
         prices, macro, news = await asyncio.gather(

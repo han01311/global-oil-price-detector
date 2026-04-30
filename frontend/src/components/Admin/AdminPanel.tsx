@@ -15,6 +15,17 @@ import {
   stopCrawl,
   fetchCrawlStatus,
   fetchCrawlStats,
+  fetchClassificationStats,
+  fetchBriefingStats,
+  updateSchedulerConfig,
+  triggerNewsCrawl,
+  fetchCrawlHistory,
+  fetchSourceHealth,
+  fetchIntegrityReport,
+  holdArticles,
+  retryIntegrity,
+  fetchCrawlLogArticles,
+  fetchArticlesByDate,
 } from '../../services/adminApi';
 import type {
   OverviewResponse,
@@ -23,10 +34,13 @@ import type {
   SchedulerStatus,
   PaginatedDataResponse,
 } from '../../types/admin';
-import type { CrawlStatus, CrawlStats } from '../../services/adminApi';
+import type {
+  CrawlStatus, CrawlStats, ClassificationStats, BriefingStats,
+  CrawlHistoryItem, SourceHealthItem, IntegrityReport, CrawlArticleDetail
+} from '../../services/adminApi';
 import './AdminPanel.css';
 
-type TabId = 'overview' | 'logs' | 'data' | 'trigger' | 'crawl';
+type TabId = 'overview' | 'logs' | 'data' | 'trigger' | 'crawl' | 'pipeline';
 type DataTab = 'prices' | 'macro' | 'news' | 'inventory';
 
 // ═══════════════════════════════════════════════
@@ -51,6 +65,16 @@ const formatDate = (iso: string | null): string => {
   } catch {
     return iso;
   }
+};
+
+const getTimeUntil = (iso: string | null): string => {
+  if (!iso) return '';
+  const diffMs = new Date(iso).getTime() - Date.now();
+  if (diffMs <= 0) return '곧 실행됨';
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 0) return `(약 ${hours}시간 ${mins}분 후)`;
+  return `(약 ${mins}분 후)`;
 };
 
 const formatNumber = (n: number): string =>
@@ -484,40 +508,87 @@ const TriggerSection: React.FC = () => {
 // ═══════════════════════════════════════════════
 
 const CrawlCenterSection: React.FC = () => {
+  const [subTab, setSubTab] = useState<'auto' | 'manual'>('auto');
+  
+  // Auto Crawl
+  const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
+  const [intervalHours, setIntervalHours] = useState(6);
+  
+  // Manual Crawl
   const [status, setStatus] = useState<CrawlStatus | null>(null);
   const [stats, setStats] = useState<CrawlStats | null>(null);
   const [target, setTarget] = useState(2000);
   const [startYear, setStartYear] = useState(2000);
+  
+  // History & Health
+  const [history, setHistory] = useState<CrawlHistoryItem[]>([]);
+  const [health, setHealth] = useState<SourceHealthItem[]>([]);
+  
+  // Integrity
+  const [integrity, setIntegrity] = useState<IntegrityReport | null>(null);
+  const [integrityTab, setIntegrityTab] = useState<'no_field' | 'cls_broken'>('no_field');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [message, setMessage] = useState('');
+  
+  // Log Detail Modal
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [selectedLogId, setSelectedLogId] = useState<number | null>(null);
+  const [logArticles, setLogArticles] = useState<CrawlArticleDetail[]>([]);
+  const [logModalLoading, setLogModalLoading] = useState(false);
+  
+  // Date Filter
+  const [historyDateFilter, setHistoryDateFilter] = useState('');
+  const [selectedDateForModal, setSelectedDateForModal] = useState<string | null>(null);
+  
   const logEndRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadAll = useCallback(async () => {
     try {
-      const [s, st] = await Promise.all([fetchCrawlStatus(), fetchCrawlStats()]);
+      const [sc, s, st, h, hl, ig] = await Promise.all([
+        fetchSchedulerStatus(),
+        fetchCrawlStatus(),
+        fetchCrawlStats(),
+        fetchCrawlHistory(20, historyDateFilter || undefined),
+        fetchSourceHealth(),
+        fetchIntegrityReport()
+      ]);
+      setScheduler(sc);
+      setIntervalHours(sc.interval_hours || 6);
       setStatus(s);
       setStats(st);
+      setHistory(h);
+      setHealth(hl);
+      setIntegrity(ig);
     } catch (e) {
       console.error('Failed to load crawl data:', e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [historyDateFilter]);
 
-  useEffect(() => {
-    loadAll();
-  }, [loadAll]);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
-  // 크롤링 중이면 2초마다 상태 폴링
+  // Polling for manual crawl and history
   useEffect(() => {
-    if (status?.is_running) {
+    const hasRunningManual = status?.is_running;
+    const hasRunningHistory = history.some(h => h.status === 'running');
+    
+    if (hasRunningManual || hasRunningHistory) {
       pollRef.current = setInterval(async () => {
         try {
-          const [s, st] = await Promise.all([fetchCrawlStatus(), fetchCrawlStats()]);
-          setStatus(s);
-          setStats(st);
+          if (hasRunningManual) {
+            const [s, st] = await Promise.all([fetchCrawlStatus(), fetchCrawlStats()]);
+            setStatus(s);
+            setStats(st);
+          }
+          if (hasRunningHistory) {
+            const h = await fetchCrawlHistory(20, historyDateFilter || undefined);
+            setHistory(h);
+          }
         } catch { /* silent */ }
       }, 2000);
     } else {
@@ -529,12 +600,76 @@ const CrawlCenterSection: React.FC = () => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
-  }, [status?.is_running]);
+  }, [status?.is_running, history]);
 
-  // 로그 자동 스크롤
-  useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [status?.recent_logs]);
+  useEffect(() => { logEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [status?.recent_logs]);
+
+  const handleToggleScheduler = async () => {
+    setActionLoading(true);
+    try {
+      const sc = await toggleScheduler();
+      setScheduler(sc);
+      setMessage(sc.is_running ? "스케줄러가 시작되었습니다." : "스케줄러가 정지되었습니다.");
+    } catch (e) {
+      setMessage(String(e));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleUpdateConfig = async () => {
+    try {
+      await updateSchedulerConfig(intervalHours);
+      setMessage(`스케줄 간격이 ${intervalHours}시간으로 변경되었습니다.`);
+      loadAll();
+    } catch (e) { setMessage(String(e)); }
+  };
+
+  const handleTriggerNews = async () => {
+    setActionLoading(true);
+    try {
+      const res = await triggerNewsCrawl();
+      setMessage(res.message);
+      // 백그라운드 태스크가 시작되고 로그가 생성될 시간을 약간 부여한 후 갱신
+      setTimeout(() => {
+        loadAll();
+      }, 1000);
+    } catch (e) { setMessage(String(e)); }
+    setActionLoading(false);
+  };
+
+  const handleLogClick = async (log: CrawlHistoryItem) => {
+    // 뉴스 크롤링 로그이면서 상태가 success/error일 때만 오픈
+    if (log.source !== 'news' || log.status === 'running') return;
+    setSelectedLogId(log.id);
+    setSelectedDateForModal(null);
+    setIsLogModalOpen(true);
+    setLogModalLoading(true);
+    try {
+      const articles = await fetchCrawlLogArticles(log.id);
+      setLogArticles(articles);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLogModalLoading(false);
+    }
+  };
+
+  const handleViewDateArticles = async () => {
+    if (!historyDateFilter) return;
+    setSelectedLogId(null);
+    setSelectedDateForModal(historyDateFilter);
+    setIsLogModalOpen(true);
+    setLogModalLoading(true);
+    try {
+      const articles = await fetchArticlesByDate(historyDateFilter);
+      setLogArticles(articles);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLogModalLoading(false);
+    }
+  };
 
   const handleStart = async () => {
     setActionLoading(true);
@@ -543,11 +678,8 @@ const CrawlCenterSection: React.FC = () => {
       const result = await startCrawl(target, startYear);
       setMessage(result.message);
       await loadAll();
-    } catch (e) {
-      setMessage(`오류: ${e}`);
-    } finally {
-      setActionLoading(false);
-    }
+    } catch (e) { setMessage(`오류: ${e}`); }
+    setActionLoading(false);
   };
 
   const handleStop = async () => {
@@ -557,11 +689,33 @@ const CrawlCenterSection: React.FC = () => {
       const result = await stopCrawl();
       setMessage(result.message);
       await loadAll();
-    } catch (e) {
-      setMessage(`오류: ${e}`);
-    } finally {
-      setActionLoading(false);
-    }
+    } catch (e) { setMessage(`오류: ${e}`); }
+    setActionLoading(false);
+  };
+
+  const handleHold = async (ids: string[], holdStatus: number) => {
+    if (ids.length === 0) return;
+    try {
+      await holdArticles(ids, holdStatus);
+      setSelectedIds(new Set());
+      loadAll();
+    } catch (e) { console.error(e); }
+  };
+
+  const handleRetryIntegrity = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    try {
+      await retryIntegrity(ids);
+      setSelectedIds(new Set());
+      loadAll();
+    } catch (e) { console.error(e); }
+  };
+
+  const toggleSelection = (id: string) => {
+    const newSel = new Set(selectedIds);
+    if (newSel.has(id)) newSel.delete(id);
+    else newSel.add(id);
+    setSelectedIds(newSel);
   };
 
   if (loading) {
@@ -578,8 +732,7 @@ const CrawlCenterSection: React.FC = () => {
   }
 
   const progressPct = status?.target ? Math.min((status.collected / status.target) * 100, 100) : 0;
-
-  // 연도별 데이터를 바 차트용으로 가공
+  
   const yearlyGroups: Record<string, Record<string, number>> = {};
   stats?.by_year?.forEach(({ year, data_source, count }) => {
     if (!yearlyGroups[year]) yearlyGroups[year] = {};
@@ -588,136 +741,730 @@ const CrawlCenterSection: React.FC = () => {
   const maxYearlyCount = Math.max(1, ...Object.values(yearlyGroups).map(g => Object.values(g).reduce((a, b) => a + b, 0)));
 
   return (
-    <>
-      {/* 크롤링 제어판 */}
-      <div className="crawl-control-panel">
-        <div className="crawl-control-header">
-          <div className="crawl-status-indicator">
-            <div className={`scheduler-status-dot ${status?.is_running ? 'running' : 'stopped'}`} />
-            <span className="crawl-status-text">
-              {status?.is_running ? `크롤링 진행 중 — ${status.current_year}년 수집 중` : '대기 중'}
-            </span>
-          </div>
-          {message && <span className="crawl-message">{message}</span>}
-        </div>
+    <div className="crawl-center-wrapper">
+      <div className="crawl-subtabs">
+        <button className={`crawl-subtab ${subTab === 'auto' ? 'active' : ''}`} onClick={() => setSubTab('auto')}>
+          🔄 자동 크롤링
+        </button>
+        <button className={`crawl-subtab ${subTab === 'manual' ? 'active' : ''}`} onClick={() => setSubTab('manual')}>
+          🔧 수동 크롤링
+        </button>
+      </div>
 
-        <div className="crawl-controls">
-          <div className="crawl-input-group">
-            <label>목표 건수</label>
-            <input
-              type="number"
-              className="filter-input"
-              value={target}
-              onChange={(e) => setTarget(Number(e.target.value))}
-              disabled={status?.is_running}
-              min={100}
-              max={10000}
-              step={100}
-            />
+      <div className="crawl-panel">
+        {subTab === 'auto' ? (
+          <div className="crawl-auto-section">
+            <div className="crawl-control-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div className="crawl-status-indicator">
+                  <div className={`scheduler-status-dot ${scheduler?.is_running ? 'running' : 'stopped'}`} />
+                  <span className="crawl-status-text">
+                    {scheduler?.is_running ? `스케줄러 활성 — ${scheduler?.job_count} Jobs` : '스케줄러 중지'}
+                  </span>
+                </div>
+                <button 
+                  className={`action-btn small ${scheduler?.is_running ? 'danger' : 'primary'}`}
+                  onClick={handleToggleScheduler}
+                  disabled={actionLoading}
+                >
+                  {scheduler?.is_running ? '정지' : '활성화'}
+                </button>
+              </div>
+              {message && <span className="crawl-message">{message}</span>}
+            </div>
+
+            <div className="crawl-controls">
+              <div className="crawl-input-group">
+                <label>스케줄 간격 (시간)</label>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="number"
+                    className="filter-input"
+                    value={intervalHours}
+                    onChange={(e) => setIntervalHours(Number(e.target.value))}
+                    min={1} max={24}
+                  />
+                  <button className="crawl-start-btn" onClick={handleUpdateConfig} style={{ padding: '0 16px' }}>적용</button>
+                </div>
+              </div>
+              <div className="crawl-buttons" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
+                <button className="crawl-start-btn" onClick={handleTriggerNews} disabled={actionLoading}>
+                  🚀 지금 뉴스 수집 실행
+                </button>
+              </div>
+            </div>
+
+            <h3 className="section-title">⏳ 자동 수집 대기열 (다음 실행 예약)</h3>
+            <div className="admin-table-container">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>수집 항목 (Job)</th>
+                    <th>현재 상태</th>
+                    <th>다음 실행 예정 시각</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {scheduler?.jobs?.map(job => (
+                    <tr key={job.id}>
+                      <td><strong>{job.name}</strong></td>
+                      <td>
+                        {scheduler.is_running ? (
+                           <span className="issue-badge" style={{ background: 'rgba(0, 212, 255, 0.1)', color: '#00D4FF', borderColor: 'rgba(0, 212, 255, 0.3)' }}>
+                             <span className="scheduler-status-dot running" style={{ display: 'inline-block', width: 6, height: 6, marginRight: 6 }} />
+                             대기 중 (예약됨)
+                           </span>
+                        ) : (
+                           <span className="issue-badge" style={{ background: 'rgba(255, 77, 77, 0.1)', color: '#ff4d4d', borderColor: 'rgba(255, 77, 77, 0.3)' }}>스케줄러 중지</span>
+                        )}
+                      </td>
+                      <td style={{ color: job.next_run ? '#fff' : '#ff4d4d' }}>
+                        {job.next_run ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            <span>{formatDate(job.next_run)}</span>
+                            <span style={{ fontSize: 11, color: 'rgba(255, 255, 255, 0.5)' }}>{getTimeUntil(job.next_run)}</span>
+                          </div>
+                        ) : '예약 없음 (스케줄러 중지)'}
+                      </td>
+                    </tr>
+                  ))}
+                  {(!scheduler?.jobs || scheduler.jobs.length === 0) && (
+                    <tr><td colSpan={3} className="admin-empty-text">등록된 Job이 없습니다.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="crawl-input-group">
-            <label>시작 연도</label>
-            <input
-              type="number"
-              className="filter-input"
-              value={startYear}
-              onChange={(e) => setStartYear(Number(e.target.value))}
-              disabled={status?.is_running}
-              min={2000}
-              max={2026}
-            />
-          </div>
-          <div className="crawl-buttons">
-            {status?.is_running ? (
-              <button className="crawl-stop-btn" onClick={handleStop} disabled={actionLoading}>
-                ⏹ 크롤링 중지
-              </button>
-            ) : (
-              <button className="crawl-start-btn" onClick={handleStart} disabled={actionLoading}>
-                🚀 크롤링 시작
-              </button>
+        ) : (
+          <div className="crawl-manual-section">
+            <div className="crawl-control-header">
+              <div className="crawl-status-indicator">
+                <div className={`scheduler-status-dot ${status?.is_running ? 'running' : 'stopped'}`} />
+                <span className="crawl-status-text">
+                  {status?.is_running ? `크롤링 진행 중 — ${status.current_year}년 수집 중` : '대기 중'}
+                </span>
+              </div>
+              {message && <span className="crawl-message">{message}</span>}
+            </div>
+
+            <div className="crawl-controls">
+              <div className="crawl-input-group">
+                <label>목표 건수</label>
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={target}
+                  onChange={(e) => setTarget(Number(e.target.value))}
+                  disabled={status?.is_running}
+                  min={100} max={10000} step={100}
+                />
+              </div>
+              <div className="crawl-input-group">
+                <label>시작 연도</label>
+                <input
+                  type="number"
+                  className="filter-input"
+                  value={startYear}
+                  onChange={(e) => setStartYear(Number(e.target.value))}
+                  disabled={status?.is_running}
+                  min={2000} max={2026}
+                />
+              </div>
+              <div className="crawl-buttons" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
+                {status?.is_running ? (
+                  <button className="crawl-stop-btn" onClick={handleStop} disabled={actionLoading}>
+                    ⏹ 크롤링 중지
+                  </button>
+                ) : (
+                  <button className="crawl-start-btn" onClick={handleStart} disabled={actionLoading}>
+                    🚀 크롤링 시작
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {(status?.is_running || status?.collected! > 0) && (
+              <div className="crawl-progress" style={{ marginTop: '24px' }}>
+                <div className="crawl-progress-header">
+                  <span>{status?.collected?.toLocaleString()} / {status?.target?.toLocaleString()} 건</span>
+                  <span>{progressPct.toFixed(1)}%</span>
+                </div>
+                <div className="rate-limit-bar" style={{ height: 8 }}>
+                  <div
+                    className="rate-limit-fill safe"
+                    style={{ width: `${progressPct}%`, transition: 'width 0.5s ease' }}
+                  />
+                </div>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* 진행률 바 */}
-        {(status?.is_running || status?.collected! > 0) && (
-          <div className="crawl-progress">
-            <div className="crawl-progress-header">
-              <span>{status?.collected?.toLocaleString()} / {status?.target?.toLocaleString()} 건</span>
-              <span>{progressPct.toFixed(1)}%</span>
+            <h3 className="section-title">연도별 수집 분포</h3>
+            <div className="crawl-yearly-chart">
+              {Object.entries(yearlyGroups).map(([year, sources]) => {
+                const total = Object.values(sources).reduce((a, b) => a + b, 0);
+                return (
+                  <div className="crawl-year-row" key={year}>
+                    <span className="crawl-year-label">{year}</span>
+                    <div className="crawl-year-bar-container">
+                      {Object.entries(sources).map(([src, cnt]) => (
+                        <div
+                          key={src}
+                          className={`crawl-year-bar-segment source-${src}`}
+                          style={{ width: `${(cnt / maxYearlyCount) * 100}%` }}
+                          title={`${src}: ${cnt}건`}
+                        />
+                      ))}
+                    </div>
+                    <span className="crawl-year-count">{total}</span>
+                  </div>
+                );
+              })}
+              {Object.keys(yearlyGroups).length === 0 && (
+                <div className="admin-empty">
+                  <div className="admin-empty-text">아직 수집된 데이터가 없습니다</div>
+                </div>
+              )}
             </div>
-            <div className="rate-limit-bar" style={{ height: 8 }}>
-              <div
-                className="rate-limit-fill safe"
-                style={{ width: `${progressPct}%`, transition: 'width 0.5s ease' }}
-              />
-            </div>
+
+            {status?.recent_logs && status.recent_logs.length > 0 && (
+              <div className="crawl-log-panel" style={{ marginTop: '24px' }}>
+                {status.recent_logs.map((line, i) => (
+                  <div key={i} className="crawl-log-line">{line}</div>
+                ))}
+                <div ref={logEndRef} />
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      {/* 소스별 통계 카드 */}
-      <h3 className="section-title">소스별 수집 현황</h3>
-      <div className="overview-grid">
-        <div className="overview-card">
-          <div className="overview-card-label">TOTAL ARTICLES</div>
-          <div className="overview-card-value">{stats?.total_count?.toLocaleString() ?? 0}</div>
-          <div className="overview-card-meta">전체 수집된 뉴스 기사</div>
+      <div className="crawl-split-grid">
+        <div className="crawl-grid-col">
+          <h3 className="section-title">🏥 소스 건강도</h3>
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>소스</th>
+                  <th>최신 기사</th>
+                  <th>에러율</th>
+                  <th>평균 응답</th>
+                </tr>
+              </thead>
+              <tbody>
+                {health.map(h => {
+                  const errorRate = h.total_runs ? ((h.error_runs || 0) / h.total_runs) * 100 : 0;
+                  const isStale = h.newest_article && (new Date().getTime() - new Date(h.newest_article).getTime() > 30 * 24 * 3600 * 1000);
+                  const isInactive = !h.newest_article || (new Date().getTime() - new Date(h.newest_article).getTime() > 365 * 24 * 3600 * 1000);
+                  
+                  return (
+                    <tr key={h.data_source}>
+                      <td><SourceTag source={h.data_source} /></td>
+                      <td style={{ color: isInactive ? '#ff4d4d' : isStale ? '#ffb84d' : '#fff' }}>
+                        {h.newest_article?.slice(0, 10) || '—'} {isInactive ? '❌' : isStale ? '⚠️' : '✅'}
+                      </td>
+                      <td>{errorRate.toFixed(1)}%</td>
+                      <td>{h.avg_duration_ms ? `${h.avg_duration_ms}ms` : '—'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
-        {stats?.by_source?.map((s) => (
-          <div className="overview-card" key={s.data_source}>
-            <div className="overview-card-label">
-              <SourceTag source={s.data_source} />
+
+        <div className="crawl-grid-col">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 className="section-title" style={{ margin: 0 }}>📋 크롤링 이력</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="quick-filters">
+                <button 
+                  className={`filter-chip ${historyDateFilter === '' ? 'active' : ''}`}
+                  onClick={() => setHistoryDateFilter('')}
+                >
+                  전체
+                </button>
+                <button 
+                  className={`filter-chip ${historyDateFilter === new Date().toISOString().split('T')[0] ? 'active' : ''}`}
+                  onClick={() => setHistoryDateFilter(new Date().toISOString().split('T')[0])}
+                >
+                  오늘
+                </button>
+                <button 
+                  className={`filter-chip ${historyDateFilter === new Date(Date.now() - 86400000).toISOString().split('T')[0] ? 'active' : ''}`}
+                  onClick={() => setHistoryDateFilter(new Date(Date.now() - 86400000).toISOString().split('T')[0])}
+                >
+                  어제
+                </button>
+              </div>
+              <input 
+                type="date" 
+                value={historyDateFilter}
+                onChange={e => setHistoryDateFilter(e.target.value)}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  color: '#fff',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontFamily: 'Inter, sans-serif'
+                }}
+              />
+              {historyDateFilter && (
+                <button 
+                  className="action-btn small primary" 
+                  onClick={handleViewDateArticles}
+                  disabled={logModalLoading}
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  ✨ 이 날짜 통합 보기
+                </button>
+              )}
             </div>
-            <div className="overview-card-value">{s.count.toLocaleString()}</div>
-            <div className="overview-card-meta">
-              {s.oldest_date?.slice(0, 10)} ~ {s.newest_date?.slice(0, 10)}
-              {' · '}{s.source_count} sources
+          </div>
+          <div className="admin-table-container">
+            <table className="admin-table crawl-history-table">
+              <thead>
+                <tr>
+                  <th>시각</th>
+                  <th>소스</th>
+                  <th>상태</th>
+                  <th>소요시간</th>
+                  <th>신규 수집</th>
+                  <th style={{ width: 80 }}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="admin-empty-text" style={{ padding: '40px 0' }}>
+                      해당 일자에 진행된 크롤링 작업이 없습니다.
+                    </td>
+                  </tr>
+                ) : (
+                  history.map(item => (
+                    <tr 
+                      key={item.id} 
+                      onClick={() => handleLogClick(item)}
+                      style={{ 
+                        cursor: (item.source === 'news' && item.status !== 'running') ? 'pointer' : 'default',
+                        backgroundColor: selectedLogId === item.id ? 'rgba(0, 212, 255, 0.1)' : undefined
+                      }}
+                      className={(item.source === 'news' && item.status !== 'running') ? 'clickable-row' : ''}
+                    >
+                      <td>{formatDate(item.completed_at || item.started_at).slice(6)}</td>
+                      <td><SourceTag source={`${item.source}/${item.task_type}`} /></td>
+                      <td><StatusBadge status={item.status} /></td>
+                      <td>{item.duration_ms ? `${(item.duration_ms/1000).toFixed(1)}s` : '—'}</td>
+                      <td style={{ fontWeight: 500, color: item.records_count > 0 ? '#00D4FF' : '#fff' }}>{item.records_count}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        {(item.source === 'news' && item.status !== 'running') && (
+                          <span className="row-action-indicator">상세 보기 ›</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {integrity && (
+        <div className="crawl-integrity-panel">
+          <h3 className="section-title">🔍 데이터 완결성 검증</h3>
+          <div className="integrity-cards">
+            <div className="integrity-card">
+              <div className="integrity-card-value warning">{integrity.summary.no_desc}</div>
+              <div className="integrity-card-label">필드 누락 (desc)</div>
             </div>
+            <div className="integrity-card">
+              <div className="integrity-card-value warning">{integrity.summary.cls_broken}</div>
+              <div className="integrity-card-label">분류 이상</div>
+            </div>
+            <div className="integrity-card">
+              <div className="integrity-card-value">0</div>
+              <div className="integrity-card-label">중복 URL</div>
+            </div>
+            <div className="integrity-card">
+              <div className="integrity-card-value info">{integrity.summary.held}</div>
+              <div className="integrity-card-label">보류 기사</div>
+            </div>
+          </div>
+
+          <div className="integrity-tabs">
+            <button className={`integrity-tab ${integrityTab === 'no_field' ? 'active' : ''}`} onClick={() => setIntegrityTab('no_field')}>필드 누락</button>
+            <button className={`integrity-tab ${integrityTab === 'cls_broken' ? 'active' : ''}`} onClick={() => setIntegrityTab('cls_broken')}>분류 이상</button>
+          </div>
+
+          <div className="admin-table-container">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th style={{ width: 40 }}><input type="checkbox" onChange={(e) => {
+                    const toSelect = integrity.problems.filter(p => (integrityTab === 'no_field' ? p.issue_type === 'no_desc' : p.issue_type === 'cls_broken'));
+                    if (e.target.checked) setSelectedIds(new Set(toSelect.map(p => p.id)));
+                    else setSelectedIds(new Set());
+                  }} /></th>
+                  <th>Title</th>
+                  <th>문제</th>
+                  <th>소스</th>
+                  <th>조치</th>
+                </tr>
+              </thead>
+              <tbody>
+                {integrity.problems
+                  .filter(p => (integrityTab === 'no_field' ? p.issue_type === 'no_desc' : p.issue_type === 'cls_broken'))
+                  .map(p => (
+                  <tr key={p.id}>
+                    <td>
+                      <input type="checkbox" checked={selectedIds.has(p.id)} onChange={() => toggleSelection(p.id)} />
+                    </td>
+                    <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <a href={p.url} target="_blank" rel="noreferrer" style={{ color: '#fff', textDecoration: 'none' }}>
+                        {p.title || '(제목 없음)'}
+                      </a>
+                    </td>
+                    <td><span className={`issue-badge ${p.issue_type}`}>{p.issue_type}</span></td>
+                    <td><SourceTag source={p.data_source} /></td>
+                    <td>
+                      <button className="action-btn small" onClick={() => handleRetryIntegrity([p.id])} style={{ marginRight: 8 }}>재수집</button>
+                      <button className="action-btn small secondary" onClick={() => handleHold([p.id], 1)}>보류</button>
+                    </td>
+                  </tr>
+                ))}
+                {integrity.problems.filter(p => (integrityTab === 'no_field' ? p.issue_type === 'no_desc' : p.issue_type === 'cls_broken')).length === 0 && (
+                  <tr><td colSpan={5} className="admin-empty-text">해당되는 문제가 없습니다.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          
+          <div className="integrity-actions">
+            <span className="selected-count">선택: {selectedIds.size}건</span>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="action-btn" onClick={() => handleRetryIntegrity(Array.from(selectedIds))} disabled={selectedIds.size === 0}>
+                🔄 선택 항목 재수집
+              </button>
+              <button className="action-btn secondary" onClick={() => handleHold(Array.from(selectedIds), 1)} disabled={selectedIds.size === 0}>
+                ⏸ 선택 항목 보류
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Log Detail Modal */}
+      {isLogModalOpen && (
+        <div className="modal-backdrop" onClick={() => setIsLogModalOpen(false)}>
+          <div className="crawl-detail-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>크롤링 상세 내역 ({selectedDateForModal ? `${selectedDateForModal} 전체` : `작업 #${selectedLogId}`})</h3>
+              <button className="close-btn" onClick={() => setIsLogModalOpen(false)}>✕</button>
+            </div>
+            <div className="modal-content">
+              {logModalLoading ? (
+                <div className="admin-skeleton" style={{ height: 200 }} />
+              ) : logArticles.length === 0 ? (
+                <div className="admin-empty-text">해당 {selectedDateForModal ? '일자' : '작업'}에서 신규 수집된 기사가 없습니다.</div>
+              ) : (
+                <>
+                  <div className="modal-stats">
+                    <div className="stat-badge">신규 수집: {logArticles.length}건</div>
+                    <div className="stat-badge success">정상 분류: {logArticles.filter(a => a.is_classified === 1 && a.issue_type === 'none').length}건</div>
+                    <div className="stat-badge warning">분류 에러: {logArticles.filter(a => a.issue_type === 'cls_broken').length}건</div>
+                    <div className="stat-badge danger">필드 누락: {logArticles.filter(a => a.issue_type === 'no_desc').length}건</div>
+                  </div>
+                  <div className="admin-table-container" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>일시</th>
+                          <th>소스</th>
+                          <th>기사 제목</th>
+                          <th>상태</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {logArticles.map(a => (
+                          <tr key={a.id}>
+                            <td>{formatDate(a.published_at || '').slice(6)}</td>
+                            <td><SourceTag source={a.source_name || a.url} /></td>
+                            <td style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#fff', textDecoration: 'none' }}>
+                                {a.title}
+                              </a>
+                            </td>
+                            <td>
+                              {a.issue_type !== 'none' ? (
+                                <span className={`issue-badge ${a.issue_type}`}>{a.issue_type}</span>
+                              ) : (
+                                <span className="issue-badge" style={{ background: 'rgba(0,255,0,0.1)', color: '#00ff00', borderColor: 'rgba(0,255,0,0.3)' }}>정상</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ═══════════════════════════════════════════════
+// Pipeline Management Section (크롤링 & 학습 관리)
+// ═══════════════════════════════════════════════
+
+const CATEGORY_KR: Record<string, string> = {
+  geopolitics: '지정학',
+  supply: '공급',
+  demand: '수요',
+  macro: '거시경제',
+  climate: '기후/ESG',
+  speculation: '투기/심리',
+  other: '기타',
+};
+
+const PipelineSection: React.FC = () => {
+  const [clsStats, setClsStats] = useState<ClassificationStats | null>(null);
+  const [briefingStats, setBriefingStats] = useState<BriefingStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [cls, br] = await Promise.all([
+          fetchClassificationStats(),
+          fetchBriefingStats(),
+        ]);
+        setClsStats(cls);
+        setBriefingStats(br);
+      } catch (e) {
+        console.error('Failed to load pipeline stats:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="overview-grid">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="overview-card">
+            <div className="admin-skeleton" style={{ width: '60%', height: 14, marginBottom: 10 }} />
+            <div className="admin-skeleton" style={{ width: '40%', height: 32 }} />
           </div>
         ))}
       </div>
+    );
+  }
 
-      {/* 연도별 분포 바 차트 */}
-      <h3 className="section-title">연도별 수집 분포</h3>
-      <div className="crawl-yearly-chart">
-        {Object.entries(yearlyGroups).map(([year, sources]) => {
-          const total = Object.values(sources).reduce((a, b) => a + b, 0);
+  if (!clsStats) return null;
+
+  const relevantCount = clsStats.relevance_distribution.find(r => r.relevance === 'relevant')?.count || 0;
+  const irrelevantCount = clsStats.relevance_distribution.find(r => r.relevance === 'irrelevant')?.count || 0;
+  const relevantPct = clsStats.classified > 0 ? (relevantCount / clsStats.classified * 100).toFixed(1) : '0';
+  const maxCatCount = Math.max(1, ...clsStats.category_distribution.map(c => c.count));
+  const maxDailyCollected = Math.max(1, ...clsStats.daily_pipeline.map(d => d.collected));
+
+  return (
+    <>
+      {/* KPI 카드 */}
+      <h3 className="section-title">AI 분류 파이프라인 현황</h3>
+      <div className="overview-grid">
+        <div className="overview-card">
+          <div className="overview-card-label">전체 기사</div>
+          <div className="overview-card-value">{clsStats.total.toLocaleString()}</div>
+          <div className="overview-card-meta">수집된 전체 뉴스 기사</div>
+        </div>
+        <div className="overview-card">
+          <div className="overview-card-label">AI 분류 완료</div>
+          <div className="overview-card-value" style={{ color: 'var(--color-success)' }}>
+            {clsStats.classified.toLocaleString()}
+          </div>
+          <div className="overview-card-meta">
+            분류율: {clsStats.classification_rate}%
+          </div>
+        </div>
+        <div className="overview-card">
+          <div className="overview-card-label">미분류</div>
+          <div className="overview-card-value" style={{ color: clsStats.unclassified > 0 ? 'var(--color-warning)' : 'var(--color-text-muted)' }}>
+            {clsStats.unclassified.toLocaleString()}
+          </div>
+          <div className="overview-card-meta">분류 대기 중인 기사</div>
+        </div>
+        <div className="overview-card">
+          <div className="overview-card-label">유가 관련성</div>
+          <div className="overview-card-value">{relevantPct}%</div>
+          <div className="overview-card-meta">
+            관련 {relevantCount.toLocaleString()} · 비관련 {irrelevantCount.toLocaleString()}
+          </div>
+        </div>
+        <div className="overview-card">
+          <div className="overview-card-label">생성된 브리핑</div>
+          <div className="overview-card-value">{briefingStats?.total_briefings ?? 0}</div>
+          <div className="overview-card-meta">일자별 AI Daily Briefing</div>
+        </div>
+        <div className="overview-card">
+          <div className="overview-card-label">분류 카테고리</div>
+          <div className="overview-card-value">{clsStats.category_distribution.length}</div>
+          <div className="overview-card-meta">활성 분류 카테고리 수</div>
+        </div>
+      </div>
+
+      {/* 분류율 진행바 */}
+      <div className="pipeline-progress-section">
+        <div className="pipeline-progress-header">
+          <span>전체 분류 진행률</span>
+          <span>{clsStats.classification_rate}%</span>
+        </div>
+        <div className="rate-limit-bar" style={{ height: 10 }}>
+          <div
+            className={`rate-limit-fill ${clsStats.classification_rate > 80 ? 'safe' : clsStats.classification_rate > 50 ? 'warning' : 'danger'}`}
+            style={{ width: `${clsStats.classification_rate}%` }}
+          />
+        </div>
+      </div>
+
+      {/* 카테고리별 분포 바 차트 */}
+      <h3 className="section-title">카테고리별 분류 분포</h3>
+      <div className="pipeline-chart">
+        {clsStats.category_distribution.map((cat) => {
+          const label = CATEGORY_KR[cat.category] || cat.category || '미분류';
+          const pct = (cat.count / maxCatCount * 100);
           return (
-            <div className="crawl-year-row" key={year}>
-              <span className="crawl-year-label">{year}</span>
-              <div className="crawl-year-bar-container">
-                {Object.entries(sources).map(([src, cnt]) => (
-                  <div
-                    key={src}
-                    className={`crawl-year-bar-segment source-${src}`}
-                    style={{ width: `${(cnt / maxYearlyCount) * 100}%` }}
-                    title={`${src}: ${cnt}건`}
-                  />
-                ))}
+            <div className="pipeline-bar-row" key={cat.category}>
+              <span className="pipeline-bar-label">
+                <span className={`source-tag ${cat.category}`}>{label}</span>
+              </span>
+              <div className="pipeline-bar-container">
+                <div
+                  className={`pipeline-bar-fill source-${cat.category}`}
+                  style={{ width: `${pct}%` }}
+                />
               </div>
-              <span className="crawl-year-count">{total}</span>
+              <span className="pipeline-bar-count">
+                {cat.count.toLocaleString()}
+                {cat.avg_impact_score != null && (
+                  <span className="pipeline-bar-meta"> · avg {cat.avg_impact_score > 0 ? '+' : ''}{cat.avg_impact_score}</span>
+                )}
+              </span>
             </div>
           );
         })}
-        {Object.keys(yearlyGroups).length === 0 && (
+        {clsStats.category_distribution.length === 0 && (
           <div className="admin-empty">
             <div className="admin-empty-icon">📊</div>
-            <div className="admin-empty-text">아직 수집된 데이터가 없습니다</div>
+            <div className="admin-empty-text">분류된 데이터가 없습니다</div>
           </div>
         )}
       </div>
 
-      {/* 실시간 로그 */}
-      {status?.recent_logs && status.recent_logs.length > 0 && (
-        <>
-          <h3 className="section-title">실시간 로그</h3>
-          <div className="crawl-log-panel">
-            {status.recent_logs.map((line, i) => (
-              <div key={i} className="crawl-log-line">{line}</div>
+      {/* 소스별 분류율 */}
+      <h3 className="section-title">소스별 분류율</h3>
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Source</th>
+              <th>전체</th>
+              <th>분류완료</th>
+              <th>분류율</th>
+              <th>Progress</th>
+            </tr>
+          </thead>
+          <tbody>
+            {clsStats.source_classification.map((s) => (
+              <tr key={s.data_source}>
+                <td><SourceTag source={s.data_source || 'unknown'} /></td>
+                <td>{s.total.toLocaleString()}</td>
+                <td>{s.classified.toLocaleString()}</td>
+                <td>{s.classification_rate}%</td>
+                <td style={{ width: '30%' }}>
+                  <div className="rate-limit-bar" style={{ height: 6 }}>
+                    <div
+                      className={`rate-limit-fill ${s.classification_rate > 80 ? 'safe' : s.classification_rate > 50 ? 'warning' : 'danger'}`}
+                      style={{ width: `${s.classification_rate}%` }}
+                    />
+                  </div>
+                </td>
+              </tr>
             ))}
-            <div ref={logEndRef} />
+          </tbody>
+        </table>
+      </div>
+
+      {/* 일별 수집/분류 추이 */}
+      <h3 className="section-title">일별 수집 · 분류 추이 (최근 30일)</h3>
+      <div className="pipeline-daily-chart">
+        {clsStats.daily_pipeline.length > 0 ? (
+          <div className="pipeline-daily-bars">
+            {clsStats.daily_pipeline.map((d) => (
+              <div className="pipeline-daily-col" key={d.date} title={`${d.date}: 수집 ${d.collected} / 분류 ${d.classified}`}>
+                <div className="pipeline-daily-bar-group">
+                  <div
+                    className="pipeline-daily-bar collected"
+                    style={{ height: `${(d.collected / maxDailyCollected) * 100}%` }}
+                  />
+                  <div
+                    className="pipeline-daily-bar classified"
+                    style={{ height: `${(d.classified / maxDailyCollected) * 100}%` }}
+                  />
+                </div>
+                <span className="pipeline-daily-label">{d.date.slice(5)}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="admin-empty">
+            <div className="admin-empty-icon">📅</div>
+            <div className="admin-empty-text">최근 30일 수집 데이터가 없습니다</div>
+          </div>
+        )}
+        <div className="pipeline-daily-legend">
+          <span><span className="legend-dot collected" /> 수집</span>
+          <span><span className="legend-dot classified" /> AI 분류 완료</span>
+        </div>
+      </div>
+
+      {/* 브리핑 생성 이력 */}
+      {briefingStats && briefingStats.recent.length > 0 && (
+        <>
+          <h3 className="section-title">브리핑 생성 이력</h3>
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>날짜</th>
+                  <th>뉴스 기반</th>
+                  <th>주요 요인</th>
+                  <th>리스크</th>
+                  <th>유종 평가</th>
+                  <th>생성 시각</th>
+                </tr>
+              </thead>
+              <tbody>
+                {briefingStats.recent.map((b) => (
+                  <tr key={b.date}>
+                    <td>{b.date}</td>
+                    <td><StatusBadge status={b.has_news ? 'success' : 'error'} /></td>
+                    <td>{b.key_factors_count}</td>
+                    <td>{b.risk_scenarios_count}</td>
+                    <td>{b.crude_assessments_count}</td>
+                    <td>{formatDate(b.generated_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </>
       )}
@@ -730,10 +1477,17 @@ const CrawlCenterSection: React.FC = () => {
 // ═══════════════════════════════════════════════
 
 export const AdminPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    return (localStorage.getItem('adminActiveTab') as TabId) || 'overview';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('adminActiveTab', activeTab);
+  }, [activeTab]);
 
   const tabs: { id: TabId; label: string; icon: string }[] = [
     { id: 'overview', label: 'Overview', icon: '📊' },
+    { id: 'pipeline', label: 'Pipeline', icon: '🧠' },
     { id: 'crawl', label: 'Crawl Center', icon: '🕷' },
     { id: 'logs', label: 'Collection Logs', icon: '📋' },
     { id: 'data', label: 'Data Explorer', icon: '🗃' },
@@ -764,6 +1518,7 @@ export const AdminPanel: React.FC = () => {
       </div>
 
       {activeTab === 'overview' && <OverviewSection />}
+      {activeTab === 'pipeline' && <PipelineSection />}
       {activeTab === 'crawl' && <CrawlCenterSection />}
       {activeTab === 'logs' && <LogsSection />}
       {activeTab === 'data' && <DataExplorerSection />}

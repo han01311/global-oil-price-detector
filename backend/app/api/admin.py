@@ -4,9 +4,11 @@ from __future__ import annotations
 관리자 API 엔드포인트
 수집 상태 모니터링, DB 데이터 탐색, 스케줄러 제어 기능 제공.
 """
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Query, HTTPException, BackgroundTasks
+from sqlalchemy import select, func, text
 from app.core.database import Database
-from app.services.rate_limiter import RateLimiter
+from app.models.base import get_session_factory
+from pydantic import BaseModel
 from app.services.scheduler import CollectionScheduler
 from app.schemas.admin import (
     OverviewResponse, TableStat,
@@ -301,3 +303,235 @@ async def get_crawl_stats():
         "by_year": yearly_stats,
     }
 
+
+# ──────────────────────────────────────────────
+# Pipeline Statistics (크롤링 & 학습 관리)
+# ──────────────────────────────────────────────
+
+@router.get("/pipeline/classification-stats")
+async def get_classification_stats():
+    """뉴스 AI 분류 현황 통계"""
+    from sqlalchemy import case
+    db = Database()
+    session_factory = get_session_factory()
+    from app.models.news_article import NewsArticle as NA
+
+    async with session_factory() as session:
+        # 1. 전체 / 분류완료 / 미분류 건수
+        result = await session.execute(
+            select(
+                func.count(NA.id).label("total"),
+                func.sum(case((NA.is_classified == 1, 1), else_=0)).label("classified"),
+                func.sum(case((NA.is_classified == 0, 1), else_=0)).label("unclassified"),
+            )
+        )
+        row = result.one()
+        total = row.total or 0
+        classified = row.classified or 0
+        unclassified = row.unclassified or 0
+
+        # 2. 카테고리별 분류 분포 (classification_result->'category')
+        cat_result = await session.execute(text("""
+            SELECT 
+                classification_result->>'category' AS category,
+                COUNT(*) AS count,
+                ROUND(AVG((classification_result->>'impact_score')::numeric), 2) AS avg_impact_score
+            FROM news_articles
+            WHERE is_classified = 1 AND classification_result IS NOT NULL
+            GROUP BY classification_result->>'category'
+            ORDER BY count DESC
+        """))
+        category_distribution = [dict(r._mapping) for r in cat_result.all()]
+
+        # 3. 관련성 분포 (is_relevant)
+        rel_result = await session.execute(text("""
+            SELECT 
+                CASE 
+                    WHEN (classification_result->>'is_relevant')::text = 'true' THEN 'relevant'
+                    ELSE 'irrelevant'
+                END AS relevance,
+                COUNT(*) AS count
+            FROM news_articles
+            WHERE is_classified = 1 AND classification_result IS NOT NULL
+            GROUP BY 
+                CASE 
+                    WHEN (classification_result->>'is_relevant')::text = 'true' THEN 'relevant'
+                    ELSE 'irrelevant'
+                END
+        """))
+        relevance_distribution = [dict(r._mapping) for r in rel_result.all()]
+
+        # 4. 일별 수집/분류 추이 (최근 30일)
+        daily_result = await session.execute(text("""
+            SELECT 
+                SUBSTR(collected_at, 1, 10) AS date,
+                COUNT(*) AS collected,
+                SUM(CASE WHEN is_classified = 1 THEN 1 ELSE 0 END) AS classified
+            FROM news_articles
+            WHERE collected_at >= (CURRENT_DATE - INTERVAL '30 days')::text
+            GROUP BY SUBSTR(collected_at, 1, 10)
+            ORDER BY date
+        """))
+        daily_pipeline = [dict(r._mapping) for r in daily_result.all()]
+
+        # 5. 소스별 분류율
+        source_cls_result = await session.execute(text("""
+            SELECT 
+                data_source,
+                COUNT(*) AS total,
+                SUM(CASE WHEN is_classified = 1 THEN 1 ELSE 0 END) AS classified,
+                ROUND(SUM(CASE WHEN is_classified = 1 THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0)::numeric, 1) AS classification_rate
+            FROM news_articles
+            GROUP BY data_source
+            ORDER BY total DESC
+        """))
+        source_classification = [dict(r._mapping) for r in source_cls_result.all()]
+
+    return {
+        "total": total,
+        "classified": classified,
+        "unclassified": unclassified,
+        "classification_rate": round(classified / max(total, 1) * 100, 1),
+        "category_distribution": category_distribution,
+        "relevance_distribution": relevance_distribution,
+        "daily_pipeline": daily_pipeline,
+        "source_classification": source_classification,
+    }
+
+
+@router.get("/pipeline/briefing-stats")
+async def get_briefing_stats():
+    """브리핑 생성 이력 통계"""
+    import json
+    from pathlib import Path
+    from pydantic import ValidationError
+
+    briefing_dir = Path(os.path.dirname(__file__)) / ".." / ".." / "data" / "processed" / "briefings"
+    briefings = []
+
+    if briefing_dir.exists():
+        for f in sorted(briefing_dir.glob("*.json"), reverse=True)[:30]:
+            try:
+                with open(f, 'r', encoding='utf-8') as fp:
+                    data = json.load(fp)
+                    briefings.append({
+                        "date": data.get("date", f.stem),
+                        "has_news": data.get("has_news", True),
+                        "key_factors_count": len(data.get("key_factors", [])),
+                        "risk_scenarios_count": len(data.get("risk_scenarios", [])),
+                        "crude_assessments_count": len(data.get("crude_assessments", data.get("crude_outlooks", []))),
+                        "generated_at": data.get("generated_at", ""),
+                        "summary_length": len(data.get("summary", "")),
+                    })
+            except (json.JSONDecodeError, ValidationError):
+                continue
+
+    return {
+        "total_briefings": len(briefings),
+        "recent": briefings[:10],
+    }
+
+
+# ──────────────────────────────────────────────
+# Crawl Center (크롤링 관리)
+# ──────────────────────────────────────────────
+
+@router.put("/scheduler/config")
+async def update_scheduler_config(interval_hours: int = 6):
+    """스케줄 간격 변경"""
+    scheduler = CollectionScheduler()
+    return scheduler.update_interval(hours=interval_hours)
+
+@router.post("/scheduler/trigger-news")
+async def trigger_news_crawl(background_tasks: BackgroundTasks):
+    """뉴스 수동 즉시 트리거"""
+    scheduler = CollectionScheduler()
+    # 비동기로 백그라운드 실행을 위해 BackgroundTasks 사용
+    background_tasks.add_task(scheduler.trigger_manual, "news")
+    return {"status": "success", "message": "뉴스 수집이 백그라운드 큐에 등록되었습니다. 1~2분 후 크롤링 이력을 확인하세요."}
+
+@router.get("/crawl/history")
+async def get_crawl_history(limit: int = 50, date: str = Query(None, description="YYYY-MM-DD")):
+    """크롤링 이력 타임라인"""
+    db = Database()
+    await db.connect()
+    try:
+        return await db.get_crawl_history(limit, target_date=date)
+    finally:
+        await db.close()
+
+@router.get("/crawl/articles/by-date")
+async def get_crawl_articles_by_date(date: str = Query(..., description="YYYY-MM-DD")):
+    """특정 일자(YYYY-MM-DD) 전체 수집 기사 상세 조회"""
+    db = Database()
+    await db.connect()
+    try:
+        return await db.get_articles_by_collected_date(date)
+    finally:
+        await db.close()
+
+@router.get("/crawl/history/{log_id}/articles")
+async def get_crawl_log_articles(log_id: int):
+    """특정 크롤링 로그의 수집 기사 상세 조회"""
+    db = Database()
+    await db.connect()
+    try:
+        return await db.get_articles_by_crawl_log(log_id)
+    finally:
+        await db.close()
+
+@router.get("/crawl/source-health")
+async def get_source_health():
+    """소스별 건강도 모니터링"""
+    db = Database()
+    await db.connect()
+    try:
+        return await db.get_source_health()
+    finally:
+        await db.close()
+
+@router.get("/news/integrity")
+async def get_news_integrity():
+    """데이터 완결성 검증 리포트"""
+    db = Database()
+    await db.connect()
+    try:
+        return await db.get_news_integrity_report()
+    finally:
+        await db.close()
+
+class HoldRequest(BaseModel):
+    ids: list[str]
+    hold_status: int
+
+@router.post("/news/hold")
+async def hold_articles(req: HoldRequest):
+    """기사 보류 상태 변경"""
+    db = Database()
+    await db.connect()
+    try:
+        count = await db.update_news_hold_status(req.ids, req.hold_status)
+        return {"status": "success", "updated_count": count}
+    finally:
+        await db.close()
+
+@router.post("/news/manual-insert")
+async def manual_insert_article(data: dict):
+    """기사 수동 입력"""
+    db = Database()
+    await db.connect()
+    try:
+        article_id = await db.manual_insert_article(data)
+        return {"status": "success", "id": article_id}
+    finally:
+        await db.close()
+
+class RetryRequest(BaseModel):
+    ids: list[str]
+
+@router.post("/news/retry-integrity")
+async def retry_integrity(req: RetryRequest):
+    """문제 기사 재수집 (수동 트리거)"""
+    # 현재는 단순히 hold 상태를 풀거나, 로직이 필요하지만
+    # 일단은 endpoint만 열어둠
+    return {"status": "success", "message": "재수집이 스케줄 큐에 등록되었습니다. (mock)"}
