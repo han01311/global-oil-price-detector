@@ -18,8 +18,11 @@ const KNOWN_CATEGORIES = ['geopolitics', 'supply', 'demand', 'macro', 'climate',
 const CATEGORIES: Category[] = ['All', 'geopolitics', 'supply', 'demand', 'macro', 'climate', 'speculation', 'other'];
 const CRUDE_TYPES: CrudeType[] = ['All', 'dubai', 'brent', 'wti'];
 
+import { useBriefing } from '../../hooks/useBriefing';
+
 export const NewsExplorer: React.FC = () => {
-  const { articles, loading, error, refetch } = useNewsData();
+  const { articles, loading: newsLoading, error, refetch } = useNewsData();
+  const { currentBriefing } = useBriefing();
   const { selectedDate, setSelectedDate, selectedDateRange, setSelectedDateRange, setHighlightedCategory } = useDashboardContext();
   const [activeCategory, setActiveCategory] = useState<Category>('All');
   const [activeCrudeType, setActiveCrudeType] = useState<CrudeType>('All');
@@ -50,7 +53,19 @@ export const NewsExplorer: React.FC = () => {
     }
   }, [selectedDate, selectedDateRange]);
 
-  const targetArticles = (selectedDate || selectedDateRange) ? dbArticles : articles;
+  const defaultArticles = useMemo(() => {
+    if (!articles || articles.length === 0) return [];
+    if (currentBriefing?.prev_date) {
+      // AI 브리핑과 동일한 기준 (직전 거래일 종가 이후)
+      const nextDay = new Date(`${currentBriefing.prev_date}T00:00:00Z`);
+      nextDay.setDate(nextDay.getDate() + 1);
+      const cutoffTime = nextDay.getTime();
+      return articles.filter(a => new Date(a.article.published_at).getTime() >= cutoffTime);
+    }
+    return articles;
+  }, [articles, currentBriefing?.prev_date]);
+
+  const targetArticles = (selectedDate || selectedDateRange) ? dbArticles : defaultArticles;
 
   const categoryCounts = useMemo(() => {
     const counts: Record<string, number> = { All: targetArticles.length, other: 0 };
@@ -109,7 +124,7 @@ export const NewsExplorer: React.FC = () => {
       );
     }
 
-    if (!selectedDate && !selectedDateRange && loading) {
+    if (!selectedDate && !selectedDateRange && newsLoading) {
       return (
         <div className="news-grid">
           {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} height="180px" />)}
@@ -225,8 +240,11 @@ export const NewsExplorer: React.FC = () => {
               <span className="pulse-dot"></span>
               조회 기준:
             </span>
-            <strong style={{ color: 'var(--color-text-primary)' }}>실시간 최신 뉴스</strong>
-            <span className="active-date-count">({articles.length}건)</span>
+            <strong style={{ color: 'var(--color-text-primary)' }}>
+              실시간 최신 뉴스 
+              {currentBriefing?.prev_date && <span style={{ fontSize: '11px', color: 'var(--color-text-muted)', fontWeight: 'normal', marginLeft: '6px' }}>({currentBriefing.prev_date} 종가 이후)</span>}
+            </strong>
+            <span className="active-date-count">({defaultArticles.length}건)</span>
           </div>
         )}
       </div>

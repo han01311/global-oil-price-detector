@@ -71,6 +71,7 @@ export interface AnalyzedArticle {
 export interface Briefing {
   date: string;
   data_as_of?: string;   // 유가 데이터의 마지막 날짜
+  prev_date?: string;
   summary: string;
   key_factors: BriefingKeyFactor[];
   risk_scenarios: RiskScenario[];

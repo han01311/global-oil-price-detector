@@ -131,6 +131,7 @@ class AnalyzedArticle(BaseModel):
 class Briefing(BaseModel):
     date: str
     data_as_of: str = ""                          # 유가 데이터의 마지막 날짜
+    prev_date: str = ""                           # 유가 데이터의 직전 거래일 (뉴스 필터 기준일)
     summary: str                          # 핵심 요약
     key_factors: list[BriefingKeyFactor]   # 주요 요인 (최대 3개)
     risk_scenarios: list[RiskScenario]     # 리스크 시나리오 (최대 2개)

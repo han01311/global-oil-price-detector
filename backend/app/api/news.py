@@ -18,6 +18,56 @@ _news_cache_lock = asyncio.Lock()
 
 
 # ──────────────────────────────────────────────
+# 공통 유틸리티
+# ──────────────────────────────────────────────
+
+def _convert_raw_to_classified(raw_articles: list[dict]) -> List[ClassifiedArticle]:
+    classified_articles = []
+    from datetime import datetime, timezone
+    for raw in raw_articles:
+        base_article = NewsArticle(
+            id=raw["id"],
+            title=raw["title"],
+            description=raw.get("description", ""),
+            source=raw.get("source_name", "Unknown"),
+            source_name=raw.get("source_name", "Unknown"),
+            url=raw["url"],
+            published_at=raw.get("published_at", ""),
+            collected_at=raw.get("collected_at", ""),
+            content_snippet=raw.get("content_snippet", " "),
+            data_source=raw.get("data_source", "Unknown")
+        )
+        
+        c_result = raw.get("classification_result")
+        if raw.get("is_classified") == 1 and c_result:
+            classified_articles.append(ClassifiedArticle(
+                article=base_article,
+                translated_title=c_result.get("translated_title"),
+                impact_summary=c_result.get("impact_summary") or "",
+                impact_score=c_result.get("impact_score", 0),
+                confidence=c_result.get("confidence", 1.0),
+                is_relevant=c_result.get("is_relevant", True),
+                category=c_result.get("category", "unknown"),
+                sub_categories=c_result.get("sub_categories", []),
+                impact_by_crude=c_result.get("impact_by_crude", {}),
+                classified_at=c_result.get("classified_at") or datetime.now(timezone.utc).isoformat()
+            ))
+        else:
+            classified_articles.append(ClassifiedArticle(
+                article=base_article,
+                is_relevant=True,
+                category="unknown",
+                sub_categories=[],
+                impact_score=0,
+                impact_summary="",
+                confidence=1.0,
+                classified_at=datetime.now(timezone.utc).isoformat(),
+                impact_by_crude={}
+            ))
+    return classified_articles
+
+
+# ──────────────────────────────────────────────
 # DB 기사 조회 (차트 마커 + 날짜 필터용)
 # ──────────────────────────────────────────────
 
@@ -52,54 +102,7 @@ async def get_news_by_date(
     db = Database()
     await db.connect()
     raw_articles = await db.get_news_by_date(date, limit)
-    
-    classified_articles = []
-    for raw in raw_articles:
-        base_article = NewsArticle(
-            id=raw["id"],
-            title=raw["title"],
-            description=raw.get("description", ""),
-            source=raw.get("source_name", "Unknown"),
-            source_name=raw.get("source_name", "Unknown"),
-            url=raw["url"],
-            published_at=raw.get("published_at", ""),
-            collected_at=raw.get("collected_at", ""),
-            content_snippet=raw.get("content_snippet", " "),
-            data_source=raw.get("data_source", "Unknown")
-        )
-        
-        c_result = raw.get("classification_result")
-        if raw.get("is_classified") == 1 and c_result:
-            # Parse classification_result into ClassifiedArticle
-            from datetime import datetime, timezone
-            classified_articles.append(ClassifiedArticle(
-                article=base_article,
-                translated_title=c_result.get("translated_title"),
-                impact_summary=c_result.get("impact_summary") or "",
-                impact_score=c_result.get("impact_score", 0),
-                confidence=c_result.get("confidence", 1.0),
-                is_relevant=c_result.get("is_relevant", True),
-                category=c_result.get("category", "unknown"),
-                sub_categories=c_result.get("sub_categories", []),
-                impact_by_crude=c_result.get("impact_by_crude", {}),
-                classified_at=c_result.get("classified_at") or datetime.now(timezone.utc).isoformat()
-            ))
-        else:
-            from datetime import datetime, timezone
-            # Create a mock ClassifiedArticle for unclassified ones
-            classified_articles.append(ClassifiedArticle(
-                article=base_article,
-                is_relevant=True,
-                category="unknown",
-                sub_categories=[],
-                impact_score=0,
-                impact_summary="",
-                confidence=1.0,
-                classified_at=datetime.now(timezone.utc).isoformat(),
-                impact_by_crude={}
-            ))
-            
-    return classified_articles
+    return _convert_raw_to_classified(raw_articles)
 
 
 @router.get("/by-range", response_model=List[ClassifiedArticle])
@@ -113,54 +116,7 @@ async def get_news_by_range(
     db = Database()
     await db.connect()
     raw_articles = await db.get_news_by_range(start_date, end_date, limit)
-    
-    classified_articles = []
-    for raw in raw_articles:
-        base_article = NewsArticle(
-            id=raw["id"],
-            title=raw["title"],
-            description=raw.get("description", ""),
-            source=raw.get("source_name", "Unknown"),
-            source_name=raw.get("source_name", "Unknown"),
-            url=raw["url"],
-            published_at=raw.get("published_at", ""),
-            collected_at=raw.get("collected_at", ""),
-            content_snippet=raw.get("content_snippet", " "),
-            data_source=raw.get("data_source", "Unknown")
-        )
-        
-        c_result = raw.get("classification_result")
-        if raw.get("is_classified") == 1 and c_result:
-            # Parse classification_result into ClassifiedArticle
-            from datetime import datetime, timezone
-            classified_articles.append(ClassifiedArticle(
-                article=base_article,
-                translated_title=c_result.get("translated_title"),
-                impact_summary=c_result.get("impact_summary") or "",
-                impact_score=c_result.get("impact_score", 0),
-                confidence=c_result.get("confidence", 1.0),
-                is_relevant=c_result.get("is_relevant", True),
-                category=c_result.get("category", "unknown"),
-                sub_categories=c_result.get("sub_categories", []),
-                impact_by_crude=c_result.get("impact_by_crude", {}),
-                classified_at=c_result.get("classified_at") or datetime.now(timezone.utc).isoformat()
-            ))
-        else:
-            from datetime import datetime, timezone
-            # Create a mock ClassifiedArticle for unclassified ones
-            classified_articles.append(ClassifiedArticle(
-                article=base_article,
-                is_relevant=True,
-                category="unknown",
-                sub_categories=[],
-                impact_score=0,
-                impact_summary="",
-                confidence=1.0,
-                classified_at=datetime.now(timezone.utc).isoformat(),
-                impact_by_crude={}
-            ))
-            
-    return classified_articles
+    return _convert_raw_to_classified(raw_articles)
 
 
 async def _classify_articles_payload(
@@ -246,9 +202,15 @@ async def classify_news(
 
     articles_to_classify = []
     if cacheable_latest and not force_refresh:
-        memory = MarketMemory()
-        cached_articles = memory.get_recent_classified_articles(limit=50)
-        if cached_articles:
+        from app.core.database import Database
+        db_instance = Database()
+        await db_instance.connect()
+        raw_articles = await db_instance.get_news_articles(limit=100)
+        cached_articles = _convert_raw_to_classified(raw_articles)
+        
+        # Only return cached articles if we actually got some valid classified ones
+        # and they are reasonably fresh (handled loosely by sqlite order)
+        if cached_articles and len([a for a in cached_articles if a.is_relevant]) > 0:
             _news_cache["data"] = cached_articles
             _news_cache["expires_at"] = datetime.now().timestamp() + 3600
             return cached_articles
@@ -258,13 +220,6 @@ async def classify_news(
             current_time = datetime.now().timestamp()
             if not force_refresh and _news_cache["data"] is not None and current_time < _news_cache["expires_at"]:
                 return _news_cache["data"]
-            if not force_refresh:
-                memory = MarketMemory()
-                cached_articles = memory.get_recent_classified_articles(limit=50)
-                if cached_articles:
-                    _news_cache["data"] = cached_articles
-                    _news_cache["expires_at"] = datetime.now().timestamp() + 3600
-                    return cached_articles
             try:
                 collector = DataCollector()
                 latest_articles_data = await collector.collect_news()

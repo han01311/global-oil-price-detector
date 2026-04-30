@@ -206,6 +206,7 @@ class BriefingGenerator:
             briefing = Briefing(
                 date=today,
                 data_as_of=price_data_as_of,
+                prev_date=price_prev_date,
                 summary="금일 분석 대상 뉴스가 수집되지 않아 정성 분석을 수행하지 못했습니다.",
                 key_factors=[],
                 risk_scenarios=[],
@@ -270,6 +271,7 @@ class BriefingGenerator:
                 briefing = Briefing(
                     date=today,
                     data_as_of=price_data_as_of,
+                    prev_date=price_prev_date,
                     generated_at=datetime.now(timezone.utc).isoformat(),
                     crude_assessments=crude_assessments,
                     has_news=True,
@@ -301,6 +303,7 @@ class BriefingGenerator:
         return Briefing(
             date=today,
             data_as_of=data_as_of,
+            prev_date="", # fallback doesn't easily have prev_date but it's ok
             generated_at=datetime.now(timezone.utc).isoformat(),
             summary="일시적인 AI 분석 지연으로 인해 요약 브리핑을 불러오지 못했습니다.",
             key_factors=[BriefingKeyFactor(category="unknown", description="분석 지연 중임.", impact="neutral", score=0)],
