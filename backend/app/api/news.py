@@ -52,18 +52,6 @@ def _convert_raw_to_classified(raw_articles: list[dict]) -> List[ClassifiedArtic
                 impact_by_crude=c_result.get("impact_by_crude", {}),
                 classified_at=c_result.get("classified_at") or datetime.now(timezone.utc).isoformat()
             ))
-        else:
-            classified_articles.append(ClassifiedArticle(
-                article=base_article,
-                is_relevant=True,
-                category="unknown",
-                sub_categories=[],
-                impact_score=0,
-                impact_summary="",
-                confidence=1.0,
-                classified_at=datetime.now(timezone.utc).isoformat(),
-                impact_by_crude={}
-            ))
     return classified_articles
 
 
@@ -205,12 +193,13 @@ async def classify_news(
         from app.core.database import Database
         db_instance = Database()
         await db_instance.connect()
-        raw_articles = await db_instance.get_news_articles(limit=100)
+        # Fetch only classified articles for the cache fallback
+        raw_articles = await db_instance.get_news_articles(limit=100, classified_only=True)
         cached_articles = _convert_raw_to_classified(raw_articles)
         
         # Only return cached articles if we actually got some valid classified ones
         # and they are reasonably fresh (handled loosely by sqlite order)
-        if cached_articles and len([a for a in cached_articles if a.is_relevant]) > 0:
+        if cached_articles and len(cached_articles) > 0:
             _news_cache["data"] = cached_articles
             _news_cache["expires_at"] = datetime.now().timestamp() + 3600
             return cached_articles

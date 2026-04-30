@@ -329,6 +329,7 @@ class Database:
 
     async def get_news_articles(
         self, data_source: str | None = None,
+        classified_only: bool = False,
         limit: int = 50, offset: int = 0
     ) -> list[dict]:
         session_factory = get_session_factory()
@@ -336,6 +337,8 @@ class Database:
             stmt = select(NewsArticleModel)
             if data_source:
                 stmt = stmt.where(NewsArticleModel.data_source == data_source)
+            if classified_only:
+                stmt = stmt.where(NewsArticleModel.is_classified == 1)
             stmt = stmt.order_by(NewsArticleModel.published_at.desc()).limit(limit).offset(offset)
             result = await session.execute(stmt)
             return [_row_to_dict(r) for r in result.scalars().all()]

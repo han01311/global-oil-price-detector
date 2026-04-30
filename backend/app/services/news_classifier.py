@@ -22,7 +22,7 @@ class NewsClassifier:
 
     CATEGORIES = ["geopolitics", "supply", "demand", "macro", "climate", "speculation"]
     CRUDE_TYPES = ["dubai", "brent", "wti"]
-    CONCURRENCY_LIMIT = 5
+    CONCURRENCY_LIMIT = 2
 
     def __init__(self, ollama_url: str | None = None):
         self.ollama_url = (ollama_url or settings.LOCAL_LLM_URL).rstrip("/")
@@ -163,6 +163,8 @@ JSON Output Format:
     async def classify_article(self, article: dict) -> ClassifiedArticle | None:
         """단일 기사를 분류하고 유종별 영향도를 독립 평가한다"""
         async with self.semaphore:
+            if "source" not in article and "source_name" in article:
+                article["source"] = article["source_name"]
             try:
                 article_model = NewsArticle(**article)
             except ValidationError as e:
@@ -196,7 +198,7 @@ JSON Output Format:
                             "format": "json",
                             "stream": False
                         },
-                        timeout=30.0
+                        timeout=120.0
                     )
                     response.raise_for_status()
                     response_json = json.loads(response.json()["response"])
@@ -301,6 +303,8 @@ JSON Output Format:
         skipped_results = []
         
         for article in articles:
+            if "source" not in article and "source_name" in article:
+                article["source"] = article["source_name"]
             try:
                 model = NewsArticle(**article)
                 if model.id in existing_ids:
@@ -347,4 +351,38 @@ JSON Output Format:
             results = await asyncio.gather(*tasks)
         
         valid_results = [result for result in results if result is not None]
+        
+        if valid_results:
+            try:
+                from sqlalchemy import update
+                from app.core.database import get_session_factory
+                from app.models.news_article import NewsArticle as NewsArticleModel
+                
+                SessionLocal = get_session_factory()
+                async with SessionLocal() as db_session:
+                    for res in valid_results:
+                        await db_session.execute(
+                            update(NewsArticleModel)
+                            .where(NewsArticleModel.id == res.article.id)
+                            .values(
+                                is_classified=1,
+                                classification_result=res.model_dump()
+                            )
+                        )
+                    await db_session.commit()
+                    logger.info(f"Updated {len(valid_results)} articles in SQLite as classified.")
+                    
+                    # Store relevant articles to MarketMemory for FactorGauge to pick up
+                    if memory.is_available():
+                        from app.core.database import Database
+                        db_instance = Database()
+                        for res in valid_results:
+                            if res.is_relevant:
+                                price_changes = await db_instance.get_historical_price_changes(res.article.published_at)
+                                await memory.store_event(res.model_dump(), price_changes)
+                        logger.info(f"Stored valid articles into MarketMemory.")
+                        
+            except Exception as e:
+                logger.error(f"Failed to update database with classification results: {e}")
+
         return valid_results + skipped_results
