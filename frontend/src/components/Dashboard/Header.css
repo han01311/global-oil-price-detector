@@ -8,10 +8,48 @@
 }
 
 .header-logo {
-  font-size: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  user-select: none;
+}
+
+.header-logo svg {
+  flex-shrink: 0;
+}
+
+.header-logo-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  line-height: 1;
+}
+
+.header-logo-name {
+  font-size: 18px;
   font-weight: 700;
-  color: var(--color-text-primary);
   letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.header-logo-oil {
+  color: var(--color-text-primary);
+}
+
+.header-logo-lens {
+  background: linear-gradient(90deg, #4F8EF7, #34C77B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-logo-tagline {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .header-prices {
@@ -40,9 +78,36 @@
 }
 
 .last-updated {
-  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
+}
+
+.last-updated-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--color-bull);
+  flex-shrink: 0;
+  animation: pulse-dot 2.5s ease-in-out infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.last-updated-date {
+  color: var(--color-text-secondary);
+  font-weight: 500;
+}
+
+.last-updated-time {
+  color: var(--color-text-muted);
+  font-weight: 400;
 }
 
 .settings-icon {
@@ -69,9 +134,9 @@
 }
 
 .header-admin-link:hover {
-  background: rgba(255, 107, 53, 0.1);
-  border-color: rgba(255, 107, 53, 0.3);
-  color: #FF6B35;
+  background: rgba(79, 142, 247, 0.1);
+  border-color: rgba(79, 142, 247, 0.3);
+  color: var(--color-primary);
   transform: rotate(45deg);
 }
 

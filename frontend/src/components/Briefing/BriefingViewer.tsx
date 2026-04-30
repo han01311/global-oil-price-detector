@@ -58,23 +58,30 @@ const DIRECTION_LABELS: Record<string, string> = {
   neutral: '보합',
 };
 
-const CrudeDailyAssessments: React.FC<{ assessments: CrudeDailyAssessment[] }> = ({ assessments }) => (
-  <div className="crude-assessments-grid">
-    {assessments.map((item) => (
-      <div key={item.crude_type} className={`crude-assessment-card ${item.direction}`}>
-        <div className="crude-assessment-header">
-          <span className="crude-assessment-label">{CRUDE_LABELS[item.crude_type] || item.crude_type}</span>
-          <span className={`crude-assessment-change ${item.direction}`}>
-            {item.direction === 'bullish' ? '▲' : item.direction === 'bearish' ? '▼' : '—'}
-            {' '}{DIRECTION_LABELS[item.direction] || item.direction}
-            {' '}{item.change_pct > 0 ? '+' : ''}{item.change_pct.toFixed(2)}%
-          </span>
+const CRUDE_ORDER = ['dubai', 'wti', 'brent'];
+
+const CrudeDailyAssessments: React.FC<{ assessments: CrudeDailyAssessment[] }> = ({ assessments }) => {
+  const sorted = [...assessments].sort(
+    (a, b) => CRUDE_ORDER.indexOf(a.crude_type) - CRUDE_ORDER.indexOf(b.crude_type)
+  );
+  return (
+    <div className="crude-assessments-grid">
+      {sorted.map((item) => (
+        <div key={item.crude_type} className={`crude-assessment-card ${item.direction}`}>
+          <div className="crude-assessment-header">
+            <span className="crude-assessment-label">{CRUDE_LABELS[item.crude_type] || item.crude_type}</span>
+            <span className={`crude-assessment-change ${item.direction}`}>
+              {item.direction === 'bullish' ? '▲' : item.direction === 'bearish' ? '▼' : '—'}
+              {' '}{DIRECTION_LABELS[item.direction] || item.direction}
+              {' '}{item.change_pct > 0 ? '+' : ''}{item.change_pct.toFixed(2)}%
+            </span>
+          </div>
+          <p className="crude-assessment-driver">{item.key_driver}</p>
         </div>
-        <p className="crude-assessment-driver">{item.key_driver}</p>
-      </div>
-    ))}
-  </div>
-);
+      ))}
+    </div>
+  );
+};
 
 const BriefingContent: React.FC<{ briefing: Briefing }> = ({ briefing }) => {
   const [isExpanded, setIsExpanded] = useState(false);

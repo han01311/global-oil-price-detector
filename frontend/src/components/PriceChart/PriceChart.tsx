@@ -211,9 +211,9 @@ export const PriceChart: React.FC = () => {
     const n = aggData.length;
     if (n === 0) return;
 
-    // 일/주/월 클릭 시 최신 100개의 데이터를 기본으로 보여줌 (년은 100개가 안 되므로 전체 표시)
-    if (n > 100) {
-      setXStart(n - 100);
+    // 일/주/월 클릭 시 최신 20개의 데이터를 기본으로 보여줌 (년은 20개가 안 되므로 전체 표시)
+    if (n > 20) {
+      setXStart(n - 20);
     } else {
       setXStart(0);
     }

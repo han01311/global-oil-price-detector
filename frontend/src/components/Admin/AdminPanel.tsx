@@ -1689,7 +1689,7 @@ export const AdminPanel: React.FC = () => {
     <div className="admin-container">
       <div className="admin-header">
         <div className="admin-header-left">
-          <h1>Petro-AX Admin</h1>
+          <h1>OilLens Admin</h1>
         </div>
         <Link to="/" className="admin-back-link">
           ← Dashboard

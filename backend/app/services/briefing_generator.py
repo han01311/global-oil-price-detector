@@ -15,7 +15,7 @@ from app.schemas.forecast import ForecastResult, Briefing, CrudeDailyAssessment
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
-CRUDE_TYPES = ["dubai", "brent", "wti"]
+CRUDE_TYPES = ["dubai", "wti", "brent"]
 CRUDE_LABELS = {"dubai": "Dubai", "brent": "Brent", "wti": "WTI"}
 
 

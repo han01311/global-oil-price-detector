@@ -43,7 +43,13 @@ async def _run_forecast_pipeline():
             raise HTTPException(status_code=404, detail="No valid crude prices found in the latest data.")
 
         # Extract data_as_of: the actual last date in the price data
-        data_as_of = str(prices_df.index.max().date()) if hasattr(prices_df.index.max(), 'date') else str(prices_df.index.max())
+        # prices_df has 'date' as a column (not index), so use the column directly
+        if 'date' in prices_df.columns:
+            data_as_of = str(prices_df['date'].max())
+        else:
+            # fallback: if date is the index (e.g. after set_index)
+            idx_max = prices_df.index.max()
+            data_as_of = str(idx_max.date()) if hasattr(idx_max, 'date') else ""
 
         macro_df = await collector.collect_macro_df_for_features()
 
