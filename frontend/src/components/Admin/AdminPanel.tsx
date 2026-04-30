@@ -511,6 +511,7 @@ const TriggerSection: React.FC = () => {
 
 const CrawlCenterSection: React.FC = () => {
   const [subTab, setSubTab] = useState<'auto' | 'manual'>('auto');
+  const [bottomTab, setBottomTab] = useState<'history' | 'health' | 'integrity'>('history');
   
   // Auto Crawl
   const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
@@ -968,15 +969,27 @@ const CrawlCenterSection: React.FC = () => {
         )}
       </div>
 
-      <div className="crawl-split-grid">
-        <div className="crawl-grid-col">
-          <h3 className="section-title">🏥 소스 건강도</h3>
+      <div className="crawl-subtabs" style={{ marginTop: '32px' }}>
+        <button className={`crawl-subtab ${bottomTab === 'history' ? 'active' : ''}`} onClick={() => setBottomTab('history')}>
+          📋 크롤링 이력
+        </button>
+        <button className={`crawl-subtab ${bottomTab === 'health' ? 'active' : ''}`} onClick={() => setBottomTab('health')}>
+          🏥 소스 건강도
+        </button>
+        <button className={`crawl-subtab ${bottomTab === 'integrity' ? 'active' : ''}`} onClick={() => setBottomTab('integrity')}>
+          🔍 데이터 완결성 검증
+        </button>
+      </div>
+
+      {bottomTab === 'health' && (
+        <div className="crawl-panel">
           <div className="admin-table-container">
             <table className="admin-table">
               <thead>
                 <tr>
+                  <th>분류</th>
                   <th>소스</th>
-                  <th>최신 기사</th>
+                  <th>최신 데이터</th>
                   <th>에러율</th>
                   <th>평균 응답</th>
                 </tr>
@@ -987,8 +1000,19 @@ const CrawlCenterSection: React.FC = () => {
                   const isStale = h.newest_article && (new Date().getTime() - new Date(h.newest_article).getTime() > 30 * 24 * 3600 * 1000);
                   const isInactive = !h.newest_article || (new Date().getTime() - new Date(h.newest_article).getTime() > 365 * 24 * 3600 * 1000);
                   
+                  const getSourceInfo = (src: string) => {
+                    if (src === 'opinet') return { cat: '유가 (Price)', desc: '한국석유공사 Opinet (국제 및 국내 유가 데이터)' };
+                    if (src === 'eia_inventory') return { cat: '수급 (Supply)', desc: '미국 에너지정보청(EIA) 주간 원유 재고 데이터' };
+                    if (src === 'eia_production') return { cat: '수급 (Supply)', desc: '미국 에너지정보청(EIA) 주간 원유 생산량 데이터' };
+                    if (src === 'fred') return { cat: '거시경제 (Macro)', desc: '세인트루이스 연방준비은행 (달러 인덱스, 금리 등)' };
+                    return { cat: '뉴스 (News)', desc: '글로벌 원유 시장 동향 뉴스 기사 수집' };
+                  };
+                  
+                  const info = getSourceInfo(h.data_source);
+
                   return (
-                    <tr key={h.data_source}>
+                    <tr key={h.data_source} title={info.desc} style={{ cursor: 'help' }}>
+                      <td><span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.6)' }}>{info.cat}</span></td>
                       <td><SourceTag source={h.data_source} /></td>
                       <td style={{ color: isInactive ? '#ff4d4d' : isStale ? '#ffb84d' : '#fff' }}>
                         {h.newest_article?.slice(0, 10) || '—'} {isInactive ? '❌' : isStale ? '⚠️' : '✅'}
@@ -1002,10 +1026,12 @@ const CrawlCenterSection: React.FC = () => {
             </table>
           </div>
         </div>
+      )}
 
-        <div className="crawl-grid-col">
+      {bottomTab === 'history' && (
+        <div className="crawl-panel">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 className="section-title" style={{ margin: 0 }}>📋 크롤링 이력</h3>
+            <h3 className="section-title" style={{ margin: 0, visibility: 'hidden', height: 0 }}>📋 크롤링 이력</h3>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div className="quick-filters">
                 <button 
@@ -1099,11 +1125,10 @@ const CrawlCenterSection: React.FC = () => {
             </table>
           </div>
         </div>
-      </div>
+      )}
 
-      {integrity && (
-        <div className="crawl-integrity-panel">
-          <h3 className="section-title">🔍 데이터 완결성 검증</h3>
+      {bottomTab === 'integrity' && integrity && (
+        <div className="crawl-integrity-panel" style={{ marginTop: 0 }}>
           <div className="integrity-cards">
             <div className="integrity-card">
               <div className="integrity-card-value warning">{integrity.summary.no_desc}</div>
@@ -1184,6 +1209,7 @@ const CrawlCenterSection: React.FC = () => {
           </div>
         </div>
       )}
+
 
       {/* Log Detail Modal */}
       {isLogModalOpen && (

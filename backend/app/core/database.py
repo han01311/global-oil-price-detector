@@ -727,13 +727,46 @@ class Database:
         session_factory = get_session_factory()
         async with session_factory() as session:
             result = await session.execute(text("""
-                WITH news_freshness AS (
+                WITH source_freshness AS (
                     SELECT data_source,
                         COUNT(*) AS article_count,
                         MAX(published_at) AS newest_article,
                         MAX(collected_at) AS last_crawled
                     FROM news_articles
                     GROUP BY data_source
+                    
+                    UNION ALL
+                    
+                    SELECT source AS data_source,
+                        COUNT(*) AS article_count,
+                        MAX(date) AS newest_article,
+                        MAX(collected_at) AS last_crawled
+                    FROM oil_prices
+                    GROUP BY source
+                    
+                    UNION ALL
+                    
+                    SELECT 'eia_inventory' AS data_source,
+                        COUNT(*) AS article_count,
+                        MAX(date) AS newest_article,
+                        MAX(collected_at) AS last_crawled
+                    FROM oil_inventory
+                    
+                    UNION ALL
+                    
+                    SELECT 'eia_production' AS data_source,
+                        COUNT(*) AS article_count,
+                        MAX(date) AS newest_article,
+                        MAX(collected_at) AS last_crawled
+                    FROM oil_production
+                    
+                    UNION ALL
+                    
+                    SELECT 'fred' AS data_source,
+                        COUNT(*) AS article_count,
+                        MAX(date) AS newest_article,
+                        MAX(collected_at) AS last_crawled
+                    FROM macro_indicators
                 ),
                 log_stats AS (
                     SELECT source,
@@ -743,27 +776,27 @@ class Database:
                         ROUND(AVG(CASE WHEN status = 'success' THEN duration_ms END)::numeric) AS avg_duration_ms,
                         MAX(completed_at) AS last_log_at
                     FROM collection_logs
-                    WHERE source IN ('news', 'opinet', 'eia', 'fred')
                     GROUP BY source
                 )
                 SELECT
-                    nf.data_source,
-                    nf.article_count,
-                    nf.newest_article,
-                    nf.last_crawled,
+                    sf.data_source,
+                    sf.article_count,
+                    sf.newest_article,
+                    sf.last_crawled,
                     ls.total_runs,
                     ls.success_runs,
                     ls.error_runs,
                     ls.avg_duration_ms,
                     ls.last_log_at
-                FROM news_freshness nf
+                FROM source_freshness sf
                 LEFT JOIN log_stats ls ON (
                     CASE
-                        WHEN nf.data_source IN ('nyt', 'guardian', 'gnews', 'newsapi', 'gdelt', 'naver_news', 'naver_crawl') THEN 'news'
-                        ELSE nf.data_source
+                        WHEN sf.data_source IN ('nyt', 'guardian', 'gnews', 'newsapi', 'gdelt', 'naver_news', 'naver_crawl') THEN 'news'
+                        WHEN sf.data_source IN ('eia_inventory', 'eia_production') THEN 'eia'
+                        ELSE sf.data_source
                     END = ls.source
                 )
-                ORDER BY nf.article_count DESC
+                ORDER BY sf.article_count DESC
             """))
             return [dict(r._mapping) for r in result.all()]
 
