@@ -230,6 +230,27 @@ export interface PipelineQAItem {
   classification_result: any;
 }
 
+export interface PipelineJob {
+  id: string;
+  job_type: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  total_articles: number;
+  success_count: number;
+  fail_count: number;
+  skip_count: number;
+  error_message: string | null;
+  results_detail: {
+    success_ids?: string[];
+    failed?: { id: string; title: string; error: string }[];
+    skip_ids?: string[];
+    before_snapshot?: Record<string, { title: string; is_classified: number; retry_count: number; had_error: boolean }>;
+  } | null;
+  created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
+  duration_ms: number | null;
+}
+
 export interface BriefingHistoryItem {
   date: string;
   has_news: boolean;
@@ -342,15 +363,56 @@ export async function fetchPipelineQueue(): Promise<PipelineQueueItem[]> {
   return apiFetch('/api/admin/pipeline/queue');
 }
 
-export async function fetchPipelineQA(): Promise<PipelineQAItem[]> {
-  return apiFetch('/api/admin/pipeline/qa');
+export interface PipelineArticle {
+  id: string;
+  title: string;
+  description: string;
+  source_name: string | null;
+  data_source: string | null;
+  url: string;
+  published_at: string;
+  collected_at: string;
+  is_classified: number;
+  classification_error: string | null;
+  retry_count: number;
+  hold_status: number;
+  ai_category: string | null;
+  ai_is_relevant: boolean | null;
+  ai_impact_score: number | null;
+  ai_confidence: number | null;
+  ai_summary: string;
+  ai_sub_categories: string[];
+  ai_translated_title: string | null;
+  ai_classified_at: string | null;
+  ai_wti: number | null;
+  ai_brent: number | null;
+  ai_dubai: number | null;
 }
 
-export async function retryPipelineItems(ids: string[]): Promise<{ message: string }> {
+export async function fetchPipelineArticles(
+  status: string = 'all',
+  limit: number = 50,
+  offset: number = 0,
+): Promise<{ total: number; items: PipelineArticle[] }> {
+  return apiFetch(`/api/admin/pipeline/articles?status=${status}&limit=${limit}&offset=${offset}`);
+}
+
+export async function deletePipelineArticles(ids: string[]): Promise<{ deleted: number }> {
+  return apiFetch('/api/admin/pipeline/articles', {
+    method: 'DELETE',
+    body: JSON.stringify({ article_ids: ids }),
+  });
+}
+
+export async function retryPipelineItems(ids: string[]): Promise<{ message: string; job_id: string }> {
   return apiFetch('/api/admin/pipeline/retry', {
     method: 'POST',
     body: JSON.stringify({ article_ids: ids }),
   });
+}
+
+export async function fetchPipelineJobs(limit: number = 20): Promise<PipelineJob[]> {
+  return apiFetch(`/api/admin/pipeline/jobs?limit=${limit}`);
 }
 
 export async function overridePipelineClassification(id: string, category: string, impactScore: number): Promise<{ message: string }> {

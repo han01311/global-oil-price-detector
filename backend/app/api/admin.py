@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import datetime, timezone
 
 """
 관리자 API 엔드포인트
@@ -466,46 +467,183 @@ async def get_pipeline_queue():
         return [dict(r._mapping) for r in result.all()]
 
 from pydantic import BaseModel
+import uuid
+import time
+
 class PipelineRetryRequest(BaseModel):
     article_ids: list[str]
 
 @router.post("/pipeline/retry")
 async def retry_classification(req: PipelineRetryRequest, background_tasks: BackgroundTasks):
-    """지정된 기사들의 재분류를 백그라운드에서 실행"""
+    """지정된 기사들의 재분류를 백그라운드에서 실행하고 작업 이력을 기록"""
     from app.services.news_classifier import NewsClassifier
-    
-    async def process_retry(ids):
-        db = Database()
-        session_factory = get_session_factory()
+    from app.models.pipeline_job import PipelineJob
+
+    # 1. 작업 로그 레코드 생성 (상태: queued)
+    job_id = f"retry-{uuid.uuid4().hex[:12]}"
+    now_iso = datetime.now(timezone.utc).isoformat()
+    session_factory = get_session_factory()
+
+    async with session_factory() as session:
+        job = PipelineJob(
+            id=job_id,
+            job_type="retry",
+            status="queued",
+            total_articles=len(req.article_ids),
+            article_ids=req.article_ids,
+            created_at=now_iso,
+        )
+        session.add(job)
+        await session.commit()
+
+    # 2. 백그라운드 작업 정의
+    async def process_retry(ids, jid):
         from app.models.news_article import NewsArticle as NA
-        
-        async with session_factory() as session:
-            result = await session.execute(select(NA).where(NA.id.in_(ids)))
-            articles = result.scalars().all()
-            
-            # Increment retry count
-            for a in articles:
-                a.retry_count = (a.retry_count or 0) + 1
-            await session.commit()
-            
-            # Convert to dicts for classifier
-            article_dicts = [
-                {
-                    "id": a.id, "title": a.title, "description": a.description,
-                    "source": a.source_name, "url": a.url, "published_at": a.published_at,
-                    "content_snippet": a.content_snippet, "data_source": a.data_source
-                } for a in articles
-            ]
-            
-        if article_dicts:
+        from app.models.pipeline_job import PipelineJob as PJ
+        from sqlalchemy import update as sql_update
+
+        sf = get_session_factory()
+        t_start = time.time()
+        started_iso = datetime.now(timezone.utc).isoformat()
+
+        # 작업 상태 → running
+        async with sf() as s:
+            await s.execute(sql_update(PJ).where(PJ.id == jid).values(status="running", started_at=started_iso))
+            await s.commit()
+
+        success_ids = []
+        fail_details = []
+        skip_ids = []
+
+        try:
+            # 기사 조회
+            async with sf() as s:
+                result = await s.execute(select(NA).where(NA.id.in_(ids)))
+                articles = result.scalars().all()
+
+                # 기존 상태 기록 (before snapshot)
+                before_snapshot = {
+                    a.id: {
+                        "title": a.title[:80] if a.title else "",
+                        "is_classified": a.is_classified,
+                        "retry_count": a.retry_count or 0,
+                        "had_error": a.classification_error is not None,
+                    }
+                    for a in articles
+                }
+
+                # retry count 증가
+                for a in articles:
+                    a.retry_count = (a.retry_count or 0) + 1
+                await s.commit()
+
+                article_dicts = [
+                    {
+                        "id": a.id, "title": a.title, "description": a.description,
+                        "source": a.source_name, "url": a.url, "published_at": a.published_at,
+                        "content_snippet": a.content_snippet, "data_source": a.data_source
+                    } for a in articles
+                ]
+
+            if not article_dicts:
+                # 대상 기사 없음
+                async with sf() as s:
+                    await s.execute(sql_update(PJ).where(PJ.id == jid).values(
+                        status="completed",
+                        completed_at=datetime.now(timezone.utc).isoformat(),
+                        duration_ms=int((time.time() - t_start) * 1000),
+                        error_message="No matching articles found in DB",
+                    ))
+                    await s.commit()
+                return
+
+            # AI 분류 실행
             classifier = NewsClassifier()
-            try:
-                await classifier.classify_batch(article_dicts)
-            except Exception as e:
-                pass
-                
-    background_tasks.add_task(process_retry, req.article_ids)
-    return {"message": f"Started retry for {len(req.article_ids)} articles"}
+            await classifier.classify_batch(article_dicts)
+
+            # 분류 후 상태 확인 (after snapshot)
+            async with sf() as s:
+                result = await s.execute(select(NA).where(NA.id.in_(ids)))
+                after_articles = result.scalars().all()
+
+                for a in after_articles:
+                    before = before_snapshot.get(a.id, {})
+                    if a.is_classified == 1:
+                        success_ids.append(a.id)
+                    elif a.is_classified == -1:
+                        fail_details.append({
+                            "id": a.id,
+                            "title": (a.title or "")[:80],
+                            "error": (a.classification_error or "Unknown error")[:200],
+                        })
+                    else:
+                        skip_ids.append(a.id)
+
+            elapsed_ms = int((time.time() - t_start) * 1000)
+
+            # 최종 상태 기록
+            final_status = "completed" if not fail_details else ("completed" if success_ids else "failed")
+            async with sf() as s:
+                await s.execute(sql_update(PJ).where(PJ.id == jid).values(
+                    status=final_status,
+                    success_count=len(success_ids),
+                    fail_count=len(fail_details),
+                    skip_count=len(skip_ids),
+                    completed_at=datetime.now(timezone.utc).isoformat(),
+                    duration_ms=elapsed_ms,
+                    results_detail={
+                        "success_ids": success_ids,
+                        "failed": fail_details,
+                        "skip_ids": skip_ids,
+                        "before_snapshot": before_snapshot,
+                    },
+                ))
+                await s.commit()
+
+        except Exception as e:
+            elapsed_ms = int((time.time() - t_start) * 1000)
+            async with sf() as s:
+                await s.execute(sql_update(PJ).where(PJ.id == jid).values(
+                    status="failed",
+                    completed_at=datetime.now(timezone.utc).isoformat(),
+                    duration_ms=elapsed_ms,
+                    error_message=str(e)[:500],
+                ))
+                await s.commit()
+
+    background_tasks.add_task(process_retry, req.article_ids, job_id)
+    return {"message": f"Started retry for {len(req.article_ids)} articles", "job_id": job_id}
+
+
+@router.get("/pipeline/jobs")
+async def get_pipeline_jobs(limit: int = 20):
+    """파이프라인 작업 이력 조회"""
+    from app.models.pipeline_job import PipelineJob as PJ
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        result = await session.execute(
+            select(PJ).order_by(PJ.created_at.desc()).limit(limit)
+        )
+        jobs = result.scalars().all()
+        return [
+            {
+                "id": j.id,
+                "job_type": j.job_type,
+                "status": j.status,
+                "total_articles": j.total_articles,
+                "success_count": j.success_count,
+                "fail_count": j.fail_count,
+                "skip_count": j.skip_count,
+                "error_message": j.error_message,
+                "results_detail": j.results_detail,
+                "created_at": j.created_at,
+                "started_at": j.started_at,
+                "completed_at": j.completed_at,
+                "duration_ms": j.duration_ms,
+            }
+            for j in jobs
+        ]
 
 class OverrideRequest(BaseModel):
     article_id: str
@@ -541,21 +679,85 @@ async def override_classification(req: OverrideRequest):
     return {"message": "Classification overridden successfully"}
 
 
-@router.get("/pipeline/qa")
-async def get_pipeline_qa(limit: int = 50):
-    """최근 분류 완료된 기사 QA 검수용 조회"""
-    db = Database()
+@router.get("/pipeline/articles")
+async def get_pipeline_articles(
+    status: str = "all",  # all, classified, pending, failed
+    limit: int = 50,
+    offset: int = 0,
+):
+    """통합 기사 관리: 원본 데이터 + AI 분석 결과를 함께 반환"""
     session_factory = get_session_factory()
     from app.models.news_article import NewsArticle as NA
 
     async with session_factory() as session:
+        query = select(NA)
+        if status == "classified":
+            query = query.where(NA.is_classified == 1)
+        elif status == "pending":
+            query = query.where(NA.is_classified == 0)
+        elif status == "failed":
+            query = query.where(NA.is_classified == -1)
+
+        query = query.order_by(NA.published_at.desc()).offset(offset).limit(limit)
+        result = await session.execute(query)
+        articles = result.scalars().all()
+
+        # Count totals for pagination
+        count_result = await session.execute(select(func.count(NA.id)))
+        total = count_result.scalar() or 0
+
+        items = []
+        for a in articles:
+            cr = a.classification_result or {}
+            impact = cr.get("impact_by_crude", {})
+            items.append({
+                # ── 원본 데이터 (Input) ──
+                "id": a.id,
+                "title": a.title,
+                "description": (a.description or "")[:200],
+                "source_name": a.source_name,
+                "data_source": a.data_source,
+                "url": a.url,
+                "published_at": a.published_at,
+                "collected_at": a.collected_at,
+                # ── 상태 ──
+                "is_classified": a.is_classified,
+                "classification_error": a.classification_error,
+                "retry_count": a.retry_count or 0,
+                "hold_status": a.hold_status or 0,
+                # ── AI 분석 결과 (Output) ──
+                "ai_category": cr.get("category"),
+                "ai_is_relevant": cr.get("is_relevant"),
+                "ai_impact_score": cr.get("impact_score"),
+                "ai_confidence": cr.get("confidence"),
+                "ai_summary": (cr.get("impact_summary") or "")[:300],
+                "ai_sub_categories": cr.get("sub_categories", []),
+                "ai_translated_title": cr.get("translated_title"),
+                "ai_classified_at": cr.get("classified_at"),
+                "ai_wti": impact.get("wti", {}).get("score"),
+                "ai_brent": impact.get("brent", {}).get("score"),
+                "ai_dubai": impact.get("dubai", {}).get("score"),
+            })
+
+        return {"total": total, "items": items}
+
+
+class DeleteArticlesRequest(BaseModel):
+    article_ids: list[str]
+
+@router.delete("/pipeline/articles")
+async def delete_articles(req: DeleteArticlesRequest):
+    """선택한 기사를 DB에서 삭제"""
+    from sqlalchemy import delete as sql_delete
+    from app.models.news_article import NewsArticle as NA
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
         result = await session.execute(
-            select(NA.id, NA.title, NA.published_at, NA.classification_result)
-            .where(NA.is_classified == 1)
-            .order_by(NA.published_at.desc())
-            .limit(limit)
+            sql_delete(NA).where(NA.id.in_(req.article_ids))
         )
-        return [dict(r._mapping) for r in result.all()]
+        await session.commit()
+        return {"deleted": result.rowcount}
 
 # ──────────────────────────────────────────────
 # Crawl Center (크롤링 관리)
