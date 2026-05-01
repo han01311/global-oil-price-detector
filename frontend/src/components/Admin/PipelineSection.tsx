@@ -11,7 +11,7 @@ import type {
   ClassificationStats, PipelineArticle, PipelineJob
 } from '../../services/adminApi';
 
-const CATEGORY_KR: Record<string, string> = {
+export const CATEGORY_KR: Record<string, string> = {
   geopolitics: '지정학', supply: '공급', demand: '수요',
   macro: '거시경제', climate: '기후/ESG', speculation: '투기/심리', other: '기타',
 };
@@ -40,6 +40,24 @@ const PipelineSectionV2: React.FC = () => {
   const [articlePage, setArticlePage] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
+  
+  const [recoverArticleId, setRecoverArticleId] = useState<string | null>(null);
+  const [recoverText, setRecoverText] = useState("");
+  const [recoverLoading, setRecoverLoading] = useState(false);
+  const [viewedArticles, setViewedArticles] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('viewedArticles') || '[]')); } catch { return new Set(); }
+  });
+
+  const markAsViewed = (id: string) => {
+    setViewedArticles(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem('viewedArticles', JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
   const [jobs, setJobs] = useState<PipelineJob[]>([]);
   const [expandedJobId, setExpandedJobId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -122,6 +140,23 @@ const PipelineSectionV2: React.FC = () => {
   const handleFilterChange = async (f: string) => { setArticleFilter(f); setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(f, 0, articleKeyword); };
   const handlePageChange = async (p: number) => { setArticlePage(p); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, p, articleKeyword); };
   const handleSearchSubmit = async () => { setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, 0, articleKeyword); };
+
+  const handleRecoverSubmit = async () => {
+    if (!recoverArticleId || !recoverText.trim()) return;
+    setRecoverLoading(true);
+    try {
+      const { recoverArticle } = await import('../../services/adminApi');
+      await recoverArticle(recoverArticleId, recoverText);
+      showToast(`원문 저장 완료! 해당 기사는 AI 분석 대기열(미분류)로 이동되었습니다.`);
+      setRecoverArticleId(null);
+      setRecoverText('');
+      await loadArticles();
+      await loadStats();
+    } catch (e) {
+      showToast(`복구 실패: ${e}`, 'err');
+    }
+    setRecoverLoading(false);
+  };
 
   if (loading) return (
     <div className="overview-grid">
@@ -283,12 +318,15 @@ const PipelineSectionV2: React.FC = () => {
                   <div style={{ color: '#888' }}>{ articleFilter === 'failed' ? '✓ 에러 상태의 기사가 없습니다.' : articleFilter === 'pending' ? '✓ 미분류 상태의 기사가 없습니다.' : '데이터가 없습니다.' }</div>
                 </td></tr> : articles.map(a => {
                   const isExp = expandedArticleId === a.id;
-                  const isNew = a.is_classified === 0 && a.collected_at && (new Date().getTime() - new Date(a.collected_at).getTime() < 24 * 60 * 60 * 1000);
+                  const isNew = !viewedArticles.has(a.id) && (
+                    (a.is_classified === 0 && a.collected_at && (new Date().getTime() - new Date(a.collected_at).getTime() < 24 * 60 * 60 * 1000)) ||
+                    (a.is_classified === 1 && a.ai_classified_at && (new Date().getTime() - new Date(a.ai_classified_at).getTime() < 24 * 60 * 60 * 1000))
+                  );
                   const sIcon = a.is_classified === 1 ? '✓' : a.is_classified === -1 ? '✕' : a.is_classified === -2 ? '관련없음' : a.is_classified === -3 ? '보관됨' : '⏳';
                   const sColor = a.is_classified === 1 ? 'var(--color-success)' : a.is_classified === -1 ? 'var(--color-danger)' : (a.is_classified === -2 || a.is_classified === -3) ? '#888' : 'var(--color-warning)';
                   return (
                     <React.Fragment key={a.id}>
-                      <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedArticleId(isExp ? null : a.id)}>
+                      <tr style={{ cursor: 'pointer' }} onClick={() => { setExpandedArticleId(isExp ? null : a.id); markAsViewed(a.id); }}>
                         <td onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(a.id)} onChange={() => toggleSelect(a.id)} /></td>
                         <td style={{ maxWidth: 320 }}>
                           <div style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={a.title}>
@@ -322,6 +360,38 @@ const PipelineSectionV2: React.FC = () => {
                                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                                   <div style={{ display: 'flex', minWidth: 0, overflow: 'hidden' }}><span style={{ color: '#888', marginRight: '8px', whiteSpace: 'nowrap' }}>원문 링크</span><a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#4a9eff', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>새 탭에서 열기 ↗</a></div>
                                   <div style={{ whiteSpace: 'nowrap' }}><span style={{ color: '#888', marginRight: '8px' }}>수집일</span><span style={{ color: '#fff' }}>{formatDate(a.collected_at)}</span></div>
+                                </div>
+                                <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', padding: '12px', borderRadius: '8px' }}>
+                                  {(!a.description || a.description.length < 30) ? (
+                                    <>
+                                      <div style={{ color: '#ffb84d', fontWeight: 600, fontSize: '0.95em', marginBottom: '8px' }}>⚠️ 본문 텍스트 추출 실패 또는 부족</div>
+                                      <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9em', marginBottom: '12px' }}>원본 페이지에서 텍스트를 복사하여 아래에 붙여넣으면 AI가 자동 정리합니다.</div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <div style={{ color: '#00d4ff', fontWeight: 600, fontSize: '0.95em', marginBottom: '8px' }}>✏️ 본문 수정 (수동 덮어쓰기)</div>
+                                      <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9em', marginBottom: '12px' }}>본문 내용이 부정확하거나 덜 추출된 경우 직접 텍스트를 입력하여 업데이트할 수 있습니다.</div>
+                                    </>
+                                  )}
+
+                                  {recoverArticleId === a.id ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                      <textarea
+                                        value={recoverText}
+                                        onChange={e => setRecoverText(e.target.value)}
+                                        placeholder="기사 본문을 여기에 붙여넣으세요..."
+                                        style={{ width: '100%', height: '120px', background: 'rgba(0,0,0,0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', padding: '10px', fontSize: '0.9em', resize: 'vertical' }}
+                                      />
+                                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                        <button className="action-btn small" onClick={() => { setRecoverArticleId(null); setRecoverText(''); }} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)' }}>취소</button>
+                                        <button className="action-btn small primary" onClick={handleRecoverSubmit} disabled={recoverLoading}>
+                                          {recoverLoading ? '⏳ 복구 중...' : '✨ AI 자동 정리 및 업데이트'}
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <button className="action-btn small" onClick={() => setRecoverArticleId(a.id)} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>📝 텍스트 직접 입력하여 수정</button>
+                                  )}
                                 </div>
                               </div>
                             </div>

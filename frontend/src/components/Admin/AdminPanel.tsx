@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { CATEGORY_KR } from './PipelineSection';
 import {
   fetchAdminOverview,
   fetchCollectionLogs,
@@ -592,6 +593,20 @@ const CrawlCenterSection: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedArticleIds, setSelectedArticleIds] = useState<Set<string>>(new Set());
   const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
+  const [viewedArticles, setViewedArticles] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem('viewedArticles') || '[]')); } catch { return new Set(); }
+  });
+  
+  const markAsViewed = (id: string) => {
+    setViewedArticles(prev => {
+      if (prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.add(id);
+      localStorage.setItem('viewedArticles', JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
   const [recoverArticleId, setRecoverArticleId] = useState<string | null>(null);
   const [recoverText, setRecoverText] = useState("");
   const [recoverLoading, setRecoverLoading] = useState(false);
@@ -825,7 +840,7 @@ const CrawlCenterSection: React.FC = () => {
     setRecoverLoading(true);
     try {
       const { recoverArticle } = await import('../../services/adminApi');
-      const res = await recoverArticle(recoverArticleId, recoverText);
+      await recoverArticle(recoverArticleId, recoverText);
       showToast(`원문 저장 완료! 해당 기사는 AI 분석 대기열(미분류)로 이동되었습니다.`);
       setRecoverArticleId(null);
       setRecoverText('');
@@ -1477,7 +1492,10 @@ const CrawlCenterSection: React.FC = () => {
                 </thead>
                 <tbody>
                   {searchResults.items.map(a => {
-                    const isNew = a.is_classified === 0 && a.collected_at && (new Date().getTime() - new Date(a.collected_at).getTime() < 24 * 60 * 60 * 1000);
+                    const isNew = !viewedArticles.has(a.id) && (
+                      (a.is_classified === 0 && a.collected_at && (new Date().getTime() - new Date(a.collected_at).getTime() < 24 * 60 * 60 * 1000)) ||
+                      (a.is_classified === 1 && a.ai_classified_at && (new Date().getTime() - new Date(a.ai_classified_at).getTime() < 24 * 60 * 60 * 1000))
+                    );
                     return (
                       <React.Fragment key={a.id}>
                         <tr
@@ -1491,7 +1509,7 @@ const CrawlCenterSection: React.FC = () => {
                           <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{a.published_at?.slice(0, 10) || '—'}</td>
                           <td><SourceTag source={a.data_source || 'unknown'} /></td>
                           <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
-                            onClick={() => setExpandedArticleId(expandedArticleId === a.id ? null : a.id)}>
+                            onClick={() => { setExpandedArticleId(expandedArticleId === a.id ? null : a.id); markAsViewed(a.id); }}>
                             {isNew && <span style={{ background: '#FF4D4D', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', marginRight: '6px', fontWeight: 'bold' }}>NEW</span>}
                             {a.title || '(제목 없음)'}
                           </td>
@@ -1526,10 +1544,18 @@ const CrawlCenterSection: React.FC = () => {
                                     <div style={{ display: 'flex' }}><span style={{ color: '#888', marginRight: '8px', minWidth: '60px' }}>원문 제목</span><span style={{ color: '#fff', fontWeight: 500, wordBreak: 'break-word' }}>{a.title}</span></div>
                                     <div><span style={{ color: '#888', marginRight: '8px', width: '60px', display: 'inline-block' }}>기사 설명</span><div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '6px', color: '#bbb', marginTop: '6px', lineHeight: 1.5, wordBreak: 'break-word' }}>{a.description || '제공된 설명이 없습니다.'}</div></div>
 
-                                    {(!a.description || a.description.length < 30) && (
-                                      <div style={{ marginTop: '12px', background: 'rgba(255,184,77,0.1)', border: '1px solid rgba(255,184,77,0.3)', padding: '12px', borderRadius: '8px' }}>
-                                        <div style={{ color: '#ffb84d', fontWeight: 600, fontSize: '0.95em', marginBottom: '8px' }}>⚠️ 본문 텍스트 추출 실패 (사이트 봇 차단 또는 구조 변경)</div>
-                                        <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9em', marginBottom: '12px' }}>원본 페이지에서 텍스트를 복사하여 아래에 붙여넣으면 AI가 자동 정리합니다.</div>
+                                    <div style={{ marginTop: '12px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.1)', padding: '12px', borderRadius: '8px' }}>
+                                      {(!a.description || a.description.length < 30) ? (
+                                        <>
+                                          <div style={{ color: '#ffb84d', fontWeight: 600, fontSize: '0.95em', marginBottom: '8px' }}>⚠️ 본문 텍스트 추출 실패 또는 부족</div>
+                                          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9em', marginBottom: '12px' }}>원본 페이지에서 텍스트를 복사하여 아래에 붙여넣으면 AI가 자동 정리합니다.</div>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <div style={{ color: '#00d4ff', fontWeight: 600, fontSize: '0.95em', marginBottom: '8px' }}>✏️ 본문 수정 (수동 덮어쓰기)</div>
+                                          <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9em', marginBottom: '12px' }}>본문 내용이 부정확하거나 덜 추출된 경우 직접 텍스트를 입력하여 업데이트할 수 있습니다.</div>
+                                        </>
+                                      )}
 
                                         {recoverArticleId === a.id ? (
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1550,7 +1576,6 @@ const CrawlCenterSection: React.FC = () => {
                                           <button className="action-btn small" onClick={() => setRecoverArticleId(a.id)} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>📝 텍스트 직접 입력하여 복구</button>
                                         )}
                                       </div>
-                                    )}
 
                                     <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                                       <div><span style={{ color: '#888', marginRight: '8px' }}>데이터 소스</span><span style={{ color: '#fff' }}>{a.source_name} ({a.data_source})</span></div>
