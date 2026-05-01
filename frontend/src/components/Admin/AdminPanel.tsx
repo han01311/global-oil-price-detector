@@ -383,6 +383,16 @@ const DataExplorerSection: React.FC = () => {
       if (idxB === -1) return -1;
       return idxA - idxB;
     });
+  } else if (activeTab === 'news' && columns.length > 0) {
+    const preferredOrder = ['id', 'data_source', 'title', 'description', 'url', 'published_at', 'collected_at', 'is_classified'];
+    columns = columns.sort((a, b) => {
+      const idxA = preferredOrder.indexOf(a);
+      const idxB = preferredOrder.indexOf(b);
+      if (idxA === -1 && idxB === -1) return 0;
+      if (idxA === -1) return 1;
+      if (idxB === -1) return -1;
+      return idxA - idxB;
+    });
   }
 
   const formatColumnName = (col: string) => {
@@ -576,7 +586,7 @@ const CrawlCenterSection: React.FC = () => {
   const [searchYear, setSearchYear] = useState<number | undefined>();
   const [searchSource, setSearchSource] = useState<string>('');
   const [searchKeyword, setSearchKeyword] = useState('');
-  const [searchClsStatus, setSearchClsStatus] = useState('all');
+  const [searchClsStatus, setSearchClsStatus] = useState('unclassified');
   const [searchResults, setSearchResults] = useState<{ total: number; items: CrawlSearchArticle[] }>({ total: 0, items: [] });
   const [searchOffset, setSearchOffset] = useState(0);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -750,19 +760,27 @@ const CrawlCenterSection: React.FC = () => {
   };
 
   // Article Search
-  const handleArticleSearch = async (newOffset = 0) => {
+  const handleArticleSearch = useCallback(async (newOffset = 0) => {
     setSearchLoading(true);
     setSearchOffset(newOffset);
     try {
       const res = await searchCrawlArticles(
-        searchYear, searchSource || undefined, searchKeyword || undefined, searchClsStatus, 50, newOffset
+        searchYear, searchSource || undefined, searchKeyword || undefined, 
+        searchClsStatus === 'all' ? undefined : searchClsStatus, 
+        50, newOffset
       );
       setSearchResults(res);
       setSelectedArticleIds(new Set());
       setExpandedArticleId(null);
     } catch (e) { console.error(e); }
     setSearchLoading(false);
-  };
+  }, [searchYear, searchSource, searchKeyword, searchClsStatus]);
+
+  useEffect(() => {
+    if (bottomTab === 'history') {
+      handleArticleSearch(0);
+    }
+  }, [bottomTab, searchClsStatus]); // searchClsStatus가 변경될 때도 자동 검색되게 추가
 
   // Delete with undo
   const handleDeleteArticles = (ids: string[]) => {

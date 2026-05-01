@@ -105,10 +105,10 @@ async def get_news_data(
     limit: int = Query(default=50, le=200),
     offset: int = Query(default=0, ge=0),
 ) -> PaginatedDataResponse:
-    """뉴스 기사 조회 (페이지네이션)"""
+    """뉴스 기사 조회 (페이지네이션) - 데이터 관리 탭에서는 새로 수집된 미분류 기사만 표출"""
     db = Database()
-    data = await db.get_news_articles(data_source=data_source, limit=limit, offset=offset)
-    total = await db.get_news_articles_count(data_source=data_source)
+    data = await db.get_news_articles(data_source=data_source, unclassified_only=True, limit=limit, offset=offset)
+    total = await db.get_news_articles_count(data_source=data_source, unclassified_only=True)
     return PaginatedDataResponse(data=data, total=total, limit=limit, offset=offset)
 
 

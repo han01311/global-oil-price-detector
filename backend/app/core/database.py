@@ -330,6 +330,7 @@ class Database:
     async def get_news_articles(
         self, data_source: str | None = None,
         classified_only: bool = False,
+        unclassified_only: bool = False,
         exclude_irrelevant: bool = True,
         limit: int = 50, offset: int = 0
     ) -> list[dict]:
@@ -340,18 +341,22 @@ class Database:
                 stmt = stmt.where(NewsArticleModel.data_source == data_source)
             if classified_only:
                 stmt = stmt.where(NewsArticleModel.is_classified == 1)
+            elif unclassified_only:
+                stmt = stmt.where(NewsArticleModel.is_classified == 0)
             elif exclude_irrelevant:
                 stmt = stmt.where(NewsArticleModel.is_classified != -2)
             stmt = stmt.order_by(NewsArticleModel.published_at.desc()).limit(limit).offset(offset)
             result = await session.execute(stmt)
             return [_row_to_dict(r) for r in result.scalars().all()]
 
-    async def get_news_articles_count(self, data_source: str | None = None) -> int:
+    async def get_news_articles_count(self, data_source: str | None = None, unclassified_only: bool = False) -> int:
         session_factory = get_session_factory()
         async with session_factory() as session:
             stmt = select(func.count(NewsArticleModel.id))
             if data_source:
                 stmt = stmt.where(NewsArticleModel.data_source == data_source)
+            if unclassified_only:
+                stmt = stmt.where(NewsArticleModel.is_classified == 0)
             result = await session.execute(stmt)
             return result.scalar_one()
 

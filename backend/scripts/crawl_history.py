@@ -280,7 +280,9 @@ async def crawl_all(start_year_override: int | None = None, end_year_override: i
 
     # 연도당 수집 목표 (NYT 60%, Guardian 40%)
     remaining = max(TARGET_TOTAL - total_collected, 0)
-    per_year = max(remaining // num_years, 10) if num_years > 0 else 10
+    per_year = remaining // num_years if num_years > 0 else remaining
+    if per_year < 1 and remaining > 0:
+        per_year = 1
     
     nyt_per_year = int(per_year * 0.6)
     guardian_per_year = per_year - nyt_per_year

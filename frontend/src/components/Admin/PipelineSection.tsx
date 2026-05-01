@@ -220,6 +220,7 @@ const PipelineSectionV2: React.FC = () => {
               {[
                 { id: 'all', label: '전체', count: clsStats?.total },
                 { id: 'classified', label: '✓ 분류완료', count: clsStats?.classified },
+                { id: 'irrelevant', label: '관련성 없음', count: clsStats?.irrelevant },
                 { id: 'pending', label: '⏳ 대기', count: clsStats?.unclassified },
                 { id: 'failed', label: '✕ 에러', count: clsStats?.failed },
               ].map(f => (
