@@ -207,34 +207,53 @@ _crawl_state = {
     "target": 0,
     "current_year": None,
     "collected": 0,
+    # v2 확장 필드
+    "year_start": None,
+    "year_end": None,
+    "years_total": 0,
+    "years_completed": 0,
+    "current_source": None,
+    "nyt_collected": 0,
+    "guardian_collected": 0,
+    "dupes_removed": 0,
+    "elapsed_seconds": 0,
 }
 
 
 @router.post("/crawl/start")
-async def start_crawl(target: int = 2000, start_year: int | None = None):
-    """과거 기사 크롤링 시작"""
+async def start_crawl(target: int = 2000, start_year: int | None = None, end_year: int | None = None):
+    """과거 기사 크롤링 시작 (범위 수집 / 단독 수집 지원)"""
     global _crawl_state
     if _crawl_state["is_running"]:
         return {"status": "already_running", "message": "크롤러가 이미 실행 중입니다."}
 
-    # 상태 파일 초기화 (새로 시작 시)
-    state_file = os.path.join(os.path.dirname(__file__), "..", "..", "data", "history_crawl_state.json")
-    
     script_path = os.path.join(os.path.dirname(__file__), "..", "..", "scripts", "crawl_history.py")
     cmd = [sys.executable, script_path, "--target", str(target)]
     if start_year:
         cmd.extend(["--start", str(start_year)])
+    if end_year:
+        cmd.extend(["--end", str(end_year)])
 
     import threading
-    from datetime import datetime
+    import json as _json
 
     _crawl_state["is_running"] = True
     _crawl_state["output_lines"] = []
-    _crawl_state["started_at"] = datetime.utcnow().isoformat()
+    _crawl_state["started_at"] = datetime.now(timezone.utc).isoformat()
     _crawl_state["target"] = target
     _crawl_state["collected"] = 0
     _crawl_state["current_year"] = start_year or 2000
-    
+    _crawl_state["year_start"] = start_year or 2000
+    _crawl_state["year_end"] = end_year
+    _crawl_state["years_total"] = 0
+    _crawl_state["years_completed"] = 0
+    _crawl_state["current_source"] = None
+    _crawl_state["nyt_collected"] = 0
+    _crawl_state["guardian_collected"] = 0
+    _crawl_state["dupes_removed"] = 0
+    _crawl_state["elapsed_seconds"] = 0
+    _crawl_state["year_breakdown"] = []
+
     def run_crawl():
         global _crawl_state
         import re
@@ -247,32 +266,75 @@ async def start_crawl(target: int = 2000, start_year: int | None = None):
                 cwd=os.path.join(os.path.dirname(__file__), "..", ".."),
             )
             _crawl_state["process"] = proc
-            
+
             for line in iter(proc.stdout.readline, ''):
                 line = line.strip()
-                if line:
-                    _crawl_state["output_lines"].append(line)
-                    # 최근 50줄만 유지
-                    if len(_crawl_state["output_lines"]) > 50:
-                        _crawl_state["output_lines"] = _crawl_state["output_lines"][-50:]
-                    
-                    # 진행 상황 파싱: "📰 2005년: 10건 수집 완료 (누적 58/50)"
-                    year_match = re.search(r'📰\s*(\d{4})년.*누적\s*(\d+)', line)
-                    if year_match:
-                        _crawl_state["current_year"] = int(year_match.group(1))
-                        _crawl_state["collected"] = int(year_match.group(2))
-            
+                if not line:
+                    continue
+
+                _crawl_state["output_lines"].append(line)
+                if len(_crawl_state["output_lines"]) > 100:
+                    _crawl_state["output_lines"] = _crawl_state["output_lines"][-100:]
+
+                # JSON 라인 파싱 (구조화된 진행 정보)
+                try:
+                    msg = _json.loads(line)
+                    msg_type = msg.get("type")
+                    if msg_type == "start":
+                        _crawl_state["year_start"] = msg.get("year_start")
+                        _crawl_state["year_end"] = msg.get("year_end")
+                        _crawl_state["years_total"] = msg.get("years_total", 0)
+                    elif msg_type == "progress":
+                        _crawl_state["current_year"] = msg.get("year")
+                        _crawl_state["current_source"] = msg.get("source")
+                        _crawl_state["elapsed_seconds"] = msg.get("elapsed_sec", 0)
+                    elif msg_type == "year_done":
+                        _crawl_state["current_year"] = msg.get("year")
+                        _crawl_state["collected"] = msg.get("total_collected", 0)
+                        _crawl_state["years_completed"] = msg.get("years_completed", 0)
+                        _crawl_state["nyt_collected"] = _crawl_state.get("nyt_collected", 0) + msg.get("nyt", 0)
+                        _crawl_state["guardian_collected"] = _crawl_state.get("guardian_collected", 0) + msg.get("guardian", 0)
+                        _crawl_state["dupes_removed"] = _crawl_state.get("dupes_removed", 0) + msg.get("dupes_removed", 0)
+                        _crawl_state["elapsed_seconds"] = msg.get("elapsed_sec", 0)
+                        _crawl_state["current_source"] = None
+                        if "year_breakdown" in msg:
+                            _crawl_state["year_breakdown"] = msg["year_breakdown"]
+                    elif msg_type == "year_empty":
+                        _crawl_state["years_completed"] = msg.get("years_completed", 0)
+                        if "year_breakdown" in msg:
+                            _crawl_state["year_breakdown"] = msg["year_breakdown"]
+                    elif msg_type in ("complete", "target_reached"):
+                        _crawl_state["collected"] = msg.get("total_collected", _crawl_state["collected"])
+                        _crawl_state["nyt_collected"] = msg.get("total_nyt", _crawl_state.get("nyt_collected", 0))
+                        _crawl_state["guardian_collected"] = msg.get("total_guardian", _crawl_state.get("guardian_collected", 0))
+                        _crawl_state["dupes_removed"] = msg.get("total_dupes", _crawl_state.get("dupes_removed", 0))
+                        _crawl_state["elapsed_seconds"] = msg.get("elapsed_sec", 0)
+                        if "year_breakdown" in msg:
+                            _crawl_state["year_breakdown"] = msg["year_breakdown"]
+                    continue
+                except (ValueError, TypeError):
+                    pass
+
+                # 레거시 파싱
+                year_match = re.search(r'📰\s*(\d{4})년.*누적\s*(\d+)', line)
+                if year_match:
+                    _crawl_state["current_year"] = int(year_match.group(1))
+                    _crawl_state["collected"] = int(year_match.group(2))
+
             proc.wait()
         except Exception as e:
             _crawl_state["output_lines"].append(f"ERROR: {str(e)}")
         finally:
             _crawl_state["is_running"] = False
             _crawl_state["process"] = None
-    
+
     thread = threading.Thread(target=run_crawl, daemon=True)
     thread.start()
 
-    return {"status": "started", "message": f"크롤링 시작됨 (목표: {target}건)"}
+    year_desc = f"{start_year or 2000}"
+    if end_year:
+        year_desc += f"~{end_year}"
+    return {"status": "started", "message": f"크롤링 시작됨 ({year_desc}, 목표: {target}건)"}
 
 
 @router.post("/crawl/stop")
@@ -294,14 +356,24 @@ async def stop_crawl():
 
 @router.get("/crawl/status")
 async def get_crawl_status():
-    """크롤링 진행 상황"""
+    """크롤링 진행 상황 (실시간 대시보드용)"""
     return {
         "is_running": _crawl_state["is_running"],
         "started_at": _crawl_state.get("started_at"),
         "target": _crawl_state.get("target", 0),
         "collected": _crawl_state.get("collected", 0),
         "current_year": _crawl_state.get("current_year"),
-        "recent_logs": _crawl_state.get("output_lines", [])[-15:],
+        "recent_logs": _crawl_state.get("output_lines", [])[-30:],
+        "year_start": _crawl_state.get("year_start"),
+        "year_end": _crawl_state.get("year_end"),
+        "years_total": _crawl_state.get("years_total", 0),
+        "years_completed": _crawl_state.get("years_completed", 0),
+        "current_source": _crawl_state.get("current_source"),
+        "nyt_collected": _crawl_state.get("nyt_collected", 0),
+        "guardian_collected": _crawl_state.get("guardian_collected", 0),
+        "dupes_removed": _crawl_state.get("dupes_removed", 0),
+        "elapsed_seconds": _crawl_state.get("elapsed_seconds", 0),
+        "year_breakdown": _crawl_state.get("year_breakdown", []),
     }
 
 
@@ -316,6 +388,181 @@ async def get_crawl_stats():
         "total_count": total_count,
         "by_source": source_stats,
         "by_year": yearly_stats,
+    }
+
+
+@router.get("/crawl/year-coverage")
+async def get_year_coverage():
+    """연도별 수집 커버리지 히트맵 데이터 (2000~현재)"""
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        result = await session.execute(text("""
+            SELECT
+                SUBSTR(published_at, 1, 4) AS year,
+                data_source,
+                COUNT(*) AS count
+            FROM news_articles
+            WHERE published_at IS NOT NULL
+              AND LENGTH(published_at) >= 4
+              AND SUBSTR(published_at, 1, 4) ~ '^\d{4}$'
+            GROUP BY SUBSTR(published_at, 1, 4), data_source
+            ORDER BY year
+        """))
+        rows = [dict(r._mapping) for r in result.all()]
+
+    from collections import defaultdict
+    coverage = defaultdict(lambda: {"total": 0, "nyt": 0, "guardian": 0, "other": 0})
+    for row in rows:
+        y = row["year"]
+        cnt = row["count"]
+        src = row["data_source"]
+        coverage[y]["total"] += cnt
+        if src == "nyt":
+            coverage[y]["nyt"] += cnt
+        elif src == "guardian":
+            coverage[y]["guardian"] += cnt
+        else:
+            coverage[y]["other"] += cnt
+
+    current_year = datetime.now().year
+    result_list = []
+    for yr in range(2000, current_year + 1):
+        y_str = str(yr)
+        data = coverage.get(y_str, {"total": 0, "nyt": 0, "guardian": 0, "other": 0})
+        result_list.append({"year": yr, **data})
+
+    return result_list
+
+
+@router.get("/crawl/articles/search")
+async def search_crawl_articles(
+    year: int | None = Query(None),
+    source: str | None = Query(None, description="nyt, guardian 등"),
+    keyword: str | None = Query(None),
+    cls_status: str | None = Query(None, description="all, classified, unclassified, error"),
+    limit: int = Query(50, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """수집된 기사 검색 (데이터 관리 허브용)"""
+    session_factory = get_session_factory()
+    from app.models.news_article import NewsArticle as NA
+
+    async with session_factory() as session:
+        base = select(NA)
+        count_base = select(func.count(NA.id))
+
+        conditions = []
+        if year:
+            conditions.append(NA.published_at.startswith(str(year)))
+        if source:
+            conditions.append(NA.data_source == source)
+        if keyword:
+            kw = f"%{keyword}%"
+            conditions.append((NA.title.ilike(kw)) | (NA.description.ilike(kw)))
+        if cls_status == "classified":
+            conditions.append(NA.is_classified == 1)
+        elif cls_status == "unclassified":
+            conditions.append(NA.is_classified == 0)
+        elif cls_status == "error":
+            conditions.append(NA.is_classified == -1)
+
+        for cond in conditions:
+            base = base.where(cond)
+            count_base = count_base.where(cond)
+
+        total_result = await session.execute(count_base)
+        total = total_result.scalar() or 0
+
+        stmt = base.order_by(NA.published_at.desc()).limit(limit).offset(offset)
+        result = await session.execute(stmt)
+        articles = result.scalars().all()
+
+        items = []
+        for a in articles:
+            cls_result = a.classification_result or {}
+            items.append({
+                "id": a.id,
+                "title": a.title,
+                "description": (a.description or "")[:200],
+                "source_name": a.source_name,
+                "data_source": a.data_source,
+                "url": a.url,
+                "published_at": a.published_at,
+                "collected_at": a.collected_at,
+                "is_classified": a.is_classified,
+                "ai_category": cls_result.get("category") if isinstance(cls_result, dict) else None,
+                "ai_impact_score": cls_result.get("impact_score") if isinstance(cls_result, dict) else None,
+                "ai_is_relevant": cls_result.get("is_relevant") if isinstance(cls_result, dict) else None,
+            })
+
+        return {"total": total, "items": items}
+
+
+class CrawlArticleIdsRequest(BaseModel):
+    article_ids: list[str]
+
+
+@router.delete("/crawl/articles/delete")
+async def delete_crawl_articles(req: CrawlArticleIdsRequest):
+    """선택한 기사 삭제"""
+    if not req.article_ids:
+        raise HTTPException(400, "삭제할 기사 ID가 없습니다.")
+
+    session_factory = get_session_factory()
+    from app.models.news_article import NewsArticle as NA
+
+    deleted = 0
+    async with session_factory() as session:
+        result = await session.execute(
+            select(NA).where(NA.id.in_(req.article_ids))
+        )
+        articles = result.scalars().all()
+        for a in articles:
+            await session.delete(a)
+            deleted += 1
+        await session.commit()
+
+    return {"deleted": deleted, "ids": req.article_ids}
+
+
+@router.post("/crawl/articles/recrawl")
+async def recrawl_articles(req: CrawlArticleIdsRequest):
+    """선택한 기사 재수집 (기존 삭제 후 재크롤링 안내)"""
+    if not req.article_ids:
+        raise HTTPException(400, "재수집할 기사 ID가 없습니다.")
+
+    session_factory = get_session_factory()
+    from app.models.news_article import NewsArticle as NA
+
+    years = set()
+    async with session_factory() as session:
+        result = await session.execute(
+            select(NA.published_at).where(NA.id.in_(req.article_ids))
+        )
+        for row in result.all():
+            if row[0] and len(row[0]) >= 4:
+                try:
+                    years.add(int(row[0][:4]))
+                except ValueError:
+                    pass
+
+        for article_id in req.article_ids:
+            article = await session.get(NA, article_id)
+            if article:
+                await session.delete(article)
+        await session.commit()
+
+    if not years:
+        return {"status": "no_years", "message": "재수집 대상 연도를 파악할 수 없습니다."}
+
+    year_min = min(years)
+    year_max = max(years)
+
+    return {
+        "status": "deleted",
+        "deleted_count": len(req.article_ids),
+        "target_years": sorted(years),
+        "message": f"{len(req.article_ids)}건 삭제 완료. {year_min}~{year_max}년 재수집을 시작하려면 수동 크롤링에서 해당 범위를 설정하세요.",
     }
 
 

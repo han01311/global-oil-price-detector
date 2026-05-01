@@ -129,10 +129,11 @@ export async function toggleScheduler(): Promise<SchedulerStatus> {
 }
 
 // --- Crawl Control ---
-export async function startCrawl(target: number, startYear?: number): Promise<{ status: string; message: string }> {
+export async function startCrawl(target: number, startYear?: number, endYear?: number): Promise<{ status: string; message: string }> {
   const params = new URLSearchParams();
   params.set('target', String(target));
   if (startYear) params.set('start_year', String(startYear));
+  if (endYear) params.set('end_year', String(endYear));
   return apiFetch(`/api/admin/crawl/start?${params.toString()}`, { method: 'POST' });
 }
 
@@ -147,6 +148,29 @@ export interface CrawlStatus {
   collected: number;
   current_year: number | null;
   recent_logs: string[];
+  // v2 확장
+  year_start: number | null;
+  year_end: number | null;
+  years_total: number;
+  years_completed: number;
+  current_source: string | null;
+  nyt_collected: number;
+  guardian_collected: number;
+  dupes_removed: number;
+  elapsed_seconds: number;
+  year_breakdown?: YearBreakdown[];
+}
+
+export interface YearBreakdown {
+  year: number;
+  nyt_fetched: number;
+  guardian_fetched: number;
+  nyt_new: number;
+  guardian_new: number;
+  saved: number;
+  skipped_existing: number;
+  dupes_in_batch: number;
+  error: string | null;
 }
 
 export async function fetchCrawlStatus(): Promise<CrawlStatus> {
@@ -175,6 +199,67 @@ export interface CrawlStats {
 
 export async function fetchCrawlStats(): Promise<CrawlStats> {
   return apiFetch('/api/admin/crawl/stats');
+}
+
+// --- Year Coverage ---
+export interface YearCoverageItem {
+  year: number;
+  total: number;
+  nyt: number;
+  guardian: number;
+  other: number;
+}
+
+export async function fetchYearCoverage(): Promise<YearCoverageItem[]> {
+  return apiFetch('/api/admin/crawl/year-coverage');
+}
+
+// --- Crawl Article Search ---
+export interface CrawlSearchArticle {
+  id: string;
+  title: string;
+  description: string;
+  source_name: string | null;
+  data_source: string | null;
+  url: string;
+  published_at: string;
+  collected_at: string;
+  is_classified: number;
+  ai_category: string | null;
+  ai_impact_score: number | null;
+  ai_is_relevant: boolean | null;
+}
+
+export async function searchCrawlArticles(
+  year?: number,
+  source?: string,
+  keyword?: string,
+  clsStatus?: string,
+  limit = 50,
+  offset = 0
+): Promise<{ total: number; items: CrawlSearchArticle[] }> {
+  const params = new URLSearchParams();
+  if (year) params.set('year', String(year));
+  if (source) params.set('source', source);
+  if (keyword) params.set('keyword', keyword);
+  if (clsStatus && clsStatus !== 'all') params.set('cls_status', clsStatus);
+  params.set('limit', String(limit));
+  params.set('offset', String(offset));
+  return apiFetch(`/api/admin/crawl/articles/search?${params.toString()}`);
+}
+
+export async function deleteCrawlArticles(ids: string[]): Promise<{ deleted: number }> {
+  return apiFetch('/api/admin/crawl/articles/delete', {
+    method: 'DELETE',
+    body: JSON.stringify({ article_ids: ids }),
+  });
+}
+
+export async function recrawlArticles(ids: string[]): Promise<{ status: string; message: string; target_years?: number[] }> {
+  return apiFetch('/api/admin/crawl/articles/recrawl', {
+    method: 'POST',
+    body: JSON.stringify({ article_ids: ids }),
+  });
 }
 
 // --- Pipeline Statistics ---

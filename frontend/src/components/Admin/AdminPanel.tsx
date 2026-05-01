@@ -24,7 +24,10 @@ import {
   updateArticleHoldStatus,
   retryIntegrity,
   fetchCrawlLogArticles,
-  fetchArticlesByDate,
+  fetchYearCoverage,
+  searchCrawlArticles,
+  deleteCrawlArticles,
+  recrawlArticles,
 } from '../../services/adminApi';
 import type {
   OverviewResponse,
@@ -36,6 +39,7 @@ import type {
 import type {
   CrawlStatus, CrawlStats,
   CrawlHistoryItem, SourceHealthItem, IntegrityReport, CrawlArticleDetail,
+  YearCoverageItem, CrawlSearchArticle,
 } from '../../services/adminApi';
 import './AdminPanel.css';
 
@@ -532,8 +536,20 @@ const TriggerSection: React.FC = () => {
 // ═══════════════════════════════════════════════
 
 const CrawlCenterSection: React.FC = () => {
-  const [subTab, setSubTab] = useState<'auto' | 'manual'>('auto');
-  const [bottomTab, setBottomTab] = useState<'history' | 'health' | 'integrity' | 'schema'>('history');
+  const [subTab, setSubTab] = useState<'auto' | 'manual'>(() => {
+    return (localStorage.getItem('crawlSubTab') as 'auto' | 'manual') || 'auto';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('crawlSubTab', subTab);
+  }, [subTab]);
+  const [bottomTab, setBottomTab] = useState<'history' | 'health' | 'integrity' | 'schema'>(() => {
+    return (localStorage.getItem('crawlBottomTab') as 'history' | 'health' | 'integrity' | 'schema') || 'history';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('crawlBottomTab', bottomTab);
+  }, [bottomTab]);
 
   // Auto Crawl
   const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
@@ -550,6 +566,24 @@ const CrawlCenterSection: React.FC = () => {
   const [stats, setStats] = useState<CrawlStats | null>(null);
   const [target, setTarget] = useState(2000);
   const [startYear, setStartYear] = useState(2000);
+  const [endYear, setEndYear] = useState(2026);
+  const [crawlMode, setCrawlMode] = useState<'range' | 'single'>('range');
+
+  // Year Coverage Heatmap
+  const [yearCoverage, setYearCoverage] = useState<YearCoverageItem[]>([]);
+
+  // Article Search (History Hub)
+  const [searchYear, setSearchYear] = useState<number | undefined>();
+  const [searchSource, setSearchSource] = useState<string>('');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchClsStatus, setSearchClsStatus] = useState('all');
+  const [searchResults, setSearchResults] = useState<{ total: number; items: CrawlSearchArticle[] }>({ total: 0, items: [] });
+  const [searchOffset, setSearchOffset] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [selectedArticleIds, setSelectedArticleIds] = useState<Set<string>>(new Set());
+  const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
+  const [deleteUndoTimer, setDeleteUndoTimer] = useState<number | null>(null);
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
 
   // History & Health
   const [history, setHistory] = useState<CrawlHistoryItem[]>([]);
@@ -577,22 +611,22 @@ const CrawlCenterSection: React.FC = () => {
   const [logArticles, setLogArticles] = useState<CrawlArticleDetail[]>([]);
   const [logModalLoading, setLogModalLoading] = useState(false);
 
-  // Date Filter
-  const [historyDateFilter, setHistoryDateFilter] = useState('');
-  const [selectedDateForModal, setSelectedDateForModal] = useState<string | null>(null);
+  // Date Filter (legacy — used in loadAll)
+  const [historyDateFilter] = useState('');
 
   const logEndRef = useRef<HTMLDivElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadAll = useCallback(async () => {
     try {
-      const [sc, s, st, h, hl, ig] = await Promise.all([
+      const [sc, s, st, h, hl, ig, yc] = await Promise.all([
         fetchSchedulerStatus(),
         fetchCrawlStatus(),
         fetchCrawlStats(),
         fetchCrawlHistory(20, historyDateFilter || undefined),
         fetchSourceHealth(),
-        fetchIntegrityReport()
+        fetchIntegrityReport(),
+        fetchYearCoverage(),
       ]);
       setScheduler(sc);
       setIntervalHours(sc.interval_hours || 6);
@@ -601,6 +635,7 @@ const CrawlCenterSection: React.FC = () => {
       setHistory(h);
       setHealth(hl);
       setIntegrity(ig);
+      setYearCoverage(yc);
     } catch (e) {
       console.error('Failed to load crawl data:', e);
     } finally {
@@ -676,11 +711,11 @@ const CrawlCenterSection: React.FC = () => {
     setActionLoading(false);
   };
 
-  const handleLogClick = async (log: CrawlHistoryItem) => {
-    // 뉴스 크롤링 로그이면서 상태가 success/error일 때만 오픈
+  // Legacy handlers kept for log detail modal reference
+  // @ts-ignore Legacy handler for potential future use
+  const _handleLogClick = async (log: CrawlHistoryItem) => { // eslint-disable-line
     if (log.source !== 'news' || log.status === 'running') return;
     setSelectedLogId(log.id);
-    setSelectedDateForModal(null);
     setIsLogModalOpen(true);
     setLogModalLoading(true);
     try {
@@ -693,26 +728,11 @@ const CrawlCenterSection: React.FC = () => {
     }
   };
 
-  const handleViewDateArticles = async () => {
-    if (!historyDateFilter) return;
-    setSelectedLogId(null);
-    setSelectedDateForModal(historyDateFilter);
-    setIsLogModalOpen(true);
-    setLogModalLoading(true);
-    try {
-      const articles = await fetchArticlesByDate(historyDateFilter);
-      setLogArticles(articles);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLogModalLoading(false);
-    }
-  };
-
   const handleStart = async () => {
     setActionLoading(true);
     try {
-      const result = await startCrawl(target, startYear);
+      const ey = crawlMode === 'single' ? startYear : endYear;
+      const result = await startCrawl(target, startYear, ey);
       showToast(result.message);
       await loadAll();
     } catch (e) { showToast(`오류: ${e}`, 'err'); }
@@ -727,6 +747,83 @@ const CrawlCenterSection: React.FC = () => {
       await loadAll();
     } catch (e) { showToast(`오류: ${e}`, 'err'); }
     setActionLoading(false);
+  };
+
+  // Article Search
+  const handleArticleSearch = async (newOffset = 0) => {
+    setSearchLoading(true);
+    setSearchOffset(newOffset);
+    try {
+      const res = await searchCrawlArticles(
+        searchYear, searchSource || undefined, searchKeyword || undefined, searchClsStatus, 50, newOffset
+      );
+      setSearchResults(res);
+      setSelectedArticleIds(new Set());
+      setExpandedArticleId(null);
+    } catch (e) { console.error(e); }
+    setSearchLoading(false);
+  };
+
+  // Delete with undo
+  const handleDeleteArticles = (ids: string[]) => {
+    if (ids.length === 0) return;
+    // Optimistically remove from results
+    setPendingDeleteIds(ids);
+    setSearchResults(prev => ({
+      total: prev.total - ids.length,
+      items: prev.items.filter(a => !ids.includes(a.id)),
+    }));
+    setSelectedArticleIds(new Set());
+    showToast(`${ids.length}건 삭제됨 — 5초 후 확정`);
+
+    const timer = window.setTimeout(async () => {
+      try {
+        await deleteCrawlArticles(ids);
+        setPendingDeleteIds([]);
+        setDeleteUndoTimer(null);
+        loadAll();
+      } catch (e) { showToast(`삭제 실패: ${e}`, 'err'); }
+    }, 5000);
+    setDeleteUndoTimer(timer);
+  };
+
+  const handleUndoDelete = () => {
+    if (deleteUndoTimer) {
+      clearTimeout(deleteUndoTimer);
+      setDeleteUndoTimer(null);
+    }
+    setPendingDeleteIds([]);
+    handleArticleSearch(searchOffset);
+    showToast('삭제가 취소되었습니다.');
+  };
+
+  // Recrawl
+  const handleRecrawlArticles = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setActionLoading(true);
+    try {
+      const res = await recrawlArticles(ids);
+      showToast(res.message);
+      setSelectedArticleIds(new Set());
+      await handleArticleSearch(searchOffset);
+      await loadAll();
+    } catch (e) { showToast(`재수집 오류: ${e}`, 'err'); }
+    setActionLoading(false);
+  };
+
+  const toggleArticleSelection = (id: string) => {
+    const newSel = new Set(selectedArticleIds);
+    if (newSel.has(id)) newSel.delete(id);
+    else newSel.add(id);
+    setSelectedArticleIds(newSel);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedArticleIds.size === searchResults.items.length) {
+      setSelectedArticleIds(new Set());
+    } else {
+      setSelectedArticleIds(new Set(searchResults.items.map(a => a.id)));
+    }
   };
 
   const handleHold = async (ids: string[], holdStatus: number) => {
@@ -769,12 +866,12 @@ const CrawlCenterSection: React.FC = () => {
 
   const progressPct = status?.target ? Math.min((status.collected / status.target) * 100, 100) : 0;
 
-  const yearlyGroups: Record<string, Record<string, number>> = {};
+  // yearlyGroups kept for potential future use
+  const _yearlyGroups: Record<string, Record<string, number>> = {};
   stats?.by_year?.forEach(({ year, data_source, count }) => {
-    if (!yearlyGroups[year]) yearlyGroups[year] = {};
-    yearlyGroups[year][data_source] = count;
+    if (!_yearlyGroups[year]) _yearlyGroups[year] = {};
+    _yearlyGroups[year][data_source] = count;
   });
-  const maxYearlyCount = Math.max(1, ...Object.values(yearlyGroups).map(g => Object.values(g).reduce((a, b) => a + b, 0)));
 
   return (
     <>
@@ -910,100 +1007,188 @@ const CrawlCenterSection: React.FC = () => {
 
       {subTab === 'manual' && (
         <div className="crawl-control-panel">
-          <div className="crawl-control-header">
-            <div className="crawl-status-indicator">
-              <div className={`scheduler-status-dot ${status?.is_running ? 'running' : 'stopped'}`} />
-              <span className="crawl-status-text">
-                {status?.is_running ? `크롤링 진행 중 — ${status.current_year}년 수집 중` : '대기 중'}
-              </span>
+          {/* Year Coverage Heatmap */}
+          <div className="crawl-control-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, padding: '16px 20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#e4e8ef' }}>📊 연도별 데이터 커버리지 (2000~현재)</span>
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>셀 클릭 → 연도 자동 설정</span>
+            </div>
+            <div className="year-coverage-heatmap">
+              {yearCoverage.map(yc => {
+                const maxCount = Math.max(1, ...yearCoverage.map(y => y.total));
+                const intensity = yc.total / maxCount;
+                const bg = yc.total === 0 ? 'rgba(255,77,77,0.15)'
+                  : intensity < 0.3 ? 'rgba(255,184,77,0.25)'
+                  : intensity < 0.7 ? 'rgba(0,212,150,0.25)'
+                  : 'rgba(0,212,150,0.5)';
+                return (
+                  <div key={yc.year} className="heatmap-cell" style={{ background: bg }}
+                    title={`${yc.year}년: ${yc.total}건 (NYT ${yc.nyt}, Guardian ${yc.guardian})`}
+                    onClick={() => { setStartYear(yc.year); if (crawlMode === 'single') setEndYear(yc.year); }}>
+                    <span className="heatmap-year">{String(yc.year).slice(2)}</span>
+                    <span className="heatmap-count">{yc.total > 0 ? yc.total : '—'}</span>
+                  </div>
+                );
+              })}
+            </div>
+            {(() => {
+              const gaps = yearCoverage.filter(y => y.total === 0 && y.year <= new Date().getFullYear());
+              if (gaps.length === 0) return null;
+              const gapYears = gaps.map(g => g.year);
+              return (
+                <div className="data-gap-suggest" onClick={() => { setStartYear(gapYears[0]); setEndYear(gapYears[gapYears.length - 1]); setCrawlMode('range'); }}>
+                  💡 데이터 공백: {gapYears.length <= 5 ? gapYears.join(', ') : `${gapYears[0]}~${gapYears[gapYears.length-1]} (${gapYears.length}개 연도)`}년 — 클릭하여 수집
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* Mode Toggle + Presets */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16, marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
+            <div className="crawl-mode-toggle">
+              <button className={crawlMode === 'range' ? 'active' : ''} onClick={() => setCrawlMode('range')}>📅 범위 수집</button>
+              <button className={crawlMode === 'single' ? 'active' : ''} onClick={() => setCrawlMode('single')}>📌 단독 수집</button>
+            </div>
+            <div className="crawl-presets">
+              <button className="crawl-preset-btn" onClick={() => { setCrawlMode('range'); setStartYear(new Date().getFullYear() - 4); setEndYear(new Date().getFullYear()); }}>최근 5년</button>
+              <button className="crawl-preset-btn" onClick={() => {
+                const gaps = yearCoverage.filter(y => y.total === 0 && y.year <= new Date().getFullYear());
+                if (gaps.length > 0) { setCrawlMode('range'); setStartYear(gaps[0].year); setEndYear(gaps[gaps.length-1].year); }
+              }}>빈 연도만</button>
+              <button className="crawl-preset-btn" onClick={() => { setCrawlMode('range'); setStartYear(2000); setEndYear(new Date().getFullYear()); }}>전체</button>
             </div>
           </div>
 
+          {/* Crawl Form */}
           <div className="crawl-controls">
             <div className="crawl-input-group">
-              <label>목표 건수</label>
-              <input
-                type="number"
-                className="filter-input"
-                value={target}
-                onChange={(e) => setTarget(Number(e.target.value))}
-                disabled={status?.is_running}
-                min={100} max={10000} step={100}
-              />
+              <label>{crawlMode === 'single' ? '수집 연도' : '시작 연도'}</label>
+              <input type="number" className="filter-input" value={startYear}
+                onChange={(e) => { setStartYear(Number(e.target.value)); if (crawlMode === 'single') setEndYear(Number(e.target.value)); }}
+                disabled={status?.is_running} min={2000} max={2026} />
             </div>
+            {crawlMode === 'range' && (
+              <div className="crawl-input-group">
+                <label>종료 연도</label>
+                <input type="number" className="filter-input" value={endYear}
+                  onChange={(e) => setEndYear(Number(e.target.value))}
+                  disabled={status?.is_running} min={startYear} max={2026} />
+              </div>
+            )}
             <div className="crawl-input-group">
-              <label>시작 연도</label>
-              <input
-                type="number"
-                className="filter-input"
-                value={startYear}
-                onChange={(e) => setStartYear(Number(e.target.value))}
-                disabled={status?.is_running}
-                min={2000} max={2026}
-              />
+              <label>목표 건수</label>
+              <input type="number" className="filter-input" value={target}
+                onChange={(e) => setTarget(Number(e.target.value))}
+                disabled={status?.is_running} min={100} max={10000} step={100} />
             </div>
-            <div className="crawl-buttons" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px' }}>
+            <div className="crawl-buttons" style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '8px', gap: 8 }}>
               {status?.is_running ? (
-                <button className="crawl-stop-btn" onClick={handleStop} disabled={actionLoading}>
-                  ⏹ 크롤링 중지
-                </button>
+                <button className="crawl-stop-btn" onClick={handleStop} disabled={actionLoading}>⏹ 크롤링 중지</button>
               ) : (
-                <button className="crawl-start-btn" onClick={handleStart} disabled={actionLoading}>
-                  🚀 크롤링 시작
-                </button>
+                <button className="crawl-start-btn" onClick={handleStart} disabled={actionLoading}>🚀 크롤링 시작</button>
               )}
             </div>
           </div>
 
-          {(status?.is_running || status?.collected! > 0) && (
-            <div className="crawl-progress" style={{ marginTop: '24px' }}>
-              <div className="crawl-progress-header">
-                <span>{status?.collected?.toLocaleString()} / {status?.target?.toLocaleString()} 건</span>
-                <span>{progressPct.toFixed(1)}%</span>
+          {/* Pre-crawl Estimate */}
+          {!status?.is_running && (
+            <div className="crawl-estimate">
+              {(() => {
+                const numYears = crawlMode === 'single' ? 1 : Math.max(1, endYear - startYear + 1);
+                const estArticles = Math.min(target, numYears * Math.ceil(target / numYears));
+                const estTime = numYears * 15;
+                return `예상: ${numYears}개 연도 × ~${Math.ceil(target/numYears)}건 = 약 ${estArticles.toLocaleString()}건, 소요 ~${estTime < 60 ? estTime + '초' : Math.ceil(estTime/60) + '분'}`;
+              })()}
+            </div>
+          )}
+
+          {/* Real-time Progress Dashboard */}
+          {status?.is_running && (
+            <div style={{ marginTop: 16 }}>
+              <div className="crawl-progress">
+                <div className="crawl-progress-header">
+                  <span>{status.year_start && status.year_end ? `${status.year_start}→${status.year_end}: ${status.years_completed}/${status.years_total} 연도` : `${status.current_year}년 수집 중`}</span>
+                  <span>{status.collected?.toLocaleString()} / {status.target?.toLocaleString()} 건 ({progressPct.toFixed(1)}%)</span>
+                </div>
+                <div className="rate-limit-bar" style={{ height: 8 }}>
+                  <div className="rate-limit-fill safe" style={{ width: `${progressPct}%`, transition: 'width 0.5s ease' }} />
+                </div>
               </div>
-              <div className="rate-limit-bar" style={{ height: 8 }}>
-                <div
-                  className="rate-limit-fill safe"
-                  style={{ width: `${progressPct}%`, transition: 'width 0.5s ease' }}
-                />
+              <div className="crawl-live-cards">
+                <div className="crawl-live-card">
+                  <div className="crawl-live-card-label">📰 NYT</div>
+                  <div className="crawl-live-card-value">{status.nyt_collected}</div>
+                  {status.current_source === 'nyt' && <div className="crawl-live-card-active">수집 중...</div>}
+                </div>
+                <div className="crawl-live-card">
+                  <div className="crawl-live-card-label">🗞️ Guardian</div>
+                  <div className="crawl-live-card-value">{status.guardian_collected}</div>
+                  {status.current_source === 'guardian' && <div className="crawl-live-card-active">수집 중...</div>}
+                </div>
+                <div className="crawl-live-card">
+                  <div className="crawl-live-card-label">🔄 중복 제거</div>
+                  <div className="crawl-live-card-value">{status.dupes_removed}</div>
+                </div>
+                <div className="crawl-live-card">
+                  <div className="crawl-live-card-label">⏱️ 경과</div>
+                  <div className="crawl-live-card-value">{status.elapsed_seconds < 60 ? `${status.elapsed_seconds}s` : `${Math.floor(status.elapsed_seconds / 60)}m ${status.elapsed_seconds % 60}s`}</div>
+                </div>
               </div>
             </div>
           )}
 
-          <h3 className="section-title">연도별 수집 분포</h3>
-          <div className="crawl-yearly-chart">
-            {Object.entries(yearlyGroups).map(([year, sources]) => {
-              const total = Object.values(sources).reduce((a, b) => a + b, 0);
-              return (
-                <div className="crawl-year-row" key={year}>
-                  <span className="crawl-year-label">{year}</span>
-                  <div className="crawl-year-bar-container">
-                    {Object.entries(sources).map(([src, cnt]) => (
-                      <div
-                        key={src}
-                        className={`crawl-year-bar-segment source-${src}`}
-                        style={{ width: `${(cnt / maxYearlyCount) * 100}%` }}
-                        title={`${src}: ${cnt}건`}
-                      />
+          {/* Real-time Year Breakdown Table */}
+          {(status?.year_breakdown && status.year_breakdown.length > 0) && (
+            <div className="year-breakdown-container" style={{ marginTop: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: '#e4e8ef', marginBottom: 8 }}>📊 연도별 수집 상세 내역</div>
+              <div className="admin-table-container" style={{ maxHeight: 250, overflowY: 'auto' }}>
+                <table className="admin-table" style={{ fontSize: 12 }}>
+                  <thead style={{ position: 'sticky', top: 0, zIndex: 1, background: 'rgba(20,24,36,0.95)', backdropFilter: 'blur(8px)' }}>
+                    <tr>
+                      <th style={{ width: 60 }}>연도</th>
+                      <th style={{ width: 100 }}>NYT (신규/조회)</th>
+                      <th style={{ width: 120 }}>Guardian (신규/조회)</th>
+                      <th style={{ width: 80 }}>URL 스킵</th>
+                      <th style={{ width: 80 }}>최종 저장</th>
+                      <th>오류 정보</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {status.year_breakdown.map((y, i) => (
+                      <tr key={i} style={{ backgroundColor: y.error ? 'rgba(255,77,77,0.05)' : undefined }}>
+                        <td style={{ fontWeight: 600 }}>{y.year}</td>
+                        <td>{y.nyt_new} / {y.nyt_fetched}</td>
+                        <td>{y.guardian_new} / {y.guardian_fetched}</td>
+                        <td style={{ color: y.skipped_existing > 0 ? '#ffb84d' : 'inherit' }}>{y.skipped_existing}</td>
+                        <td style={{ fontWeight: 600, color: y.saved > 0 ? '#00D496' : 'inherit' }}>{y.saved}</td>
+                        <td style={{ color: y.error ? '#ff4d4d' : 'rgba(255,255,255,0.4)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={y.error || ''}>
+                          {y.error || '—'}
+                        </td>
+                      </tr>
                     ))}
-                  </div>
-                  <span className="crawl-year-count">{total}</span>
-                </div>
-              );
-            })}
-            {Object.keys(yearlyGroups).length === 0 && (
-              <div className="admin-empty">
-                <div className="admin-empty-text">아직 수집된 데이터가 없습니다</div>
+                  </tbody>
+                </table>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
+          {/* Live Log Console */}
           {status?.recent_logs && status.recent_logs.length > 0 && (
-            <div className="crawl-log-panel" style={{ marginTop: '24px' }}>
-              {status.recent_logs.map((line, i) => (
-                <div key={i} className="crawl-log-line">{line}</div>
-              ))}
-              <div ref={logEndRef} />
+            <div className="crawl-live-console">
+              <div className="console-header"><span>🖥️ 라이브 로그</span><span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{status.recent_logs.length}줄</span></div>
+              <div className="console-body">
+                {status.recent_logs.map((line, i) => (
+                  <div key={i} className={`log-line ${line.includes('ERROR') || line.includes('error') ? 'error' : ''}`}>{line}</div>
+                ))}
+                <div ref={logEndRef} />
+              </div>
+            </div>
+          )}
+
+          {/* Completion Banner */}
+          {!status?.is_running && status?.collected && status.collected > 0 && status?.elapsed_seconds > 0 && (
+            <div className="crawl-complete-banner">
+              ✅ 크롤링 완료! 총 {status.collected.toLocaleString()}건 수집 (NYT {status.nyt_collected}, Guardian {status.guardian_collected}) — {status.elapsed_seconds}초 소요
             </div>
           )}
         </div>
@@ -1011,8 +1196,8 @@ const CrawlCenterSection: React.FC = () => {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', marginBottom: '16px' }}>
         <div className="data-tabs" style={{ margin: 0 }}>
-          <button className={`data-tab ${bottomTab === 'history' ? 'active' : ''}`} onClick={() => setBottomTab('history')}>
-            📋 크롤링 이력
+          <button className={`data-tab ${bottomTab === 'history' ? 'active' : ''}`} onClick={() => { setBottomTab('history'); }}>
+            🔍 데이터 관리
           </button>
           <button className={`data-tab ${bottomTab === 'health' ? 'active' : ''}`} onClick={() => setBottomTab('health')}>
             🏥 소스 건강도
@@ -1096,100 +1281,183 @@ const CrawlCenterSection: React.FC = () => {
 
       {bottomTab === 'history' && (
         <div className="crawl-control-panel">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 className="section-title" style={{ margin: 0, visibility: 'hidden', height: 0 }}>📋 크롤링 이력</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div className="quick-filters">
-                <button
-                  className={`filter-chip ${historyDateFilter === '' ? 'active' : ''}`}
-                  onClick={() => setHistoryDateFilter('')}
-                >
-                  전체
-                </button>
-                <button
-                  className={`filter-chip ${historyDateFilter === new Date().toISOString().split('T')[0] ? 'active' : ''}`}
-                  onClick={() => setHistoryDateFilter(new Date().toISOString().split('T')[0])}
-                >
-                  오늘
-                </button>
-                <button
-                  className={`filter-chip ${historyDateFilter === new Date(Date.now() - 86400000).toISOString().split('T')[0] ? 'active' : ''}`}
-                  onClick={() => setHistoryDateFilter(new Date(Date.now() - 86400000).toISOString().split('T')[0])}
-                >
-                  어제
-                </button>
-              </div>
-              <input
-                type="date"
-                value={historyDateFilter}
-                onChange={e => setHistoryDateFilter(e.target.value)}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.2)',
-                  color: '#fff',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontFamily: 'Inter, sans-serif'
-                }}
-              />
-              {historyDateFilter && (
-                <button
-                  className="action-btn small primary"
-                  onClick={handleViewDateArticles}
-                  disabled={logModalLoading}
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  ✨ 이 날짜 통합 보기
-                </button>
-              )}
+          {/* Search Filters */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 16 }}>
+            <div className="crawl-input-group" style={{ margin: 0 }}>
+              <label style={{ fontSize: 11 }}>연도</label>
+              <select className="filter-input" value={searchYear || ''} onChange={e => setSearchYear(e.target.value ? Number(e.target.value) : undefined)}
+                style={{ minWidth: 90, background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '6px 8px' }}>
+                <option value="">전체</option>
+                {yearCoverage.filter(y => y.total > 0).map(y => (
+                  <option key={y.year} value={y.year}>{y.year} ({y.total}건)</option>
+                ))}
+              </select>
             </div>
+            <div className="crawl-input-group" style={{ margin: 0 }}>
+              <label style={{ fontSize: 11 }}>소스</label>
+              <select className="filter-input" value={searchSource} onChange={e => setSearchSource(e.target.value)}
+                style={{ minWidth: 100, background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '6px 8px' }}>
+                <option value="">전체</option>
+                <option value="nyt">NYT</option>
+                <option value="guardian">Guardian</option>
+              </select>
+            </div>
+            <div className="crawl-input-group" style={{ margin: 0 }}>
+              <label style={{ fontSize: 11 }}>분류</label>
+              <select className="filter-input" value={searchClsStatus} onChange={e => setSearchClsStatus(e.target.value)}
+                style={{ minWidth: 100, background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '6px 8px' }}>
+                <option value="all">전체</option>
+                <option value="classified">분류완료</option>
+                <option value="unclassified">미분류</option>
+                <option value="error">에러</option>
+              </select>
+            </div>
+            <div className="crawl-input-group" style={{ margin: 0, flex: 1, minWidth: 150 }}>
+              <label style={{ fontSize: 11 }}>키워드</label>
+              <input type="text" className="filter-input" value={searchKeyword} onChange={e => setSearchKeyword(e.target.value)}
+                placeholder="제목/설명 검색..." onKeyDown={e => e.key === 'Enter' && handleArticleSearch()}
+                style={{ background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '6px 8px' }} />
+            </div>
+            <button className="action-btn small primary" onClick={() => handleArticleSearch()} disabled={searchLoading}
+              style={{ padding: '6px 16px', whiteSpace: 'nowrap' }}>
+              🔍 검색
+            </button>
           </div>
-          <div className="admin-table-container">
-            <table className="admin-table crawl-history-table">
-              <thead>
-                <tr>
-                  <th>시각</th>
-                  <th>소스</th>
-                  <th>상태</th>
-                  <th>소요시간</th>
-                  <th>신규 수집</th>
-                  <th style={{ width: 80 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.length === 0 ? (
+
+          {/* Results Info */}
+          {searchResults.total > 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>
+              <span>총 {searchResults.total.toLocaleString()}건 중 {searchOffset + 1}~{Math.min(searchOffset + 50, searchResults.total)}</span>
+              {selectedArticleIds.size > 0 && <span style={{ color: '#00D4FF' }}>{selectedArticleIds.size}건 선택됨</span>}
+            </div>
+          )}
+
+          {/* Article Table */}
+          <div className="admin-table-container" style={{ maxHeight: 500, overflowY: 'auto' }}>
+            {searchLoading ? (
+              <div className="admin-skeleton" style={{ height: 200 }} />
+            ) : searchResults.items.length === 0 ? (
+              <div className="admin-empty-text" style={{ padding: '40px 0', textAlign: 'center' }}>
+                검색 조건을 설정하고 🔍 검색을 클릭하세요
+              </div>
+            ) : (
+              <table className="admin-table">
+                <thead>
                   <tr>
-                    <td colSpan={6} className="admin-empty-text" style={{ padding: '40px 0' }}>
-                      해당 일자에 진행된 크롤링 작업이 없습니다.
-                    </td>
+                    <th style={{ width: 36 }}>
+                      <input type="checkbox" checked={selectedArticleIds.size === searchResults.items.length && searchResults.items.length > 0}
+                        onChange={toggleSelectAll} style={{ cursor: 'pointer' }} />
+                    </th>
+                    <th>발행일</th>
+                    <th>소스</th>
+                    <th>기사 제목</th>
+                    <th>설명</th>
+                    <th>분류</th>
                   </tr>
-                ) : (
-                  history.map(item => (
-                    <tr
-                      key={item.id}
-                      onClick={() => handleLogClick(item)}
-                      style={{
-                        cursor: (item.source === 'news' && item.status !== 'running') ? 'pointer' : 'default',
-                        backgroundColor: selectedLogId === item.id ? 'rgba(0, 212, 255, 0.1)' : undefined
-                      }}
-                      className={(item.source === 'news' && item.status !== 'running') ? 'clickable-row' : ''}
-                    >
-                      <td>{formatDate(item.completed_at || item.started_at).slice(6)}</td>
-                      <td><SourceTag source={`${item.source}/${item.task_type}`} /></td>
-                      <td><StatusBadge status={item.status} /></td>
-                      <td>{item.duration_ms ? `${(item.duration_ms / 1000).toFixed(1)}s` : '—'}</td>
-                      <td style={{ fontWeight: 500, color: item.records_count > 0 ? '#00D4FF' : '#fff' }}>{item.records_count}</td>
-                      <td style={{ textAlign: 'right' }}>
-                        {(item.source === 'news' && item.status !== 'running') && (
-                          <span className="row-action-indicator">상세 보기 ›</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {searchResults.items.map(a => (
+                    <React.Fragment key={a.id}>
+                      <tr
+                        className={`clickable-row ${expandedArticleId === a.id ? 'expanded' : ''}`}
+                        style={{ backgroundColor: selectedArticleIds.has(a.id) ? 'rgba(0,212,255,0.08)' : undefined }}
+                      >
+                        <td onClick={e => e.stopPropagation()}>
+                          <input type="checkbox" checked={selectedArticleIds.has(a.id)}
+                            onChange={() => toggleArticleSelection(a.id)} style={{ cursor: 'pointer' }} />
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap', fontSize: 12 }}>{a.published_at?.slice(0, 10) || '—'}</td>
+                        <td><SourceTag source={a.data_source || 'unknown'} /></td>
+                        <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
+                          onClick={() => setExpandedArticleId(expandedArticleId === a.id ? null : a.id)}>
+                          {a.title || '(제목 없음)'}
+                        </td>
+                        <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}
+                          title={a.description}>
+                          {a.description?.slice(0, 80) || '—'}
+                        </td>
+                        <td>
+                          {a.is_classified === 1 ? (
+                            <span className="issue-badge" style={{ background: 'rgba(0,212,150,0.1)', color: '#00D496', borderColor: 'rgba(0,212,150,0.3)' }}>
+                              {a.ai_category || '분류됨'}
+                            </span>
+                          ) : a.is_classified === -1 ? (
+                            <span className="issue-badge" style={{ background: 'rgba(255,77,77,0.1)', color: '#ff4d4d', borderColor: 'rgba(255,77,77,0.3)' }}>에러</span>
+                          ) : (
+                            <span className="issue-badge" style={{ background: 'rgba(255,255,255,0.05)', color: '#999', borderColor: 'rgba(255,255,255,0.1)' }}>미분류</span>
+                          )}
+                        </td>
+                      </tr>
+                      {/* Inline Expansion Panel */}
+                      {expandedArticleId === a.id && (
+                        <tr className="article-expand-row">
+                          <td colSpan={6}>
+                            <div className="article-expand-panel">
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                                <div>
+                                  <div className="expand-label">제목</div>
+                                  <div style={{ color: '#fff', fontWeight: 500 }}>{a.title}</div>
+                                </div>
+                                <div>
+                                  <div className="expand-label">URL</div>
+                                  <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#00D4FF', fontSize: 12, wordBreak: 'break-all' }}>{a.url}</a>
+                                </div>
+                              </div>
+                              <div style={{ marginTop: 12 }}>
+                                <div className="expand-label">설명</div>
+                                <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.5 }}>{a.description || '(설명 없음)'}</div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12 }}>
+                                <span>소스: <strong>{a.source_name || a.data_source}</strong></span>
+                                <span>발행: <strong>{a.published_at}</strong></span>
+                                <span>수집: <strong>{a.collected_at}</strong></span>
+                                {a.ai_category && <span>카테고리: <strong>{a.ai_category}</strong></span>}
+                                {a.ai_impact_score != null && <span>영향도: <strong>{a.ai_impact_score}</strong></span>}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
+
+          {/* Pagination */}
+          {searchResults.total > 50 && (
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 12 }}>
+              <button className="action-btn small" disabled={searchOffset === 0} onClick={() => handleArticleSearch(Math.max(0, searchOffset - 50))}>← 이전</button>
+              <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', alignSelf: 'center' }}>
+                {Math.floor(searchOffset / 50) + 1} / {Math.ceil(searchResults.total / 50)} 페이지
+              </span>
+              <button className="action-btn small" disabled={searchOffset + 50 >= searchResults.total} onClick={() => handleArticleSearch(searchOffset + 50)}>다음 →</button>
+            </div>
+          )}
+
+          {/* Floating Action Bar */}
+          {selectedArticleIds.size > 0 && (
+            <div className="article-action-bar">
+              <span style={{ fontSize: 13 }}>{selectedArticleIds.size}건 선택</span>
+              <button className="action-btn small secondary" onClick={() => handleRecrawlArticles(Array.from(selectedArticleIds))} disabled={actionLoading}>
+                🔄 재수집
+              </button>
+              <button className="action-btn small danger" onClick={() => handleDeleteArticles(Array.from(selectedArticleIds))}>
+                🗑️ 삭제
+              </button>
+              <button className="action-btn small" onClick={() => setSelectedArticleIds(new Set())}>
+                선택 해제
+              </button>
+            </div>
+          )}
+
+          {/* Undo Toast */}
+          {pendingDeleteIds.length > 0 && (
+            <div className="undo-toast" onClick={handleUndoDelete}>
+              ↩️ {pendingDeleteIds.length}건 삭제 대기 중 — 클릭하여 되돌리기
+            </div>
+          )}
         </div>
       )}
 
@@ -1369,14 +1637,14 @@ const CrawlCenterSection: React.FC = () => {
         <div className="modal-backdrop" onClick={() => setIsLogModalOpen(false)}>
           <div className="crawl-detail-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>크롤링 상세 내역 ({selectedDateForModal ? `${selectedDateForModal} 전체` : `작업 #${selectedLogId}`})</h3>
+              <h3>크롤링 상세 내역 (작업 #{selectedLogId})</h3>
               <button className="close-btn" onClick={() => setIsLogModalOpen(false)}>✕</button>
             </div>
             <div className="modal-content">
               {logModalLoading ? (
                 <div className="admin-skeleton" style={{ height: 200 }} />
               ) : logArticles.length === 0 ? (
-                <div className="admin-empty-text">해당 {selectedDateForModal ? '일자' : '작업'}에서 신규 수집된 기사가 없습니다.</div>
+                <div className="admin-empty-text">해당 작업에서 신규 수집된 기사가 없습니다.</div>
               ) : (
                 <>
                   <div className="modal-stats">
