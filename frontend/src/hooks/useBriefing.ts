@@ -13,14 +13,22 @@ export function useBriefing() {
       setLoading(true);
       setError(null);
       // Fetch today's and the last 7 days of briefings
-      const [today, history] = await Promise.all([
-        fetchTodayBriefing(),
-        fetchBriefingHistory(7),
-      ]);
+      const todayPromise = fetchTodayBriefing().catch(err => {
+        console.warn('Today briefing not ready:', err);
+        return null;
+      });
+      const historyPromise = fetchBriefingHistory(7).catch(err => {
+        console.error('Failed to load history:', err);
+        return [];
+      });
+
+      const [today, history] = await Promise.all([todayPromise, historyPromise]);
 
       // Combine and deduplicate, keeping today's as the definitive one if dates match
       const allBriefingsMap = new Map<string, Briefing>();
-      allBriefingsMap.set(today.date, today);
+      if (today) {
+        allBriefingsMap.set(today.date, today);
+      }
       history.forEach(h => {
         if (!allBriefingsMap.has(h.date)) {
           allBriefingsMap.set(h.date, h);
