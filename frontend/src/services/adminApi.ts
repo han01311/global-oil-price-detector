@@ -228,6 +228,15 @@ export interface CrawlSearchArticle {
   ai_category: string | null;
   ai_impact_score: number | null;
   ai_is_relevant: boolean | null;
+  classification_error?: string | null;
+  ai_confidence?: number | null;
+  ai_summary?: string | null;
+  ai_sub_categories?: string[] | null;
+  ai_translated_title?: string | null;
+  ai_classified_at?: string | null;
+  ai_wti?: number | null;
+  ai_brent?: number | null;
+  ai_dubai?: number | null;
 }
 
 export async function searchCrawlArticles(
@@ -252,6 +261,13 @@ export async function deleteCrawlArticles(ids: string[]): Promise<{ deleted: num
   return apiFetch('/api/admin/crawl/articles/delete', {
     method: 'DELETE',
     body: JSON.stringify({ article_ids: ids }),
+  });
+}
+
+export async function recoverArticle(id: string, rawText: string): Promise<{ status: string; title: string; description: string }> {
+  return apiFetch(`/api/admin/crawl/articles/${id}/recover`, {
+    method: 'POST',
+    body: JSON.stringify({ raw_text: rawText }),
   });
 }
 
@@ -480,8 +496,11 @@ export async function fetchPipelineArticles(
   status: string = 'all',
   limit: number = 50,
   offset: number = 0,
+  keyword?: string,
 ): Promise<{ total: number; items: PipelineArticle[] }> {
-  return apiFetch(`/api/admin/pipeline/articles?status=${status}&limit=${limit}&offset=${offset}`);
+  let url = `/api/admin/pipeline/articles?status=${status}&limit=${limit}&offset=${offset}`;
+  if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+  return apiFetch(url);
 }
 
 export async function deletePipelineArticles(ids: string[]): Promise<{ deleted: number }> {

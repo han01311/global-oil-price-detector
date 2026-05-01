@@ -425,8 +425,14 @@ async def get_year_coverage():
             coverage[y]["other"] += cnt
 
     current_year = datetime.now().year
+    min_year = 2000
+    if coverage:
+        valid_years = [int(k) for k in coverage.keys() if k.isdigit()]
+        if valid_years:
+            min_year = min(min(valid_years), 2000)
+
     result_list = []
-    for yr in range(2000, current_year + 1):
+    for yr in range(min_year, current_year + 1):
         y_str = str(yr)
         data = coverage.get(y_str, {"total": 0, "nyt": 0, "guardian": 0, "other": 0})
         result_list.append({"year": yr, **data})
@@ -482,7 +488,9 @@ async def search_crawl_articles(
         items = []
         for a in articles:
             cls_result = a.classification_result or {}
+            impact = cls_result.get("impact_by_crude", {}) if isinstance(cls_result, dict) else {}
             items.append({
+                # ── 원본 데이터 (Input) ──
                 "id": a.id,
                 "title": a.title,
                 "description": (a.description or "")[:200],
@@ -491,10 +499,23 @@ async def search_crawl_articles(
                 "url": a.url,
                 "published_at": a.published_at,
                 "collected_at": a.collected_at,
+                # ── 상태 ──
                 "is_classified": a.is_classified,
+                "classification_error": a.classification_error,
+                "retry_count": a.retry_count or 0,
+                "hold_status": a.hold_status or 0,
+                # ── AI 분석 결과 (Output) ──
                 "ai_category": cls_result.get("category") if isinstance(cls_result, dict) else None,
-                "ai_impact_score": cls_result.get("impact_score") if isinstance(cls_result, dict) else None,
                 "ai_is_relevant": cls_result.get("is_relevant") if isinstance(cls_result, dict) else None,
+                "ai_impact_score": cls_result.get("impact_score") if isinstance(cls_result, dict) else None,
+                "ai_confidence": cls_result.get("confidence") if isinstance(cls_result, dict) else None,
+                "ai_summary": (cls_result.get("impact_summary") or "")[:300] if isinstance(cls_result, dict) else None,
+                "ai_sub_categories": cls_result.get("sub_categories", []) if isinstance(cls_result, dict) else [],
+                "ai_translated_title": cls_result.get("translated_title") if isinstance(cls_result, dict) else None,
+                "ai_classified_at": cls_result.get("classified_at") if isinstance(cls_result, dict) else None,
+                "ai_wti": impact.get("wti", {}).get("score") if isinstance(impact, dict) else None,
+                "ai_brent": impact.get("brent", {}).get("score") if isinstance(impact, dict) else None,
+                "ai_dubai": impact.get("dubai", {}).get("score") if isinstance(impact, dict) else None,
             })
 
         return {"total": total, "items": items}
@@ -566,6 +587,39 @@ async def recrawl_articles(req: CrawlArticleIdsRequest):
         "target_years": sorted(years),
         "message": f"{len(req.article_ids)}건 삭제 완료. {year_min}~{year_max}년 재수집을 시작하려면 수동 크롤링에서 해당 범위를 설정하세요.",
     }
+
+
+class RecoverArticleRequest(BaseModel):
+    raw_text: str
+
+@router.post("/crawl/articles/{article_id}/recover")
+async def recover_article(article_id: str, req: RecoverArticleRequest):
+    """수동 입력된 텍스트로 기사 본문을 업데이트하고 파이프라인 대기 상태로 전환 (원문 그대로 저장)"""
+    if not req.raw_text.strip():
+        raise HTTPException(400, "본문 텍스트가 비어 있습니다.")
+
+    session_factory = get_session_factory()
+    from app.models.news_article import NewsArticle as NA
+
+    async with session_factory() as session:
+        article = await session.get(NA, article_id)
+        if not article:
+            raise HTTPException(404, "기사를 찾을 수 없습니다.")
+
+        # 기존 제목은 유지하고, description과 content_snippet에만 원문을 저장
+        article.description = req.raw_text[:4000]
+        article.content_snippet = req.raw_text[:2000]
+        
+        # Reset classification state and update collected_at to mark as NEW
+        from datetime import datetime, timezone
+        article.collected_at = datetime.now(timezone.utc).isoformat()
+        article.is_classified = 0
+        article.classification_error = None
+        article.classification_result = None
+        
+        await session.commit()
+
+    return {"status": "success", "title": article.title, "description": article.description}
 
 
 # ──────────────────────────────────────────────
@@ -814,7 +868,7 @@ async def retry_classification(req: PipelineRetryRequest, background_tasks: Back
 
             # AI 분류 실행
             classifier = NewsClassifier()
-            await classifier.classify_batch(article_dicts)
+            await classifier.classify_batch(article_dicts, force=True)
 
             # 분류 후 상태 확인 (after snapshot)
             async with sf() as s:
@@ -937,12 +991,14 @@ async def override_classification(req: OverrideRequest):
 @router.get("/pipeline/articles")
 async def get_pipeline_articles(
     status: str = "all",  # all, classified, pending, failed
+    keyword: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ):
     """통합 기사 관리: 원본 데이터 + AI 분석 결과를 함께 반환"""
     session_factory = get_session_factory()
     from app.models.news_article import NewsArticle as NA
+    from sqlalchemy import or_
 
     async with session_factory() as session:
         query = select(NA)
@@ -959,6 +1015,10 @@ async def get_pipeline_articles(
             conditions.append(NA.is_classified == -2)
         elif status == "archived":
             conditions.append(NA.is_classified == -3)
+
+        if keyword:
+            kw = f"%{keyword}%"
+            conditions.append(or_(NA.title.ilike(kw), NA.description.ilike(kw)))
 
         for cond in conditions:
             query = query.where(cond)

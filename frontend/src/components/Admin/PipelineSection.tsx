@@ -36,6 +36,7 @@ const PipelineSectionV2: React.FC = () => {
   const [articles, setArticles] = useState<PipelineArticle[]>([]);
   const [articlesTotal, setArticlesTotal] = useState(0);
   const [articleFilter, setArticleFilter] = useState('all');
+  const [articleKeyword, setArticleKeyword] = useState('');
   const [articlePage, setArticlePage] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
@@ -57,8 +58,8 @@ const PipelineSectionV2: React.FC = () => {
     const cls = await fetchClassificationStats();
     setClsStats(cls);
   };
-  const loadArticles = async (filter = articleFilter, page = articlePage) => {
-    const res = await fetchPipelineArticles(filter, PAGE_SIZE, page * PAGE_SIZE);
+  const loadArticles = async (filter = articleFilter, page = articlePage, keyword = articleKeyword) => {
+    const res = await fetchPipelineArticles(filter, PAGE_SIZE, page * PAGE_SIZE, keyword);
     setArticles(res.items);
     setArticlesTotal(res.total);
   };
@@ -118,8 +119,9 @@ const PipelineSectionV2: React.FC = () => {
   const goToArticles = (filter: string) => { setSubTab('articles'); handleFilterChange(filter); };
   const toggleSelect = (id: string) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleSelectAll = () => selectedIds.size === articles.length ? setSelectedIds(new Set()) : setSelectedIds(new Set(articles.map(a => a.id)));
-  const handleFilterChange = async (f: string) => { setArticleFilter(f); setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(f, 0); };
-  const handlePageChange = async (p: number) => { setArticlePage(p); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, p); };
+  const handleFilterChange = async (f: string) => { setArticleFilter(f); setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(f, 0, articleKeyword); };
+  const handlePageChange = async (p: number) => { setArticlePage(p); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, p, articleKeyword); };
+  const handleSearchSubmit = async () => { setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, 0, articleKeyword); };
 
   if (loading) return (
     <div className="overview-grid">
@@ -179,7 +181,7 @@ const PipelineSectionV2: React.FC = () => {
               { label: '전체 기사', value: clsStats.total, color: '', filter: 'all' },
               { label: '유효 분류 완료', value: clsStats.classified, color: 'var(--color-success)', filter: 'classified' },
               { label: '관련성 없음 (스킵)', value: clsStats.irrelevant, color: '#888', filter: 'irrelevant' },
-              { label: '분류 대기', value: clsStats.unclassified, color: clsStats.unclassified > 0 ? 'var(--color-warning)' : '', filter: 'pending' },
+              { label: '미분류', value: clsStats.unclassified, color: clsStats.unclassified > 0 ? 'var(--color-warning)' : '', filter: 'pending' },
               { label: '분류 에러', value: clsStats.failed, color: clsStats.failed > 0 ? 'var(--color-danger)' : '', filter: 'failed', border: clsStats.failed > 0 },
             ].map((c, i) => (
               <div key={i} className="overview-card" onClick={() => goToArticles(c.filter)} style={{ cursor: 'pointer', transition: 'transform 0.15s', ...(c.border ? { borderLeft: '4px solid var(--color-danger)' } : {}) }} title={`클릭하여 ${c.label} 기사 목록 보기`}>
@@ -227,32 +229,48 @@ const PipelineSectionV2: React.FC = () => {
       {/* ═══ TAB 2: 기사 관리 ═══ */}
       {subTab === 'articles' && (
         <div className="crawl-control-panel">
-          <div className="filters-bar" style={{ justifyContent: 'space-between', marginBottom: '20px' }}>
-            <div className="data-tabs" style={{ margin: 0 }}>
-              {[
-                { id: 'all', label: '전체', count: clsStats?.total },
-                { id: 'classified', label: '✓ 분류완료', count: clsStats?.classified },
-                { id: 'irrelevant', label: '관련성 없음', count: clsStats?.irrelevant },
-                { id: 'pending', label: '⏳ 대기', count: clsStats?.unclassified },
-                { id: 'failed', label: '✕ 에러', count: clsStats?.failed },
-                { id: 'archived', label: '🚫 중복방지 보관함', count: clsStats?.archived },
-              ].map(f => (
-                <button key={f.id} className={`data-tab ${articleFilter === f.id ? 'active' : ''}`} onClick={() => handleFilterChange(f.id)}>
-                  {f.label}{f.count != null ? <span style={{ marginLeft: 6, opacity: 0.6 }}>{f.count.toLocaleString()}</span> : ''}
-                </button>
-              ))}
-            </div>
-            {selectedIds.size > 0 ? (
-              <div className="crawl-message" style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(255, 107, 53, 0.1)', borderColor: 'rgba(255, 107, 53, 0.2)', color: '#FF6B35' }}>
-                <span style={{ fontWeight: 600 }}>{selectedIds.size}건 선택됨</span>
-                <button className="action-btn small primary" onClick={() => handleRetry(Array.from(selectedIds))}>🔄 재시도</button>
-                <button className="action-btn small" onClick={() => handleArchive()} style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)' }}>🚫 보관</button>
-                <button className="action-btn small" onClick={() => handleDelete()} style={{ background: 'rgba(255, 60, 60, 0.15)', color: '#FF5C5C', border: '1px solid rgba(255, 60, 60, 0.3)' }}>🗑 삭제</button>
-                <button onClick={() => setSelectedIds(new Set())} style={{ background: 'transparent', border: 'none', color: '#FF6B35', cursor: 'pointer', fontSize: '1.2em', padding: '0 4px' }}>×</button>
+          <div className="filters-bar" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+              <div className="data-tabs" style={{ margin: 0 }}>
+                {[
+                  { id: 'all', label: '전체', count: clsStats?.total },
+                  { id: 'classified', label: '✓ 분류완료', count: clsStats?.classified },
+                  { id: 'irrelevant', label: '관련성 없음', count: clsStats?.irrelevant },
+                  { id: 'pending', label: '⏳ 미분류', count: clsStats?.unclassified },
+                  { id: 'failed', label: '✕ 에러', count: clsStats?.failed },
+                  { id: 'archived', label: '🚫 중복방지 보관함', count: clsStats?.archived },
+                ].map(f => (
+                  <button key={f.id} className={`data-tab ${articleFilter === f.id ? 'active' : ''}`} onClick={() => handleFilterChange(f.id)}>
+                    {f.label}{f.count != null ? <span style={{ marginLeft: 6, opacity: 0.6 }}>{f.count.toLocaleString()}</span> : ''}
+                  </button>
+                ))}
               </div>
-            ) : (
-              <span className="pagination-info">행을 클릭하면 상세 정보, 체크박스로 일괄 작업 가능</span>
-            )}
+              {selectedIds.size > 0 ? (
+                <div className="crawl-message" style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(255, 107, 53, 0.1)', borderColor: 'rgba(255, 107, 53, 0.2)', color: '#FF6B35', padding: '6px 12px', borderRadius: '6px' }}>
+                  <span style={{ fontWeight: 600 }}>{selectedIds.size}건 선택됨</span>
+                  <button className="action-btn small primary" onClick={() => handleRetry(Array.from(selectedIds))}>🔄 재시도</button>
+                  <button className="action-btn small" onClick={() => handleArchive()} style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)' }}>🚫 보관</button>
+                  <button className="action-btn small" onClick={() => handleDelete()} style={{ background: 'rgba(255, 60, 60, 0.15)', color: '#FF5C5C', border: '1px solid rgba(255, 60, 60, 0.3)' }}>🗑 삭제</button>
+                  <button onClick={() => setSelectedIds(new Set())} style={{ background: 'transparent', border: 'none', color: '#FF6B35', cursor: 'pointer', fontSize: '1.2em', padding: '0 4px' }}>×</button>
+                </div>
+              ) : (
+                <span className="pagination-info">행을 클릭하면 상세 정보, 체크박스로 일괄 작업 가능</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <input 
+                type="text" 
+                className="filter-input" 
+                value={articleKeyword} 
+                onChange={e => setArticleKeyword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
+                placeholder="제목 또는 설명 검색..." 
+                style={{ flex: 1, maxWidth: '400px', background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '8px 12px' }} 
+              />
+              <button className="action-btn small primary" onClick={handleSearchSubmit} style={{ padding: '8px 16px' }}>
+                🔍 검색
+              </button>
+            </div>
           </div>
           <div className="admin-table-wrapper">
             <table className="admin-table">
@@ -262,9 +280,10 @@ const PipelineSectionV2: React.FC = () => {
               </tr></thead>
               <tbody>
                 {articles.length === 0 ? <tr><td colSpan={7} style={{ textAlign: 'center', padding: 30 }}>
-                  <div style={{ color: '#888' }}>{ articleFilter === 'failed' ? '✓ 에러 상태의 기사가 없습니다.' : articleFilter === 'pending' ? '✓ 분류 대기 중인 기사가 없습니다.' : '데이터가 없습니다.' }</div>
+                  <div style={{ color: '#888' }}>{ articleFilter === 'failed' ? '✓ 에러 상태의 기사가 없습니다.' : articleFilter === 'pending' ? '✓ 미분류 상태의 기사가 없습니다.' : '데이터가 없습니다.' }</div>
                 </td></tr> : articles.map(a => {
                   const isExp = expandedArticleId === a.id;
+                  const isNew = a.is_classified === 0 && a.collected_at && (new Date().getTime() - new Date(a.collected_at).getTime() < 24 * 60 * 60 * 1000);
                   const sIcon = a.is_classified === 1 ? '✓' : a.is_classified === -1 ? '✕' : a.is_classified === -2 ? '관련없음' : a.is_classified === -3 ? '보관됨' : '⏳';
                   const sColor = a.is_classified === 1 ? 'var(--color-success)' : a.is_classified === -1 ? 'var(--color-danger)' : (a.is_classified === -2 || a.is_classified === -3) ? '#888' : 'var(--color-warning)';
                   return (
@@ -272,7 +291,10 @@ const PipelineSectionV2: React.FC = () => {
                       <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedArticleId(isExp ? null : a.id)}>
                         <td onClick={e => e.stopPropagation()}><input type="checkbox" checked={selectedIds.has(a.id)} onChange={() => toggleSelect(a.id)} /></td>
                         <td style={{ maxWidth: 320 }}>
-                          <div style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={a.title}>{a.ai_translated_title || a.title}</div>
+                          <div style={{ fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={a.title}>
+                            {isNew && <span style={{ background: '#FF4D4D', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', marginRight: '6px', fontWeight: 'bold' }}>NEW</span>}
+                            {a.ai_translated_title || a.title}
+                          </div>
                           <div style={{ fontSize: '0.8em', color: '#777' }}>{formatDate(a.published_at)}</div>
                         </td>
                         <td><SourceTag source={a.data_source || 'unknown'} /></td>

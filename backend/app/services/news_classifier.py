@@ -43,6 +43,50 @@ class NewsClassifier:
             logger.warning(f"Failed to fetch title from {url}: {e}")
         return None
 
+    async def extract_text_features(self, raw_text: str) -> dict:
+        """수동 입력된 원문에서 기사 제목과 요약(description)을 추출합니다."""
+        if not raw_text or len(raw_text.strip()) < 10:
+            return {"title": "수동 입력 데이터 오류", "description": "입력된 텍스트가 너무 짧습니다."}
+            
+        prompt = f"""
+You are an expert news editor. Your task is to extract the main title and a comprehensive summary from the following raw text scraped from a news website.
+The summary should be 3-5 sentences long and capture the key points relevant to oil markets or macroeconomics.
+
+Raw Text:
+{raw_text[:4000]}
+
+Respond ONLY with a valid JSON object in the exact format below, with no additional text or markdown blocks:
+{{
+  "title": "Extracted Original Article Title (String, in its original language)",
+  "description": "Comprehensive summary (String, translate to Korean if the original is English or another language)"
+}}
+"""
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.ollama_url}/api/generate",
+                    json={
+                        "model": self.model_name,
+                        "prompt": prompt,
+                        "format": "json",
+                        "stream": False
+                    },
+                    timeout=60.0
+                )
+                response.raise_for_status()
+                response_json = json.loads(response.json()["response"])
+                
+                return {
+                    "title": response_json.get("title", "제목 추출 실패"),
+                    "description": response_json.get("description", "설명 추출 실패")
+                }
+        except Exception as e:
+            logger.error(f"Text extraction failed: {e}")
+            return {
+                "title": "AI 텍스트 추출 실패",
+                "description": f"원문을 정리하는 중 에러가 발생했습니다: {str(e)}"
+            }
+
     def _build_classification_prompt(self, article_content: str) -> str:
         """분류용 프롬프트 생성 — 유종별 독립 영향도 평가 포함"""
         category_definitions = """
@@ -102,6 +146,9 @@ Follow these instructions precisely:
       * NEVER write a generic statement like "유가에 영향을 줄 수 있다" — always specify the concrete channel of impact
 {impact_score_guide}
 
+    **Impact Summary Length Limit:**
+    Provide the overall summary in a natural, cohesive paragraph. You MUST limit the length to exactly 3-4 sentences. Do NOT use brackets like [핵심 요약]. Keep it concise and straight to the point.
+
 Use this guide for crude-specific sensitivity:
 {crude_sensitivity_guide}
 
@@ -159,7 +206,7 @@ JSON Output Format:
     "wti": {{"direction": "string", "score": integer, "rationale": "string (in Korean, 2-3 sentences, evidence-based)"}}
   }},
   "impact_score": integer,
-  "impact_summary": "string (in Korean, 3-5 sentences following the 3-part framework above)",
+  "impact_summary": "string (in Korean, natural paragraph, strictly limited to 3-4 concise sentences)",
   "confidence": float,
   "translated_title": "string or null"
 }}
@@ -202,7 +249,11 @@ JSON Output Format:
                             "model": self.model_name,
                             "prompt": prompt,
                             "format": "json",
-                            "stream": False
+                            "stream": False,
+                            "options": {
+                                "num_predict": 2048,
+                                "num_ctx": 8192
+                            }
                         },
                         timeout=120.0
                     )
@@ -290,7 +341,7 @@ JSON Output Format:
                 logger.error(f"{err_msg} for article '{article_model.title}'")
                 return {"status": "error", "article_id": article_model.id, "error": err_msg}
 
-    async def classify_batch(self, articles: list[dict]) -> list[ClassifiedArticle]:
+    async def classify_batch(self, articles: list[dict], force: bool = False) -> list[ClassifiedArticle]:
         """여러 기사를 배치로 분류 (rate limit 고려 및 기분류 기사 스킵)"""
         if not articles:
             return []
@@ -298,8 +349,8 @@ JSON Output Format:
         memory = MarketMemory()
         existing_ids = set()
         
-        # Check which articles are already in memory
-        if memory.is_available():
+        # Check which articles are already in memory (unless forced to reclassify)
+        if memory.is_available() and not force:
             article_ids = []
             for article in articles:
                 try:

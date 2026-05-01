@@ -592,6 +592,9 @@ const CrawlCenterSection: React.FC = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [selectedArticleIds, setSelectedArticleIds] = useState<Set<string>>(new Set());
   const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
+  const [recoverArticleId, setRecoverArticleId] = useState<string | null>(null);
+  const [recoverText, setRecoverText] = useState("");
+  const [recoverLoading, setRecoverLoading] = useState(false);
   const [deleteUndoTimer, setDeleteUndoTimer] = useState<number | null>(null);
   const [pendingDeleteIds, setPendingDeleteIds] = useState<string[]>([]);
 
@@ -765,8 +768,8 @@ const CrawlCenterSection: React.FC = () => {
     setSearchOffset(newOffset);
     try {
       const res = await searchCrawlArticles(
-        searchYear, searchSource || undefined, searchKeyword || undefined, 
-        searchClsStatus === 'all' ? undefined : searchClsStatus, 
+        searchYear, searchSource || undefined, searchKeyword || undefined,
+        searchClsStatus === 'all' ? undefined : searchClsStatus,
         50, newOffset
       );
       setSearchResults(res);
@@ -813,6 +816,38 @@ const CrawlCenterSection: React.FC = () => {
     setPendingDeleteIds([]);
     handleArticleSearch(searchOffset);
     showToast('삭제가 취소되었습니다.');
+  };
+
+  const handleRecoverSubmit = async () => {
+    if (!recoverArticleId || !recoverText.trim()) return;
+    setRecoverLoading(true);
+    try {
+      const { recoverArticle } = await import('../../services/adminApi');
+      const res = await recoverArticle(recoverArticleId, recoverText);
+      showToast(`원문 저장 완료! 해당 기사는 AI 분석 대기열(미분류)로 이동되었습니다.`);
+      setRecoverArticleId(null);
+      setRecoverText('');
+      
+      // Optimistic UI Update: 현재 목록에서 방금 복구한 기사의 상태를 '미분류(0)'로 즉시 변경하여 
+      // 화면에서 바로 사라지지 않고 사용자가 변경된 내용을 확인할 수 있도록 함.
+      setSearchResults(prev => ({
+        ...prev,
+        items: prev.items.map(a => a.id === recoverArticleId ? {
+          ...a,
+          is_classified: 0,
+          description: recoverText.slice(0, 4000), // 화면에 즉시 원문 반영
+          classification_error: null,
+          ai_category: null,
+          ai_is_relevant: null,
+          collected_at: new Date().toISOString(), // Mark as newly recovered
+        } : a)
+      }));
+      setRecoverLoading(false);
+
+    } catch (e: any) {
+      showToast(`복구 실패: ${e.message || e}`, 'err');
+      setRecoverLoading(false);
+    }
   };
 
   // Recrawl
@@ -1026,9 +1061,9 @@ const CrawlCenterSection: React.FC = () => {
       {subTab === 'manual' && (
         <div className="crawl-control-panel">
           {/* Year Coverage Heatmap */}
-          <div className="crawl-control-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 12, padding: '16px 20px' }}>
+          <div className="crawl-control-header" style={{ flexDirection: 'column', alignItems: 'stretch', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#e4e8ef' }}>📊 연도별 데이터 커버리지 (2000~현재)</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#e4e8ef' }}>📊 연도별 데이터 커버리지 (전체 연도)</span>
               <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>셀 클릭 → 연도 자동 설정</span>
             </div>
             <div className="year-coverage-heatmap">
@@ -1037,12 +1072,22 @@ const CrawlCenterSection: React.FC = () => {
                 const intensity = yc.total / maxCount;
                 const bg = yc.total === 0 ? 'rgba(255,77,77,0.15)'
                   : intensity < 0.3 ? 'rgba(255,184,77,0.25)'
-                  : intensity < 0.7 ? 'rgba(0,212,150,0.25)'
-                  : 'rgba(0,212,150,0.5)';
+                    : intensity < 0.7 ? 'rgba(0,212,150,0.25)'
+                      : 'rgba(0,212,150,0.5)';
+                const isSelected = yc.year >= startYear && yc.year <= endYear;
                 return (
-                  <div key={yc.year} className="heatmap-cell" style={{ background: bg }}
+                  <div key={yc.year} className={`heatmap-cell ${isSelected ? 'selected' : ''}`} style={{ background: bg }}
                     title={`${yc.year}년: ${yc.total}건 (NYT ${yc.nyt}, Guardian ${yc.guardian})`}
-                    onClick={() => { setStartYear(yc.year); if (crawlMode === 'single') setEndYear(yc.year); }}>
+                    onClick={() => {
+                      if (crawlMode === 'single') {
+                        setStartYear(yc.year);
+                        setEndYear(yc.year);
+                      } else {
+                        // 범위 수집 모드: 클릭한 연도로 시작/종료 범위 재설정
+                        setStartYear(yc.year);
+                        setEndYear(yc.year);
+                      }
+                    }}>
                     <span className="heatmap-year">{String(yc.year).slice(2)}</span>
                     <span className="heatmap-count">{yc.total > 0 ? yc.total : '—'}</span>
                   </div>
@@ -1055,7 +1100,7 @@ const CrawlCenterSection: React.FC = () => {
               const gapYears = gaps.map(g => g.year);
               return (
                 <div className="data-gap-suggest" onClick={() => { setStartYear(gapYears[0]); setEndYear(gapYears[gapYears.length - 1]); setCrawlMode('range'); }}>
-                  💡 데이터 공백: {gapYears.length <= 5 ? gapYears.join(', ') : `${gapYears[0]}~${gapYears[gapYears.length-1]} (${gapYears.length}개 연도)`}년 — 클릭하여 수집
+                  💡 데이터 공백: {gapYears.length <= 5 ? gapYears.join(', ') : `${gapYears[0]}~${gapYears[gapYears.length - 1]} (${gapYears.length}개 연도)`}년 — 클릭하여 수집
                 </div>
               );
             })()}
@@ -1071,7 +1116,7 @@ const CrawlCenterSection: React.FC = () => {
               <button className="crawl-preset-btn" onClick={() => { setCrawlMode('range'); setStartYear(new Date().getFullYear() - 4); setEndYear(new Date().getFullYear()); }}>최근 5년</button>
               <button className="crawl-preset-btn" onClick={() => {
                 const gaps = yearCoverage.filter(y => y.total === 0 && y.year <= new Date().getFullYear());
-                if (gaps.length > 0) { setCrawlMode('range'); setStartYear(gaps[0].year); setEndYear(gaps[gaps.length-1].year); }
+                if (gaps.length > 0) { setCrawlMode('range'); setStartYear(gaps[0].year); setEndYear(gaps[gaps.length - 1].year); }
               }}>빈 연도만</button>
               <button className="crawl-preset-btn" onClick={() => { setCrawlMode('range'); setStartYear(2000); setEndYear(new Date().getFullYear()); }}>전체</button>
             </div>
@@ -1115,7 +1160,7 @@ const CrawlCenterSection: React.FC = () => {
                 const numYears = crawlMode === 'single' ? 1 : Math.max(1, endYear - startYear + 1);
                 const estArticles = Math.min(target, numYears * Math.ceil(target / numYears));
                 const estTime = numYears * 15;
-                return `예상: ${numYears}개 연도 × ~${Math.ceil(target/numYears)}건 = 약 ${estArticles.toLocaleString()}건, 소요 ~${estTime < 60 ? estTime + '초' : Math.ceil(estTime/60) + '분'}`;
+                return `예상: ${numYears}개 연도 × ~${Math.ceil(target / numYears)}건 = 약 ${estArticles.toLocaleString()}건, 소요 ~${estTime < 60 ? estTime + '초' : Math.ceil(estTime / 60) + '분'}`;
               })()}
             </div>
           )}
@@ -1375,10 +1420,12 @@ const CrawlCenterSection: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {searchResults.items.map(a => (
-                    <React.Fragment key={a.id}>
-                      <tr
-                        className={`clickable-row ${expandedArticleId === a.id ? 'expanded' : ''}`}
+                  {searchResults.items.map(a => {
+                    const isNew = a.is_classified === 0 && a.collected_at && (new Date().getTime() - new Date(a.collected_at).getTime() < 24 * 60 * 60 * 1000);
+                    return (
+                      <React.Fragment key={a.id}>
+                        <tr
+                          className={`clickable-row ${expandedArticleId === a.id ? 'expanded' : ''}`}
                         style={{ backgroundColor: selectedArticleIds.has(a.id) ? 'rgba(0,212,255,0.08)' : undefined }}
                       >
                         <td onClick={e => e.stopPropagation()}>
@@ -1389,6 +1436,7 @@ const CrawlCenterSection: React.FC = () => {
                         <td><SourceTag source={a.data_source || 'unknown'} /></td>
                         <td style={{ maxWidth: 280, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }}
                           onClick={() => setExpandedArticleId(expandedArticleId === a.id ? null : a.id)}>
+                          {isNew && <span style={{ background: '#FF4D4D', color: '#fff', fontSize: '10px', padding: '2px 6px', borderRadius: '4px', marginRight: '6px', fontWeight: 'bold' }}>NEW</span>}
                           {a.title || '(제목 없음)'}
                         </td>
                         <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: 12, color: 'rgba(255,255,255,0.5)' }}
@@ -1410,35 +1458,103 @@ const CrawlCenterSection: React.FC = () => {
                       {/* Inline Expansion Panel */}
                       {expandedArticleId === a.id && (
                         <tr className="article-expand-row">
-                          <td colSpan={6}>
-                            <div className="article-expand-panel">
-                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                                <div>
-                                  <div className="expand-label">제목</div>
-                                  <div style={{ color: '#fff', fontWeight: 500 }}>{a.title}</div>
+                          <td colSpan={6} style={{ padding: 0, borderBottom: '1px solid rgba(255,255,255,0.05)', whiteSpace: 'normal' }}>
+                            <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px', background: 'rgba(0, 0, 0, 0.2)' }}>
+                              {/* Input Column */}
+                              <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(255, 255, 255, 0.05)', minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px' }}>
+                                  <span style={{ fontSize: '1.2em' }}>📥</span>
+                                  <span style={{ fontWeight: 700, color: '#fff', fontSize: '1.05em' }}>원본 데이터 (Input)</span>
                                 </div>
-                                <div>
-                                  <div className="expand-label">URL</div>
-                                  <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#00D4FF', fontSize: 12, wordBreak: 'break-all' }}>{a.url}</a>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9em' }}>
+                                  <div style={{ display: 'flex' }}><span style={{ color: '#888', marginRight: '8px', minWidth: '60px' }}>원문 제목</span><span style={{ color: '#fff', fontWeight: 500, wordBreak: 'break-word' }}>{a.title}</span></div>
+                                  <div><span style={{ color: '#888', marginRight: '8px', width: '60px', display: 'inline-block' }}>기사 설명</span><div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '6px', color: '#bbb', marginTop: '6px', lineHeight: 1.5, wordBreak: 'break-word' }}>{a.description || '제공된 설명이 없습니다.'}</div></div>
+                                  
+                                  {(!a.description || a.description.length < 30) && (
+                                    <div style={{ marginTop: '12px', background: 'rgba(255,184,77,0.1)', border: '1px solid rgba(255,184,77,0.3)', padding: '12px', borderRadius: '8px' }}>
+                                      <div style={{ color: '#ffb84d', fontWeight: 600, fontSize: '0.95em', marginBottom: '8px' }}>⚠️ 본문 텍스트 추출 실패 (사이트 봇 차단 또는 구조 변경)</div>
+                                      <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9em', marginBottom: '12px' }}>원본 페이지에서 텍스트를 복사하여 아래에 붙여넣으면 AI가 자동 정리합니다.</div>
+                                      
+                                      {recoverArticleId === a.id ? (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                          <textarea 
+                                            value={recoverText} 
+                                            onChange={e => setRecoverText(e.target.value)}
+                                            placeholder="기사 본문을 여기에 붙여넣으세요..."
+                                            style={{ width: '100%', height: '120px', background: 'rgba(0,0,0,0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '6px', padding: '10px', fontSize: '0.9em', resize: 'vertical' }}
+                                          />
+                                          <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                            <button className="action-btn small" onClick={() => { setRecoverArticleId(null); setRecoverText(''); }} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)' }}>취소</button>
+                                            <button className="action-btn small primary" onClick={handleRecoverSubmit} disabled={recoverLoading}>
+                                              {recoverLoading ? '⏳ 복구 중...' : '✨ AI 자동 정리 및 업데이트'}
+                                            </button>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <button className="action-btn small" onClick={() => setRecoverArticleId(a.id)} style={{ background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)' }}>📝 텍스트 직접 입력하여 복구</button>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                    <div><span style={{ color: '#888', marginRight: '8px' }}>데이터 소스</span><span style={{ color: '#fff' }}>{a.source_name} ({a.data_source})</span></div>
+                                    <div><span style={{ color: '#888', marginRight: '8px' }}>발행일</span><span style={{ color: '#fff' }}>{formatDate(a.published_at)}</span></div>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', minWidth: 0, overflow: 'hidden' }}><span style={{ color: '#888', marginRight: '8px', whiteSpace: 'nowrap' }}>원문 링크</span><a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#4a9eff', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>새 탭에서 열기 ↗</a></div>
+                                    <div style={{ whiteSpace: 'nowrap' }}><span style={{ color: '#888', marginRight: '8px' }}>수집일</span><span style={{ color: '#fff' }}>{formatDate(a.collected_at)}</span></div>
+                                  </div>
                                 </div>
                               </div>
-                              <div style={{ marginTop: 12 }}>
-                                <div className="expand-label">설명</div>
-                                <div style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, lineHeight: 1.5 }}>{a.description || '(설명 없음)'}</div>
-                              </div>
-                              <div style={{ display: 'flex', gap: 16, marginTop: 12, fontSize: 12 }}>
-                                <span>소스: <strong>{a.source_name || a.data_source}</strong></span>
-                                <span>발행: <strong>{a.published_at}</strong></span>
-                                <span>수집: <strong>{a.collected_at}</strong></span>
-                                {a.ai_category && <span>카테고리: <strong>{a.ai_category}</strong></span>}
-                                {a.ai_impact_score != null && <span>영향도: <strong>{a.ai_impact_score}</strong></span>}
+
+                              {/* Output Column */}
+                              <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px' }}>
+                                  <span style={{ fontSize: '1.2em' }}>🤖</span>
+                                  <span style={{ fontWeight: 700, color: '#fff', fontSize: '1.05em' }}>AI 분석 결과 (Output)</span>
+                                  {a.is_classified === -2 && <span className="issue-badge" style={{ marginLeft: 'auto', background: 'rgba(255, 255, 255, 0.1)', color: '#bbb' }}>관련성 없음</span>}
+                                  {a.is_classified === -3 && <span className="issue-badge" style={{ marginLeft: 'auto', background: 'rgba(255, 107, 53, 0.2)', color: '#FF6B35' }}>중복방지 (보관됨)</span>}
+                                </div>
+
+                                <div style={{ flex: 1 }}>
+                                  {a.is_classified === 1 || a.is_classified === -2 || a.is_classified === -3 ? (
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9em' }}>
+                                      <div style={{ display: 'flex' }}><span style={{ color: '#888', marginRight: '8px', minWidth: '60px' }}>번역 제목</span><span style={{ color: '#00d4ff', fontWeight: 500, wordBreak: 'break-word' }}>{a.ai_translated_title || '-'}</span></div>
+                                      <div style={{ display: 'flex', gap: '20px' }}>
+                                        <div><span style={{ color: '#888', marginRight: '8px' }}>카테고리</span><span className={`source-tag ${a.ai_category}`} style={{ display: 'inline-block', padding: '2px 8px' }}>{CATEGORY_KR[a.ai_category || ''] || a.ai_category}</span></div>
+                                        <div><span style={{ color: '#888', marginRight: '8px' }}>서브 분류</span><span style={{ color: '#fff' }}>{a.ai_sub_categories?.join(', ') || '-'}</span></div>
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '20px', marginTop: '4px' }}>
+                                        <div><span style={{ color: '#888', marginRight: '8px' }}>유가 영향</span><span style={{ color: (a.ai_impact_score || 0) > 0 ? 'var(--color-success)' : (a.ai_impact_score || 0) < 0 ? 'var(--color-danger)' : '#fff', fontWeight: 'bold', fontSize: '1.1em' }}>{(a.ai_impact_score || 0) > 0 ? '+' : ''}{a.ai_impact_score}</span></div>
+                                        <div><span style={{ color: '#888', marginRight: '8px' }}>신뢰도</span><span style={{ color: '#fff' }}>{((a.ai_confidence || 0) * 100).toFixed(0)}%</span></div>
+                                        <div><span style={{ color: '#888', marginRight: '8px' }}>유종별</span><span style={{ color: '#bbb', fontFamily: 'monospace' }}>W:{a.ai_wti} B:{a.ai_brent} D:{a.ai_dubai}</span></div>
+                                      </div>
+                                      <div>
+                                        <span style={{ color: '#888', marginRight: '8px', display: 'block', marginBottom: '6px' }}>AI 종합 의견</span>
+                                        <div style={{ background: 'rgba(0, 212, 255, 0.05)', borderLeft: '3px solid #00d4ff', padding: '10px 12px', borderRadius: '0 6px 6px 0', color: '#e2e8f0', lineHeight: 1.6, wordBreak: 'break-word' }}>
+                                          {a.ai_summary || '요약 내용이 없습니다.'}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ) : a.is_classified === -1 ? (
+                                    <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '16px', color: 'var(--color-danger)', lineHeight: 1.5 }}>
+                                      <div style={{ fontWeight: 600, marginBottom: '8px' }}>⚠️ 분석 중 오류가 발생했습니다</div>
+                                      <div style={{ fontSize: '0.9em', color: '#ffb3b3' }}>{a.classification_error || 'Unknown Error'}</div>
+                                    </div>
+                                  ) : (
+                                    <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#666', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+                                      아직 AI 분석이 수행되지 않았습니다.
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
                         </tr>
                       )}
                     </React.Fragment>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}

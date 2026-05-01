@@ -1423,6 +1423,13 @@ tr.clickable-row:hover .row-action-indicator {
   min-height: 44px;
 }
 
+.heatmap-cell.selected {
+  border-color: #00d4ff;
+  box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
+  transform: scale(1.08);
+  z-index: 1;
+}
+
 .heatmap-cell:hover {
   transform: scale(1.08);
   border-color: rgba(0, 212, 255, 0.4);
