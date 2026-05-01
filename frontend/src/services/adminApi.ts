@@ -292,6 +292,7 @@ export interface ClassificationStats {
   classified: number;
   unclassified: number;
   failed: number;
+  irrelevant: number;
   classification_rate: number;
   category_distribution: CategoryStat[];
   relevance_distribution: RelevanceStat[];

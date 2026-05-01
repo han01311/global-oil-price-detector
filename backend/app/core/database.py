@@ -330,6 +330,7 @@ class Database:
     async def get_news_articles(
         self, data_source: str | None = None,
         classified_only: bool = False,
+        exclude_irrelevant: bool = True,
         limit: int = 50, offset: int = 0
     ) -> list[dict]:
         session_factory = get_session_factory()
@@ -339,6 +340,8 @@ class Database:
                 stmt = stmt.where(NewsArticleModel.data_source == data_source)
             if classified_only:
                 stmt = stmt.where(NewsArticleModel.is_classified == 1)
+            elif exclude_irrelevant:
+                stmt = stmt.where(NewsArticleModel.is_classified != -2)
             stmt = stmt.order_by(NewsArticleModel.published_at.desc()).limit(limit).offset(offset)
             result = await session.execute(stmt)
             return [_row_to_dict(r) for r in result.scalars().all()]
@@ -364,6 +367,7 @@ class Database:
                     NewsArticleModel.data_source,
                 )
                 .where(func.substr(NewsArticleModel.published_at, 1, 10).between(start_date, end_date))
+                .where(NewsArticleModel.is_classified != -2)
                 .group_by(date_col, NewsArticleModel.data_source)
                 .order_by(date_col)
             )
@@ -377,6 +381,7 @@ class Database:
             stmt = (
                 select(NewsArticleModel)
                 .where(NewsArticleModel.published_at.startswith(target_date))
+                .where(NewsArticleModel.is_classified != -2)
                 .order_by(NewsArticleModel.published_at.desc())
                 .limit(limit)
             )
@@ -391,6 +396,7 @@ class Database:
                 select(NewsArticleModel)
                 .where(NewsArticleModel.published_at >= start_date)
                 .where(NewsArticleModel.published_at <= end_date + "T23:59:59")
+                .where(NewsArticleModel.is_classified != -2)
                 .order_by(NewsArticleModel.published_at.desc())
                 .limit(limit)
             )

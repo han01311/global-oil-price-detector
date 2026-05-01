@@ -244,8 +244,16 @@ async def crawl_all(start_year_override: int | None = None, end_year_override: i
     rate_limiter = RateLimiter()
 
     state = load_state()
-    total_collected = state["total_collected"]
-    last_year = state["last_completed_year"]
+    
+    is_manual_run = start_year_override is not None or end_year_override is not None
+    
+    if is_manual_run:
+        # 수동 실행 시 기존 누적 수집량을 무시하고 0부터 새로 카운트
+        total_collected = 0
+        last_year = None
+    else:
+        total_collected = state["total_collected"]
+        last_year = state["last_completed_year"]
 
     if start_year_override is not None:
         first_year = start_year_override
@@ -260,7 +268,7 @@ async def crawl_all(start_year_override: int | None = None, end_year_override: i
     years = list(range(first_year, final_year + 1))
     num_years = len(years)
 
-    if num_years == 0:
+    if num_years == 0 and not is_manual_run:
         emit_json({"type": "complete", "message": "모든 연도 크롤링이 이미 완료되었습니다.", "total_collected": total_collected})
         logger.info("✅ 모든 연도 크롤링이 이미 완료되었습니다.")
         await db.close()
@@ -409,9 +417,10 @@ async def crawl_all(start_year_override: int | None = None, end_year_override: i
             })
             logger.warning(f"⚠️  {year}년: 수집된 기사 없음")
 
-        state["last_completed_year"] = year
-        state["total_collected"] = total_collected
-        save_state(state)
+        if not is_manual_run:
+            state["last_completed_year"] = year
+            state["total_collected"] = total_collected
+            save_state(state)
 
     total_elapsed = round(time.time() - crawl_start_time)
     emit_json({

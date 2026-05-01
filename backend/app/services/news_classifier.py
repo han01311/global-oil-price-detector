@@ -82,7 +82,12 @@ CRITICAL: You must evaluate the impact on EACH crude type (Dubai, Brent, WTI) IN
 
 Follow these instructions precisely:
 1.  Read the provided news article content.
-2.  Determine if the article is relevant to the global oil price. If it's about local gasoline prices, company stock prices, or other unrelated topics, set `is_relevant` to `false`.
+2.  Determine if the article is relevant to the global oil price. 
+    **EXCLUSION RULES (Set `is_relevant` to `false` if ANY apply):**
+    - Local news: Local gas station prices, minor regional power outages, local weather not affecting oil infrastructure.
+    - Corporate news: Earnings reports, stock price movements, or executive changes of individual companies (e.g., Exxon, Tesla, airline companies) UNLESS they are major national oil companies (Saudi Aramco) or represent a massive global industry shift.
+    - General market recaps: Daily summaries of S&P500 or general stock market indices that simply mention "oil prices rose" in passing without analyzing the cause.
+    - Unrelated topics: Articles about cooking oil, olive oil, essential oils, or unrelated political scandals.
 3.  If relevant, identify the primary category that best describes the news. The categories are:
 {category_definitions}
 4.  Identify any secondary categories if applicable.
@@ -366,11 +371,13 @@ JSON Output Format:
                 SessionLocal = get_session_factory()
                 async with SessionLocal() as db_session:
                     for res in valid_results:
+                        # If irrelevant, we store it as -2 so it is hidden from the dashboard but kept for URL deduplication
+                        classified_status = 1 if res.is_relevant else -2
                         await db_session.execute(
                             update(NewsArticleModel)
                             .where(NewsArticleModel.id == res.article.id)
                             .values(
-                                is_classified=1,
+                                is_classified=classified_status,
                                 classification_result=res.model_dump(),
                                 classification_error=None
                             )

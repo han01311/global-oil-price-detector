@@ -586,6 +586,7 @@ async def get_classification_stats():
                 func.sum(case((NA.is_classified == 1, 1), else_=0)).label("classified"),
                 func.sum(case((NA.is_classified == 0, 1), else_=0)).label("unclassified"),
                 func.sum(case((NA.is_classified == -1, 1), else_=0)).label("failed"),
+                func.sum(case((NA.is_classified == -2, 1), else_=0)).label("irrelevant"),
             )
         )
         row = result.one()
@@ -593,6 +594,7 @@ async def get_classification_stats():
         classified = row.classified or 0
         unclassified = row.unclassified or 0
         failed = row.failed or 0
+        irrelevant = row.irrelevant or 0
 
         # 2. 카테고리별 분류 분포 (classification_result->'category')
         cat_result = await session.execute(text("""
@@ -656,7 +658,8 @@ async def get_classification_stats():
         "classified": classified,
         "unclassified": unclassified,
         "failed": failed,
-        "classification_rate": round(classified / max(total, 1) * 100, 1),
+        "irrelevant": irrelevant,
+        "classification_rate": round((classified + irrelevant) / max(total, 1) * 100, 1),
         "category_distribution": category_distribution,
         "relevance_distribution": relevance_distribution,
         "daily_pipeline": daily_pipeline,

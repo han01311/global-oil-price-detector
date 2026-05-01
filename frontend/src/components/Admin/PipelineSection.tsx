@@ -165,7 +165,8 @@ const PipelineSectionV2: React.FC = () => {
           <div className="overview-grid">
             {[
               { label: '전체 기사', value: clsStats.total, color: '', filter: 'all' },
-              { label: 'AI 분류 완료', value: clsStats.classified, color: 'var(--color-success)', filter: 'classified' },
+              { label: '유효 분류 완료', value: clsStats.classified, color: 'var(--color-success)', filter: 'classified' },
+              { label: '관련성 없음 (스킵)', value: clsStats.irrelevant, color: '#888', filter: 'irrelevant' },
               { label: '분류 대기', value: clsStats.unclassified, color: clsStats.unclassified > 0 ? 'var(--color-warning)' : '', filter: 'pending' },
               { label: '분류 에러', value: clsStats.failed, color: clsStats.failed > 0 ? 'var(--color-danger)' : '', filter: 'failed', border: clsStats.failed > 0 },
             ].map((c, i) => (
