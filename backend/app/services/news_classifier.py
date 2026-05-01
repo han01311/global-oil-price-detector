@@ -256,6 +256,16 @@ JSON Output Format:
                             rationale=response_json.get("impact_summary", "")
                         )
 
+                # Ensure required fields are not None
+                if response_json.get("category") is None:
+                    response_json["category"] = "Uncategorized"
+                if response_json.get("impact_summary") is None:
+                    response_json["impact_summary"] = "관련성 없음으로 제외됨" if not response_json.get("is_relevant") else "요약 없음"
+                if response_json.get("impact_score") is None:
+                    response_json["impact_score"] = 0
+                if response_json.get("confidence") is None:
+                    response_json["confidence"] = 0.0
+
                 result_data = {
                     "article": article_model,
                     "classified_at": datetime.now(timezone.utc).isoformat(),

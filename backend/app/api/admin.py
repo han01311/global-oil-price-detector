@@ -465,6 +465,8 @@ async def search_crawl_articles(
             conditions.append(NA.is_classified == 0)
         elif cls_status == "error":
             conditions.append(NA.is_classified == -1)
+        elif cls_status == "irrelevant":
+            conditions.append(NA.is_classified == -2)
 
         for cond in conditions:
             base = base.where(cond)
@@ -941,19 +943,28 @@ async def get_pipeline_articles(
 
     async with session_factory() as session:
         query = select(NA)
+        count_query = select(func.count(NA.id))
+        
+        conditions = []
         if status == "classified":
-            query = query.where(NA.is_classified == 1)
+            conditions.append(NA.is_classified == 1)
         elif status == "pending":
-            query = query.where(NA.is_classified == 0)
+            conditions.append(NA.is_classified == 0)
         elif status == "failed":
-            query = query.where(NA.is_classified == -1)
+            conditions.append(NA.is_classified == -1)
+        elif status == "irrelevant":
+            conditions.append(NA.is_classified == -2)
+
+        for cond in conditions:
+            query = query.where(cond)
+            count_query = count_query.where(cond)
 
         query = query.order_by(NA.published_at.desc()).offset(offset).limit(limit)
         result = await session.execute(query)
         articles = result.scalars().all()
 
         # Count totals for pagination
-        count_result = await session.execute(select(func.count(NA.id)))
+        count_result = await session.execute(count_query)
         total = count_result.scalar() or 0
 
         items = []

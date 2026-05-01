@@ -1326,6 +1326,7 @@ const CrawlCenterSection: React.FC = () => {
                 style={{ minWidth: 100, background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '6px 8px' }}>
                 <option value="all">전체</option>
                 <option value="classified">분류완료</option>
+                <option value="irrelevant">관련성 없음</option>
                 <option value="unclassified">미분류</option>
                 <option value="error">에러</option>
               </select>
