@@ -133,7 +133,7 @@ const PipelineSectionV2: React.FC = () => {
       )}
 
       {/* Sub-tab navigation */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div className="data-tabs" style={{ margin: 0 }}>
           {([
             { id: 'stats' as PipelineTab, label: '📊 현황', badge: '' },
