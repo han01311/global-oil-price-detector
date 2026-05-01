@@ -293,6 +293,7 @@ export interface ClassificationStats {
   unclassified: number;
   failed: number;
   irrelevant: number;
+  archived: number;
   classification_rate: number;
   category_distribution: CategoryStat[];
   relevance_distribution: RelevanceStat[];
@@ -486,6 +487,13 @@ export async function fetchPipelineArticles(
 export async function deletePipelineArticles(ids: string[]): Promise<{ deleted: number }> {
   return apiFetch('/api/admin/pipeline/articles', {
     method: 'DELETE',
+    body: JSON.stringify({ article_ids: ids }),
+  });
+}
+
+export async function archivePipelineArticles(ids: string[]): Promise<{ archived: number }> {
+  return apiFetch('/api/admin/pipeline/archive', {
+    method: 'POST',
     body: JSON.stringify({ article_ids: ids }),
   });
 }

@@ -589,6 +589,7 @@ async def get_classification_stats():
                 func.sum(case((NA.is_classified == 0, 1), else_=0)).label("unclassified"),
                 func.sum(case((NA.is_classified == -1, 1), else_=0)).label("failed"),
                 func.sum(case((NA.is_classified == -2, 1), else_=0)).label("irrelevant"),
+                func.sum(case((NA.is_classified == -3, 1), else_=0)).label("archived"),
             )
         )
         row = result.one()
@@ -597,6 +598,7 @@ async def get_classification_stats():
         unclassified = row.unclassified or 0
         failed = row.failed or 0
         irrelevant = row.irrelevant or 0
+        archived = row.archived or 0
 
         # 2. 카테고리별 분류 분포 (classification_result->'category')
         cat_result = await session.execute(text("""
@@ -661,7 +663,8 @@ async def get_classification_stats():
         "unclassified": unclassified,
         "failed": failed,
         "irrelevant": irrelevant,
-        "classification_rate": round((classified + irrelevant) / max(total, 1) * 100, 1),
+        "archived": archived,
+        "classification_rate": round((classified + irrelevant + archived) / max(total, 1) * 100, 1),
         "category_distribution": category_distribution,
         "relevance_distribution": relevance_distribution,
         "daily_pipeline": daily_pipeline,
@@ -954,6 +957,8 @@ async def get_pipeline_articles(
             conditions.append(NA.is_classified == -1)
         elif status == "irrelevant":
             conditions.append(NA.is_classified == -2)
+        elif status == "archived":
+            conditions.append(NA.is_classified == -3)
 
         for cond in conditions:
             query = query.where(cond)
@@ -1019,6 +1024,22 @@ async def delete_articles(req: DeleteArticlesRequest):
         )
         await session.commit()
         return {"deleted": result.rowcount}
+
+@router.post("/pipeline/archive")
+async def archive_articles(req: DeleteArticlesRequest):
+    """선택한 기사를 중복방지 보관함(is_classified = -3)으로 이동"""
+    from sqlalchemy import update as sql_update
+    from app.models.news_article import NewsArticle as NA
+
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        result = await session.execute(
+            sql_update(NA)
+            .where(NA.id.in_(req.article_ids))
+            .values(is_classified=-3)
+        )
+        await session.commit()
+        return {"archived": result.rowcount}
 
 # ──────────────────────────────────────────────
 # Crawl Center (크롤링 관리)

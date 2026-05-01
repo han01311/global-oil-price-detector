@@ -4,6 +4,7 @@ import {
   fetchPipelineArticles,
   deletePipelineArticles,
   retryPipelineItems,
+  archivePipelineArticles,
   fetchPipelineJobs,
 } from '../../services/adminApi';
 import type {
@@ -102,6 +103,17 @@ const PipelineSectionV2: React.FC = () => {
       setSelectedIds(new Set()); setExpandedArticleId(null);
       await loadArticles(); await loadStats();
     } catch { showToast('삭제에 실패했습니다.', 'err'); }
+  };
+  const handleArchive = async (ids?: string[]) => {
+    const targets = ids || Array.from(selectedIds);
+    if (targets.length === 0) return;
+    if (!confirm(`선택한 ${targets.length}건의 기사를 중복방지 보관함으로 이동하시겠습니까?\n이후 일반 목록에서는 보이지 않게 됩니다.`)) return;
+    try {
+      const res = await archivePipelineArticles(targets);
+      showToast(`${res.archived}건 보관 처리 완료`);
+      setSelectedIds(new Set()); setExpandedArticleId(null);
+      await loadArticles(); await loadStats();
+    } catch { showToast('보관 처리에 실패했습니다.', 'err'); }
   };
   const goToArticles = (filter: string) => { setSubTab('articles'); handleFilterChange(filter); };
   const toggleSelect = (id: string) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -223,6 +235,7 @@ const PipelineSectionV2: React.FC = () => {
                 { id: 'irrelevant', label: '관련성 없음', count: clsStats?.irrelevant },
                 { id: 'pending', label: '⏳ 대기', count: clsStats?.unclassified },
                 { id: 'failed', label: '✕ 에러', count: clsStats?.failed },
+                { id: 'archived', label: '🚫 중복방지 보관함', count: clsStats?.archived },
               ].map(f => (
                 <button key={f.id} className={`data-tab ${articleFilter === f.id ? 'active' : ''}`} onClick={() => handleFilterChange(f.id)}>
                   {f.label}{f.count != null ? <span style={{ marginLeft: 6, opacity: 0.6 }}>{f.count.toLocaleString()}</span> : ''}
@@ -233,6 +246,7 @@ const PipelineSectionV2: React.FC = () => {
               <div className="crawl-message" style={{ display: 'flex', gap: 12, alignItems: 'center', background: 'rgba(255, 107, 53, 0.1)', borderColor: 'rgba(255, 107, 53, 0.2)', color: '#FF6B35' }}>
                 <span style={{ fontWeight: 600 }}>{selectedIds.size}건 선택됨</span>
                 <button className="action-btn small primary" onClick={() => handleRetry(Array.from(selectedIds))}>🔄 재시도</button>
+                <button className="action-btn small" onClick={() => handleArchive()} style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)' }}>🚫 보관</button>
                 <button className="action-btn small" onClick={() => handleDelete()} style={{ background: 'rgba(255, 60, 60, 0.15)', color: '#FF5C5C', border: '1px solid rgba(255, 60, 60, 0.3)' }}>🗑 삭제</button>
                 <button onClick={() => setSelectedIds(new Set())} style={{ background: 'transparent', border: 'none', color: '#FF6B35', cursor: 'pointer', fontSize: '1.2em', padding: '0 4px' }}>×</button>
               </div>
@@ -251,8 +265,8 @@ const PipelineSectionV2: React.FC = () => {
                   <div style={{ color: '#888' }}>{ articleFilter === 'failed' ? '✓ 에러 상태의 기사가 없습니다.' : articleFilter === 'pending' ? '✓ 분류 대기 중인 기사가 없습니다.' : '데이터가 없습니다.' }</div>
                 </td></tr> : articles.map(a => {
                   const isExp = expandedArticleId === a.id;
-                  const sIcon = a.is_classified === 1 ? '✓' : a.is_classified === -1 ? '✕' : '⏳';
-                  const sColor = a.is_classified === 1 ? 'var(--color-success)' : a.is_classified === -1 ? 'var(--color-danger)' : 'var(--color-warning)';
+                  const sIcon = a.is_classified === 1 ? '✓' : a.is_classified === -1 ? '✕' : a.is_classified === -2 ? '관련없음' : a.is_classified === -3 ? '보관됨' : '⏳';
+                  const sColor = a.is_classified === 1 ? 'var(--color-success)' : a.is_classified === -1 ? 'var(--color-danger)' : (a.is_classified === -2 || a.is_classified === -3) ? '#888' : 'var(--color-warning)';
                   return (
                     <React.Fragment key={a.id}>
                       <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedArticleId(isExp ? null : a.id)}>
@@ -268,39 +282,73 @@ const PipelineSectionV2: React.FC = () => {
                         <td style={{ fontSize: '0.85em', whiteSpace: 'nowrap' }}>{a.ai_wti != null ? `${a.ai_wti}/${a.ai_brent}/${a.ai_dubai}` : '-'}</td>
                       </tr>
                       {isExp && (
-                        <tr><td colSpan={7} style={{ padding: 0, background: 'var(--color-bg-secondary, #1a1d23)' }}>
-                          <div style={{ padding: '12px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, fontSize: '0.88em' }}>
-                            <div>
-                              <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--color-text-muted)' }}>📥 원본 데이터 (Input)</div>
-                              <div style={{ lineHeight: 1.7 }}>
-                                <div><strong>ID:</strong> <span style={{ fontFamily: 'monospace', fontSize: '0.85em' }}>{a.id.slice(0,16)}...</span></div>
-                                <div><strong>제목:</strong> {a.title}</div>
-                                <div><strong>설명:</strong> <span style={{ color: '#999' }}>{a.description || '없음'}</span></div>
-                                <div><strong>소스:</strong> {a.source_name} ({a.data_source})</div>
-                                <div><strong>발행일:</strong> {formatDate(a.published_at)} · <strong>수집일:</strong> {formatDate(a.collected_at)}</div>
-                                <div><strong>URL:</strong> <a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#4a9eff' }}>원문 링크 ↗</a></div>
-                                <div><strong>재시도:</strong> {a.retry_count}회</div>
+                        <tr><td colSpan={7} style={{ padding: 0, borderBottom: '1px solid rgba(255,255,255,0.05)', whiteSpace: 'normal' }}>
+                          <div style={{ padding: '20px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: '20px', background: 'rgba(0, 0, 0, 0.2)' }}>
+                            {/* Input Column */}
+                            <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(255, 255, 255, 0.05)', minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px' }}>
+                                <span style={{ fontSize: '1.2em' }}>📥</span>
+                                <span style={{ fontWeight: 700, color: '#fff', fontSize: '1.05em' }}>원본 데이터 (Input)</span>
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9em' }}>
+                                <div style={{ display: 'flex' }}><span style={{ color: '#888', marginRight: '8px', minWidth: '60px' }}>원문 제목</span><span style={{ color: '#fff', fontWeight: 500, wordBreak: 'break-word' }}>{a.title}</span></div>
+                                <div><span style={{ color: '#888', marginRight: '8px', width: '60px', display: 'inline-block' }}>기사 설명</span><div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '6px', color: '#bbb', marginTop: '6px', lineHeight: 1.5, wordBreak: 'break-word' }}>{a.description || '제공된 설명이 없습니다.'}</div></div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
+                                  <div><span style={{ color: '#888', marginRight: '8px' }}>데이터 소스</span><span style={{ color: '#fff' }}>{a.source_name} ({a.data_source})</span></div>
+                                  <div><span style={{ color: '#888', marginRight: '8px' }}>발행일</span><span style={{ color: '#fff' }}>{formatDate(a.published_at)}</span></div>
+                                </div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <div style={{ display: 'flex', minWidth: 0, overflow: 'hidden' }}><span style={{ color: '#888', marginRight: '8px', whiteSpace: 'nowrap' }}>원문 링크</span><a href={a.url} target="_blank" rel="noreferrer" style={{ color: '#4a9eff', textDecoration: 'none', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>새 탭에서 열기 ↗</a></div>
+                                  <div style={{ whiteSpace: 'nowrap' }}><span style={{ color: '#888', marginRight: '8px' }}>수집일</span><span style={{ color: '#fff' }}>{formatDate(a.collected_at)}</span></div>
+                                </div>
                               </div>
                             </div>
-                            <div>
-                              <div style={{ fontWeight: 700, marginBottom: 8, color: 'var(--color-text-muted)' }}>🤖 AI 분석 결과 (Output)</div>
-                              {a.is_classified === 1 ? (
-                                <div style={{ lineHeight: 1.7 }}>
-                                  <div><strong>번역:</strong> {a.ai_translated_title || '-'}</div>
-                                  <div><strong>카테고리:</strong> {CATEGORY_KR[a.ai_category || ''] || a.ai_category} ({a.ai_sub_categories?.join(', ') || '-'})</div>
-                                  <div><strong>유가 관련:</strong> {a.ai_is_relevant ? '✓' : '✕'} · 신뢰도 {((a.ai_confidence || 0) * 100).toFixed(0)}%</div>
-                                  <div><strong>임팩트:</strong> <span style={{ color: (a.ai_impact_score || 0) > 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>{(a.ai_impact_score || 0) > 0 ? '+' : ''}{a.ai_impact_score}</span> (W:{a.ai_wti} B:{a.ai_brent} D:{a.ai_dubai})</div>
-                                  <div><strong>분석 시각:</strong> {a.ai_classified_at ? formatDate(a.ai_classified_at) : '-'}</div>
-                                  <div style={{ marginTop: 4 }}><strong>AI 요약:</strong> <span style={{ color: '#bbb' }}>{a.ai_summary || '없음'}</span></div>
-                                </div>
-                              ) : a.is_classified === -1 ? (
-                                <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 6, padding: 10, color: 'var(--color-danger)' }}>
-                                  <strong>에러:</strong> {a.classification_error || 'Unknown'}
-                                </div>
-                              ) : <div style={{ color: '#888' }}>아직 AI 분석이 수행되지 않았습니다.</div>}
-                              <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-                                <button className="action-btn small primary" onClick={e => { e.stopPropagation(); handleRetry([a.id]); }}>🔄 재시도</button>
-                                <button className="action-btn small" onClick={e => { e.stopPropagation(); handleDelete([a.id]); }} style={{ background: 'rgba(255, 60, 60, 0.1)', color: '#FF5C5C', border: '1px solid rgba(255, 60, 60, 0.3)' }}>🗑 삭제</button>
+
+                            {/* Output Column */}
+                            <div style={{ background: 'rgba(255, 255, 255, 0.03)', borderRadius: '12px', padding: '16px', border: '1px solid rgba(255, 255, 255, 0.05)', display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '12px' }}>
+                                <span style={{ fontSize: '1.2em' }}>🤖</span>
+                                <span style={{ fontWeight: 700, color: '#fff', fontSize: '1.05em' }}>AI 분석 결과 (Output)</span>
+                                {a.is_classified === -2 && <span className="issue-badge" style={{ marginLeft: 'auto', background: 'rgba(255, 255, 255, 0.1)', color: '#bbb' }}>관련성 없음</span>}
+                                {a.is_classified === -3 && <span className="issue-badge" style={{ marginLeft: 'auto', background: 'rgba(255, 107, 53, 0.2)', color: '#FF6B35' }}>중복방지 (보관됨)</span>}
+                              </div>
+                              
+                              <div style={{ flex: 1 }}>
+                                {a.is_classified === 1 || a.is_classified === -2 || a.is_classified === -3 ? (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9em' }}>
+                                    <div style={{ display: 'flex' }}><span style={{ color: '#888', marginRight: '8px', minWidth: '60px' }}>번역 제목</span><span style={{ color: '#00d4ff', fontWeight: 500, wordBreak: 'break-word' }}>{a.ai_translated_title || '-'}</span></div>
+                                    <div style={{ display: 'flex', gap: '20px' }}>
+                                      <div><span style={{ color: '#888', marginRight: '8px' }}>카테고리</span><span className={`source-tag ${a.ai_category}`} style={{ display: 'inline-block', padding: '2px 8px' }}>{CATEGORY_KR[a.ai_category || ''] || a.ai_category}</span></div>
+                                      <div><span style={{ color: '#888', marginRight: '8px' }}>서브 분류</span><span style={{ color: '#fff' }}>{a.ai_sub_categories?.join(', ') || '-'}</span></div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: '20px', marginTop: '4px' }}>
+                                      <div><span style={{ color: '#888', marginRight: '8px' }}>유가 영향</span><span style={{ color: (a.ai_impact_score || 0) > 0 ? 'var(--color-success)' : (a.ai_impact_score || 0) < 0 ? 'var(--color-danger)' : '#fff', fontWeight: 'bold', fontSize: '1.1em' }}>{(a.ai_impact_score || 0) > 0 ? '+' : ''}{a.ai_impact_score}</span></div>
+                                      <div><span style={{ color: '#888', marginRight: '8px' }}>신뢰도</span><span style={{ color: '#fff' }}>{((a.ai_confidence || 0) * 100).toFixed(0)}%</span></div>
+                                      <div><span style={{ color: '#888', marginRight: '8px' }}>유종별</span><span style={{ color: '#bbb', fontFamily: 'monospace' }}>W:{a.ai_wti} B:{a.ai_brent} D:{a.ai_dubai}</span></div>
+                                    </div>
+                                    <div>
+                                      <span style={{ color: '#888', marginRight: '8px', display: 'block', marginBottom: '6px' }}>AI 종합 의견</span>
+                                      <div style={{ background: 'rgba(0, 212, 255, 0.05)', borderLeft: '3px solid #00d4ff', padding: '10px 12px', borderRadius: '0 6px 6px 0', color: '#e2e8f0', lineHeight: 1.6, wordBreak: 'break-word' }}>
+                                        {a.ai_summary || '요약 내용이 없습니다.'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                ) : a.is_classified === -1 ? (
+                                  <div style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px', padding: '16px', color: 'var(--color-danger)', lineHeight: 1.5 }}>
+                                    <div style={{ fontWeight: 600, marginBottom: '8px' }}>⚠️ 분석 중 오류가 발생했습니다</div>
+                                    <div style={{ fontSize: '0.9em', color: '#ffb3b3' }}>{a.classification_error || 'Unknown Error'}</div>
+                                  </div>
+                                ) : (
+                                  <div style={{ display: 'flex', height: '100%', alignItems: 'center', justifyContent: 'center', color: '#666', border: '1px dashed rgba(255,255,255,0.1)', borderRadius: '8px' }}>
+                                    아직 AI 분석이 수행되지 않았습니다.
+                                  </div>
+                                )}
+                              </div>
+
+                              <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                                <button className="action-btn small primary" onClick={e => { e.stopPropagation(); handleRetry([a.id]); }} style={{ padding: '6px 12px' }}>🔄 재시도</button>
+                                {a.is_classified !== -3 && <button className="action-btn small" onClick={e => { e.stopPropagation(); handleArchive([a.id]); }} style={{ background: 'rgba(255, 255, 255, 0.1)', color: '#fff', border: '1px solid rgba(255, 255, 255, 0.2)', padding: '6px 12px' }}>🚫 보관</button>}
+                                <button className="action-btn small" onClick={e => { e.stopPropagation(); handleDelete([a.id]); }} style={{ background: 'rgba(255, 60, 60, 0.1)', color: '#FF5C5C', border: '1px solid rgba(255, 60, 60, 0.3)', padding: '6px 12px' }}>🗑 삭제</button>
                               </div>
                             </div>
                           </div>
