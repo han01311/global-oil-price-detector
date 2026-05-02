@@ -248,51 +248,40 @@ const PipelineSectionV2: React.FC = () => {
                 <span className="pagination-info">행을 클릭하면 상세 정보, 체크박스로 일괄 작업 가능</span>
               )}
             </div>
-            <div style={{ 
-              display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap', 
-              background: 'rgba(255, 255, 255, 0.02)', padding: '14px 18px', borderRadius: '12px', 
-              border: '1px solid rgba(255,255,255,0.08)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1rem', opacity: 0.7 }}>📁</span>
-                <select
-                  className="filter-select"
-                  value={articleCategory}
-                  onChange={e => handleCategoryChange(e.target.value)}
-                  style={{ width: '180px', fontWeight: 500, cursor: 'pointer', padding: '8px 12px' }}
-                >
-                  <option value="">전체 카테고리</option>
-                  <option value="geopolitics">지정학 (Geopolitics)</option>
-                  <option value="supply">공급 (Supply)</option>
-                  <option value="demand">수요 (Demand)</option>
-                  <option value="macro">거시경제 (Macro)</option>
-                  <option value="climate">기후/ESG (Climate)</option>
-                  <option value="speculation">투기/심리 (Speculation)</option>
-                  <option value="uncategorized">⚠️ 미지정 (문제있음)</option>
-                </select>
-              </div>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', width: '100%', padding: '0 4px' }}>
+              <select
+                className="filter-select"
+                value={articleCategory}
+                onChange={e => handleCategoryChange(e.target.value)}
+                style={{ width: '160px', cursor: 'pointer' }}
+              >
+                <option value="">카테고리 전체</option>
+                <option value="geopolitics">지정학</option>
+                <option value="supply">공급</option>
+                <option value="demand">수요</option>
+                <option value="macro">거시경제</option>
+                <option value="climate">기후/ESG</option>
+                <option value="speculation">투기/심리</option>
+                <option value="uncategorized">미지정 (에러)</option>
+              </select>
               
-              <div style={{ width: '1px', height: '24px', background: 'rgba(255,255,255,0.1)', margin: '0 4px' }} />
-              
-              <div style={{ 
-                flex: 1, display: 'flex', alignItems: 'center', maxWidth: '500px', 
-                background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(255,255,255,0.1)', 
-                borderRadius: '8px', overflow: 'hidden', transition: 'border-color 0.2s' 
-              }}>
-                <span style={{ padding: '0 12px', fontSize: '0.9em', opacity: 0.5 }}>🔍</span>
-                <input 
-                  type="text" 
-                  value={articleKeyword} 
-                  onChange={e => setArticleKeyword(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
-                  placeholder="기사 제목, 요약, 또는 키워드로 검색..." 
-                  style={{ flex: 1, background: 'transparent', border: 'none', color: '#e4e8ef', outline: 'none', padding: '10px 0', fontSize: '0.85rem' }} 
-                />
-                <button 
-                  className="action-btn small primary" 
-                  onClick={handleSearchSubmit} 
-                  style={{ margin: '4px', padding: '6px 16px', borderRadius: '6px', fontWeight: 600 }}
-                >
+              <div style={{ display: 'flex', flex: 1, gap: '8px', maxWidth: '400px' }}>
+                <div style={{ flex: 1, position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ position: 'absolute', left: '12px', pointerEvents: 'none' }}>
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                  </svg>
+                  <input 
+                    type="text" 
+                    className="filter-input" 
+                    value={articleKeyword} 
+                    onChange={e => setArticleKeyword(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleSearchSubmit()}
+                    placeholder="제목 또는 내용 검색..." 
+                    style={{ width: '100%', paddingLeft: '34px' }} 
+                  />
+                </div>
+                <button className="action-btn secondary" onClick={handleSearchSubmit} style={{ padding: '0 16px', borderRadius: '8px', fontSize: '0.85rem' }}>
                   검색
                 </button>
               </div>
