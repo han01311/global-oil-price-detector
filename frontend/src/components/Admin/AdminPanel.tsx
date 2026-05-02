@@ -124,7 +124,34 @@ const OverviewSection: React.FC<{ onNavigateToPipeline: (filter: string) => void
 
   if (!clsStats) return null;
 
-  const maxCatCount = Math.max(1, ...clsStats.category_distribution.map(c => c.count));
+  const VALID_CATS = new Set(['geopolitics', 'supply', 'demand', 'macro', 'climate', 'speculation']);
+
+  // Aggregate invalid categories into a single "uncategorized" entry
+  const aggregated: { category: string; count: number }[] = [];
+  let uncategorizedCount = 0;
+  for (const cat of clsStats.category_distribution) {
+    const catKey = cat.category ? cat.category.toLowerCase() : '';
+    if (VALID_CATS.has(catKey)) {
+      aggregated.push(cat);
+    } else {
+      uncategorizedCount += cat.count;
+    }
+  }
+  if (uncategorizedCount > 0) {
+    aggregated.push({ category: 'uncategorized', count: uncategorizedCount });
+  }
+  const maxCatCount = Math.max(1, ...aggregated.map(c => c.count));
+
+  const handleCategoryClick = (catKey: string) => {
+    if (catKey === 'uncategorized') {
+      localStorage.setItem('pipelineCategoryFilter', 'uncategorized');
+      localStorage.setItem('pipelineArticleFilter', 'classified');
+    } else {
+      localStorage.setItem('pipelineCategoryFilter', catKey);
+      localStorage.setItem('pipelineArticleFilter', 'classified');
+    }
+    onNavigateToPipeline('classified');
+  };
 
   return (
     <div className="crawl-control-panel">
@@ -156,15 +183,18 @@ const OverviewSection: React.FC<{ onNavigateToPipeline: (filter: string) => void
       </div>
       <h3 className="section-title" style={{ marginTop: '32px' }}>카테고리별 분류 분포</h3>
       <div className="crawl-yearly-chart">
-        {clsStats.category_distribution.map(cat => {
+        {aggregated.map(cat => {
           const catKey = cat.category ? cat.category.toLowerCase() : 'uncategorized';
+          const isInvalid = catKey === 'uncategorized';
           return (
-            <div className="crawl-year-row" key={cat.category}>
+            <div className="crawl-year-row" key={catKey} onClick={() => handleCategoryClick(catKey)} style={{ cursor: 'pointer' }} title={isInvalid ? '클릭하여 미지정 기사 확인 →' : `클릭하여 ${CATEGORY_KR[catKey] || cat.category} 기사 보기 →`}>
               <span className="crawl-year-label" style={{ width: '80px', textAlign: 'left' }}>
-                <span className={`source-tag ${catKey}`}>{CATEGORY_KR[catKey] || cat.category}</span>
+                <span className={`source-tag ${catKey}`} style={isInvalid ? { background: 'rgba(255, 184, 77, 0.15)', color: '#ffb84d' } : {}}>
+                  {isInvalid ? '⚠️ 미지정' : (CATEGORY_KR[catKey] || cat.category)}
+                </span>
               </span>
               <div className="crawl-year-bar-container">
-                <div className={`pipeline-bar-fill source-${catKey}`} style={{ width: `${(cat.count / maxCatCount * 100)}%` }} />
+                <div className={`pipeline-bar-fill ${isInvalid ? 'source-uncategorized' : `source-${catKey}`}`} style={{ width: `${(cat.count / maxCatCount * 100)}%` }} />
               </div>
               <span className="crawl-year-count">{cat.count.toLocaleString()}</span>
             </div>

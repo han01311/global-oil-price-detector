@@ -497,9 +497,11 @@ export async function fetchPipelineArticles(
   limit: number = 50,
   offset: number = 0,
   keyword?: string,
+  category?: string,
 ): Promise<{ total: number; items: PipelineArticle[] }> {
   let url = `/api/admin/pipeline/articles?status=${status}&limit=${limit}&offset=${offset}`;
   if (keyword) url += `&keyword=${encodeURIComponent(keyword)}`;
+  if (category) url += `&category=${encodeURIComponent(category)}`;
   return apiFetch(url);
 }
 

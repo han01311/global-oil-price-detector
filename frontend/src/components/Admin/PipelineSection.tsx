@@ -36,6 +36,7 @@ const PipelineSectionV2: React.FC = () => {
   const [articles, setArticles] = useState<PipelineArticle[]>([]);
   const [articlesTotal, setArticlesTotal] = useState(0);
   const [articleFilter, setArticleFilter] = useState(() => localStorage.getItem('pipelineArticleFilter') || 'all');
+  const [articleCategory, setArticleCategory] = useState(() => localStorage.getItem('pipelineCategoryFilter') || '');
   const [articleKeyword, setArticleKeyword] = useState('');
   const [articlePage, setArticlePage] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -76,8 +77,8 @@ const PipelineSectionV2: React.FC = () => {
     const cls = await fetchClassificationStats();
     setClsStats(cls);
   };
-  const loadArticles = async (filter = articleFilter, page = articlePage, keyword = articleKeyword) => {
-    const res = await fetchPipelineArticles(filter, PAGE_SIZE, page * PAGE_SIZE, keyword);
+  const loadArticles = async (filter = articleFilter, page = articlePage, keyword = articleKeyword, cat = articleCategory) => {
+    const res = await fetchPipelineArticles(filter, PAGE_SIZE, page * PAGE_SIZE, keyword, cat || undefined);
     setArticles(res.items);
     setArticlesTotal(res.total);
   };
@@ -136,20 +137,23 @@ const PipelineSectionV2: React.FC = () => {
   };
   const toggleSelect = (id: string) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleSelectAll = () => selectedIds.size === articles.length ? setSelectedIds(new Set()) : setSelectedIds(new Set(articles.map(a => a.id)));
-  const handleFilterChange = async (f: string) => { localStorage.setItem('pipelineArticleFilter', f); setArticleFilter(f); setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(f, 0, articleKeyword); };
-  const handlePageChange = async (p: number) => { setArticlePage(p); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, p, articleKeyword); };
-  const handleSearchSubmit = async () => { setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, 0, articleKeyword); };
+  const handleFilterChange = async (f: string) => { localStorage.setItem('pipelineArticleFilter', f); setArticleFilter(f); setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(f, 0, articleKeyword, articleCategory); };
+  const handleCategoryChange = async (cat: string) => { localStorage.setItem('pipelineCategoryFilter', cat); setArticleCategory(cat); setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, 0, articleKeyword, cat); };
+  const handlePageChange = async (p: number) => { setArticlePage(p); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, p, articleKeyword, articleCategory); };
+  const handleSearchSubmit = async () => { setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, 0, articleKeyword, articleCategory); };
 
   useEffect(() => {
     // When subTab becomes articles, pick up any filter passed via localStorage
     if (subTab === 'articles') {
       const storedFilter = localStorage.getItem('pipelineArticleFilter');
-      if (storedFilter && storedFilter !== articleFilter) {
-        setArticleFilter(storedFilter);
+      const storedCategory = localStorage.getItem('pipelineCategoryFilter') || '';
+      if ((storedFilter && storedFilter !== articleFilter) || storedCategory !== articleCategory) {
+        if (storedFilter) setArticleFilter(storedFilter);
+        setArticleCategory(storedCategory);
         setArticlePage(0);
         setSelectedIds(new Set());
         setExpandedArticleId(null);
-        loadArticles(storedFilter, 0, articleKeyword);
+        loadArticles(storedFilter || articleFilter, 0, articleKeyword, storedCategory);
       }
     }
   }, [subTab]);
@@ -244,7 +248,22 @@ const PipelineSectionV2: React.FC = () => {
                 <span className="pagination-info">행을 클릭하면 상세 정보, 체크박스로 일괄 작업 가능</span>
               )}
             </div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <select
+                className="filter-input"
+                value={articleCategory}
+                onChange={e => handleCategoryChange(e.target.value)}
+                style={{ width: '180px', background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, padding: '8px 12px', cursor: 'pointer' }}
+              >
+                <option value="">전체 카테고리</option>
+                <option value="geopolitics">지정학</option>
+                <option value="supply">공급</option>
+                <option value="demand">수요</option>
+                <option value="macro">거시경제</option>
+                <option value="climate">기후/ESG</option>
+                <option value="speculation">투기/심리</option>
+                <option value="uncategorized">⚠️ 미지정 (문제있음)</option>
+              </select>
               <input 
                 type="text" 
                 className="filter-input" 

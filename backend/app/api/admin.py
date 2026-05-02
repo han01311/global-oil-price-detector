@@ -992,6 +992,7 @@ async def override_classification(req: OverrideRequest):
 @router.get("/pipeline/articles")
 async def get_pipeline_articles(
     status: str = "all",  # all, classified, pending, failed
+    category: str | None = None,  # uncategorized, or specific category name
     keyword: str | None = None,
     limit: int = 50,
     offset: int = 0,
@@ -1000,6 +1001,8 @@ async def get_pipeline_articles(
     session_factory = get_session_factory()
     from app.models.news_article import NewsArticle as NA
     from sqlalchemy import or_
+
+    VALID_CATEGORIES = {"geopolitics", "supply", "demand", "macro", "climate", "speculation"}
 
     async with session_factory() as session:
         query = select(NA)
@@ -1016,6 +1019,20 @@ async def get_pipeline_articles(
             conditions.append(NA.is_classified == -2)
         elif status == "archived":
             conditions.append(NA.is_classified == -3)
+
+        # Category filter
+        if category:
+            if category == "uncategorized":
+                # 유효하지 않은 카테고리: null, "", "none", "N/A", "Uncategorized" 등
+                valid_cat_literals = [f"'{c}'" for c in VALID_CATEGORIES]
+                conditions.append(text(f"""
+                    (classification_result->>'category' IS NULL 
+                     OR classification_result->>'category' NOT IN ({','.join(valid_cat_literals)}))
+                """))
+                # uncategorized 필터는 분류 완료된 기사만 대상
+                conditions.append(NA.is_classified == 1)
+            elif category in VALID_CATEGORIES:
+                conditions.append(text(f"classification_result->>'category' = '{category}'"))
 
         if keyword:
             kw = f"%{keyword}%"
