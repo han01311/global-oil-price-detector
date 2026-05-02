@@ -101,8 +101,13 @@ class OpinetCollector:
                     formatted_date = f"{y}-{m}-{d}"
                     
                     def safe_float(v):
+                        """0 또는 빈 값은 None으로 반환 (휴장일 = 데이터 없음)"""
                         v = v.replace(',', '')
-                        return float(v) if v and v != '-' else None
+                        if not v or v == '-':
+                            return None
+                        val = float(v)
+                        # 0.0은 유효한 유가가 아님 → 해당 유종이 휴장인 것으로 취급
+                        return None if val == 0.0 else val
                         
                     data_records.append({
                         'date': formatted_date,
@@ -115,7 +120,9 @@ class OpinetCollector:
         if df.empty:
             df = pd.DataFrame(columns=['date', 'dubai', 'brent', 'wti'])
             return df
-            
-        # Clean up any None values using ffill or dropna based on requirements.
-        # But we'll just return raw dataframe for the database to handle.
+        
+        # 세 유종 모두 None인 행은 완전 휴장일이므로 제거
+        df = df.dropna(subset=['dubai', 'brent', 'wti'], how='all')
+        
+        df = df.sort_values('date').reset_index(drop=True)
         return df

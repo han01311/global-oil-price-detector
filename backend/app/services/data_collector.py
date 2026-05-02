@@ -298,9 +298,27 @@ class DataCollector:
 
     async def collect_prices(self, start_date: str, end_date: str) -> PriceHistory:
         df = await self.opinet.get_crude_prices(start_date, end_date)
-        prices = [OilPrice(**row) for _, row in df.iterrows()]
+        
+        # NaN을 None으로 변환 (DB에 NULL로 저장되어야 휴장 판단이 가능)
+        import math
+        def _nan_to_none(v):
+            if v is None:
+                return None
+            try:
+                return None if math.isnan(v) else v
+            except (TypeError, ValueError):
+                return v
+        
+        prices = []
+        for _, row in df.iterrows():
+            prices.append(OilPrice(
+                date=row['date'],
+                dubai=_nan_to_none(row.get('dubai')),
+                wti=_nan_to_none(row.get('wti')),
+                brent=_nan_to_none(row.get('brent')),
+            ))
 
-        # SQLite에 저장
+        # DB에 저장
         if prices:
             await self.db.upsert_oil_prices([{"date": p.date, "dubai": p.dubai, "wti": p.wti, "brent": p.brent} for p in prices])
 

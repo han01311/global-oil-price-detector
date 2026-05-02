@@ -76,9 +76,9 @@ class Database:
                     stmt = stmt.on_conflict_do_update(
                         constraint="uq_oil_prices_date_source",
                         set_={
-                            "dubai": func.coalesce(stmt.excluded.dubai, OilPriceModel.dubai),
-                            "wti": func.coalesce(stmt.excluded.wti, OilPriceModel.wti),
-                            "brent": func.coalesce(stmt.excluded.brent, OilPriceModel.brent),
+                            "dubai": stmt.excluded.dubai,
+                            "wti": stmt.excluded.wti,
+                            "brent": stmt.excluded.brent,
                             "collected_at": stmt.excluded.collected_at,
                         },
                     )
