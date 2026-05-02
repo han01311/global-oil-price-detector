@@ -38,9 +38,18 @@ const PipelineSectionV2: React.FC = () => {
   const [articleFilter, setArticleFilter] = useState(() => localStorage.getItem('pipelineArticleFilter') || 'all');
   const [articleCategory, setArticleCategory] = useState(() => localStorage.getItem('pipelineCategoryFilter') || '');
   const [articleKeyword, setArticleKeyword] = useState('');
-  const [articlePage, setArticlePage] = useState(0);
+  const [articlePage, setArticlePage] = useState(() => parseInt(sessionStorage.getItem('pipelineArticlePage') || '0', 10));
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [expandedArticleId, setExpandedArticleId] = useState<string | null>(null);
+  const [expandedArticleId, setExpandedArticleId] = useState<string | null>(() => sessionStorage.getItem('pipelineExpandedArticleId') || null);
+  
+  useEffect(() => {
+    sessionStorage.setItem('pipelineArticlePage', articlePage.toString());
+  }, [articlePage]);
+
+  useEffect(() => {
+    if (expandedArticleId) sessionStorage.setItem('pipelineExpandedArticleId', expandedArticleId);
+    else sessionStorage.removeItem('pipelineExpandedArticleId');
+  }, [expandedArticleId]);
   
   const [recoverArticleId, setRecoverArticleId] = useState<string | null>(null);
   const [recoverText, setRecoverText] = useState("");
@@ -110,7 +119,13 @@ const PipelineSectionV2: React.FC = () => {
     finally { setRefreshing(false); }
   };
   const handleRetry = async (ids: string[]) => {
-    try { await retryPipelineItems(ids); await loadJobs(); setSelectedIds(new Set()); showToast(`${ids.length}건 재시도 요청 완료`); setSubTab('jobs'); }
+    try { 
+      await retryPipelineItems(ids); 
+      showToast(`${ids.length}건 재시도 요청 완료. 백그라운드에서 분석이 진행됩니다.`);
+      setSelectedIds(new Set()); 
+      // Do not redirect to jobs tab. Stay here so the user can refresh to see updates.
+      await loadJobs(); 
+    }
     catch { showToast('재시도 요청에 실패했습니다.', 'err'); }
   };
   const handleDelete = async (ids?: string[]) => {
@@ -164,7 +179,7 @@ const PipelineSectionV2: React.FC = () => {
     try {
       const { recoverArticle } = await import('../../services/adminApi');
       await recoverArticle(recoverArticleId, recoverText);
-      showToast(`원문 저장 완료! 해당 기사는 AI 분석 대기열(미분류)로 이동되었습니다.`);
+      showToast(`기사 본문(설명)이 성공적으로 업데이트되었습니다. 이제 [🔄 재시도] 버튼을 눌러 AI 재분석을 실행하세요.`);
       setRecoverArticleId(null);
       setRecoverText('');
       await loadArticles();
@@ -332,7 +347,7 @@ const PipelineSectionV2: React.FC = () => {
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9em' }}>
                                 <div style={{ display: 'flex' }}><span style={{ color: '#888', marginRight: '8px', minWidth: '60px' }}>원문 제목</span><span style={{ color: '#fff', fontWeight: 500, wordBreak: 'break-word' }}>{a.title}</span></div>
-                                <div><span style={{ color: '#888', marginRight: '8px', width: '60px', display: 'inline-block' }}>기사 설명</span><div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '6px', color: '#bbb', marginTop: '6px', lineHeight: 1.5, wordBreak: 'break-word' }}>{a.description || '제공된 설명이 없습니다.'}</div></div>
+                                <div><span style={{ color: '#888', marginRight: '8px', width: '60px', display: 'inline-block' }}>기사 본문</span><div style={{ background: 'rgba(0,0,0,0.3)', padding: '10px', borderRadius: '6px', color: '#bbb', marginTop: '6px', lineHeight: 1.5, wordBreak: 'break-word' }}>{a.description || '제공된 본문이 없습니다.'}</div></div>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
                                   <div><span style={{ color: '#888', marginRight: '8px' }}>데이터 소스</span><span style={{ color: '#fff' }}>{a.source_name} ({a.data_source})</span></div>
                                   <div><span style={{ color: '#888', marginRight: '8px' }}>발행일</span><span style={{ color: '#fff' }}>{formatDate(a.published_at)}</span></div>
@@ -365,7 +380,7 @@ const PipelineSectionV2: React.FC = () => {
                                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                                         <button className="action-btn small" onClick={() => { setRecoverArticleId(null); setRecoverText(''); }} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)' }}>취소</button>
                                         <button className="action-btn small primary" onClick={handleRecoverSubmit} disabled={recoverLoading}>
-                                          {recoverLoading ? '⏳ 복구 중...' : '✨ AI 자동 정리 및 업데이트'}
+                                          {recoverLoading ? '⏳ 업데이트 중...' : '💾 기사 본문 업데이트'}
                                         </button>
                                       </div>
                                     </div>

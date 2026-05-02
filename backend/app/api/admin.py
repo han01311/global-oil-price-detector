@@ -595,28 +595,47 @@ class RecoverArticleRequest(BaseModel):
 
 @router.post("/crawl/articles/{article_id}/recover")
 async def recover_article(article_id: str, req: RecoverArticleRequest):
-    """수동 입력된 텍스트로 기사 본문을 업데이트하고 파이프라인 대기 상태로 전환 (원문 그대로 저장)"""
+    """수동 입력된 텍스트를 AI로 파싱/정리하여 기사 본문을 업데이트 (분류 상태는 유지)"""
     if not req.raw_text.strip():
         raise HTTPException(400, "본문 텍스트가 비어 있습니다.")
 
     session_factory = get_session_factory()
     from app.models.news_article import NewsArticle as NA
+    from app.core.config import settings
+    import httpx
+    import json
 
     async with session_factory() as session:
         article = await session.get(NA, article_id)
         if not article:
             raise HTTPException(404, "기사를 찾을 수 없습니다.")
 
-        # 기존 제목은 유지하고, description과 content_snippet에만 원문을 저장
-        article.description = req.raw_text[:4000]
-        article.content_snippet = req.raw_text[:2000]
-        
-        # Reset classification state and update collected_at to mark as NEW
-        from datetime import datetime, timezone
-        article.collected_at = datetime.now(timezone.utc).isoformat()
-        article.is_classified = 0
-        article.classification_error = None
-        article.classification_result = None
+        # AI로 텍스트 정리 및 파싱
+        cleaned_text = req.raw_text[:4000]
+        try:
+            prompt = f"다음은 사용자가 복사하여 붙여넣은 원유 시장 관련 기사의 원시 텍스트(Raw text)입니다. 광고, 메뉴, 불필요한 기호를 모두 제거하고, 기사의 핵심 내용만 하나의 깔끔하고 전문적인 문단(최대 300자)으로 정리해서 한국어로 반환하세요. 다른 말은 절대 하지 말고 오직 정리된 텍스트만 출력하세요.\n\n[텍스트 시작]\n{cleaned_text}\n[텍스트 끝]"
+            
+            ollama_url = getattr(settings, "LOCAL_LLM_URL", "http://localhost:11434")
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{ollama_url}/api/generate",
+                    json={"model": "gemma:2b", "prompt": prompt, "stream": False},
+                    timeout=30.0
+                )
+                if response.status_code == 200:
+                    ai_res = response.json()
+                    ai_text = ai_res.get("response", "").strip()
+                    if ai_text:
+                        cleaned_text = ai_text
+        except Exception as e:
+            # AI 처리에 실패하면 원문 일부를 그대로 사용
+            import logging
+            logging.getLogger(__name__).error(f"Failed to clean text via AI: {e}")
+            cleaned_text = req.raw_text[:1000]
+
+        # 기존 제목은 유지하고, description과 content_snippet에 AI 정리본(또는 원문)을 저장
+        article.description = cleaned_text
+        article.content_snippet = req.raw_text[:2000] # 원문도 snippet에 백업
         
         await session.commit()
 
@@ -1063,7 +1082,7 @@ async def get_pipeline_articles(
                 # ── 원본 데이터 (Input) ──
                 "id": a.id,
                 "title": a.title,
-                "description": (a.description or "")[:200],
+                "description": (a.description or ""),
                 "source_name": a.source_name,
                 "data_source": a.data_source,
                 "url": a.url,
