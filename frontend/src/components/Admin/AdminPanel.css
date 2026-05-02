@@ -907,6 +907,7 @@
 .pipeline-bar-fill.source-speculation { background: linear-gradient(90deg, #FFD700, #FFB347); }
 .pipeline-bar-fill.source-other       { background: linear-gradient(90deg, rgba(255,255,255,0.3), rgba(255,255,255,0.15)); }
 .pipeline-bar-fill.source-null        { background: linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08)); }
+.pipeline-bar-fill.source-uncategorized { background: linear-gradient(90deg, rgba(255,255,255,0.2), rgba(255,255,255,0.08)); }
 
 /* 카테고리 source-tag 색상 */
 .source-tag.geopolitics { background: rgba(255, 107, 53, 0.12); color: #FF6B35; }

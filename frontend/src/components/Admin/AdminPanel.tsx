@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { CATEGORY_KR } from './PipelineSection';
 import {
-  fetchAdminOverview,
   fetchCollectionLogs,
-  fetchRateLimits,
   fetchSchedulerStatus,
   toggleScheduler,
   triggerCollection,
@@ -29,11 +26,10 @@ import {
   searchCrawlArticles,
   deleteCrawlArticles,
   recrawlArticles,
+  fetchClassificationStats,
 } from '../../services/adminApi';
 import type {
-  OverviewResponse,
   CollectionLog,
-  RateLimitStatus,
   SchedulerStatus,
   PaginatedDataResponse,
 } from '../../types/admin';
@@ -41,6 +37,7 @@ import type {
   CrawlStatus, CrawlStats,
   CrawlHistoryItem, SourceHealthItem, IntegrityReport, CrawlArticleDetail,
   YearCoverageItem, CrawlSearchArticle,
+  ClassificationStats,
 } from '../../services/adminApi';
 import './AdminPanel.css';
 
@@ -83,32 +80,28 @@ const getTimeUntil = (iso: string | null, nowMs: number): string => {
   return `(약 ${secs}초 후)`;
 };
 
-const formatNumber = (n: number): string =>
-  n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
 
 // ═══════════════════════════════════════════════
 // Overview Section
 // ═══════════════════════════════════════════════
 
-const OverviewSection: React.FC = () => {
-  const [overview, setOverview] = useState<OverviewResponse | null>(null);
-  const [rateLimits, setRateLimits] = useState<RateLimitStatus[]>([]);
-  const [scheduler, setScheduler] = useState<SchedulerStatus | null>(null);
+const CATEGORY_KR: Record<string, string> = {
+  geopolitics: '지정학', supply: '공급', demand: '수요',
+  macro: '거시경제', climate: '기후/ESG', speculation: '투기/심리', other: '기타',
+  uncategorized: '미분류'
+};
+
+const OverviewSection: React.FC<{ onNavigateToPipeline: (filter: string) => void }> = ({ onNavigateToPipeline }) => {
+  const [clsStats, setClsStats] = useState<ClassificationStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [ov, rl, sc] = await Promise.all([
-          fetchAdminOverview(),
-          fetchRateLimits(),
-          fetchSchedulerStatus(),
-        ]);
-        setOverview(ov);
-        setRateLimits(rl);
-        setScheduler(sc);
+        const stats = await fetchClassificationStats();
+        setClsStats(stats);
       } catch (e) {
-        console.error('Failed to load overview:', e);
+        console.error('Failed to load stats:', e);
       } finally {
         setLoading(false);
       }
@@ -116,19 +109,10 @@ const OverviewSection: React.FC = () => {
     load();
   }, []);
 
-  const handleToggleScheduler = async () => {
-    try {
-      const result = await toggleScheduler();
-      setScheduler(result);
-    } catch (e) {
-      console.error('Failed to toggle scheduler:', e);
-    }
-  };
-
   if (loading) {
     return (
       <div className="overview-grid">
-        {[...Array(6)].map((_, i) => (
+        {[...Array(5)].map((_, i) => (
           <div key={i} className="overview-card">
             <div className="admin-skeleton" style={{ width: '60%', height: 14, marginBottom: 10 }} />
             <div className="admin-skeleton" style={{ width: '40%', height: 32 }} />
@@ -138,72 +122,68 @@ const OverviewSection: React.FC = () => {
     );
   }
 
-  const tableCards = overview ? [
-    { key: 'oil_prices', label: 'Oil Prices', stat: overview.oil_prices },
-    { key: 'oil_inventory', label: 'Inventory', stat: overview.oil_inventory },
-    { key: 'oil_production', label: 'Production', stat: overview.oil_production },
-    { key: 'macro_indicators', label: 'Macro', stat: overview.macro_indicators },
-    { key: 'news_articles', label: 'News', stat: overview.news_articles },
-    { key: 'collection_logs', label: 'Logs', stat: overview.collection_logs },
-  ] : [];
+  if (!clsStats) return null;
+
+  const maxCatCount = Math.max(1, ...clsStats.category_distribution.map(c => c.count));
 
   return (
-    <>
-      {/* Scheduler Bar */}
-      {scheduler && (
-        <div className="scheduler-bar">
-          <div className="scheduler-info">
-            <div className={`scheduler-status-dot ${scheduler.is_running ? 'running' : 'stopped'}`} />
-            <span className="scheduler-label">
-              Scheduler: <strong>{scheduler.is_running ? 'Running' : 'Stopped'}</strong>
-              {scheduler.is_running && ` · ${scheduler.interval_hours}h interval · ${scheduler.jobs.length} jobs`}
-            </span>
-          </div>
-          <button className="scheduler-toggle-btn" onClick={handleToggleScheduler}>
-            {scheduler.is_running ? '⏸ Pause' : '▶ Start'}
-          </button>
+    <div className="crawl-control-panel">
+      <div className="crawl-control-header">
+        <div className="crawl-status-indicator">
+          <span className="crawl-status-text">파이프라인 통계</span>
         </div>
-      )}
-
-      {/* DB Table Stats */}
-      <h3 className="section-title">Database Overview</h3>
+      </div>
       <div className="overview-grid">
-        {tableCards.map(({ key, label, stat }) => (
-          <div className="overview-card" key={key}>
-            <div className="overview-card-label">{label}</div>
-            <div className="overview-card-value">{formatNumber(stat.count)}</div>
-            <div className="overview-card-meta">
-              {stat.last_collected ? `Last: ${formatDate(stat.last_collected)}` : 'No data yet'}
-            </div>
+        {[
+          { label: '전체 기사', value: clsStats.total, color: '', filter: 'all' },
+          { label: '유효 분류 완료', value: clsStats.classified, color: 'var(--color-success)', filter: 'classified' },
+          { label: '관련성 없음 (스킵)', value: clsStats.irrelevant, color: '#888', filter: 'irrelevant' },
+          { label: '미분류', value: clsStats.unclassified, color: clsStats.unclassified > 0 ? 'var(--color-warning)' : '', filter: 'pending' },
+          { label: '분류 에러', value: clsStats.failed, color: clsStats.failed > 0 ? 'var(--color-danger)' : '', filter: 'failed', border: clsStats.failed > 0 },
+        ].map((c, i) => (
+          <div key={i} className="overview-card" onClick={() => onNavigateToPipeline(c.filter)} style={{ cursor: 'pointer', transition: 'transform 0.15s', ...(c.border ? { borderLeft: '4px solid var(--color-danger)' } : {}) }} title={`클릭하여 ${c.label} 기사 목록 보기`}>
+            <div className="overview-card-label">{c.label}</div>
+            <div className="overview-card-value" style={c.color ? { color: c.color } : {}}>{c.value.toLocaleString()}</div>
+            <div style={{ fontSize: '0.75em', color: '#666', marginTop: 4 }}>클릭하여 목록 보기 →</div>
           </div>
         ))}
       </div>
-
-      {/* Rate Limit Gauges */}
-      <h3 className="section-title">Rate Limit Usage (Today)</h3>
-      <div className="rate-limit-grid">
-        {rateLimits.map((rl) => {
-          const pct = rl.limit ? Math.min((rl.used / rl.limit) * 100, 100) : 100;
-          const level = rl.limit === null ? 'unlimited' : pct > 80 ? 'danger' : pct > 50 ? 'warning' : 'safe';
+      <div className="pipeline-progress-section">
+        <div className="pipeline-progress-header"><span>전체 분류 진행률</span><span>{clsStats.classification_rate}%</span></div>
+        <div className="rate-limit-bar" style={{ height: 10 }}>
+          <div className={`rate-limit-fill ${clsStats.classification_rate > 80 ? 'safe' : clsStats.classification_rate > 50 ? 'warning' : 'danger'}`} style={{ width: `${clsStats.classification_rate}%` }} />
+        </div>
+      </div>
+      <h3 className="section-title" style={{ marginTop: '32px' }}>카테고리별 분류 분포</h3>
+      <div className="crawl-yearly-chart">
+        {clsStats.category_distribution.map(cat => {
+          const catKey = cat.category ? cat.category.toLowerCase() : 'uncategorized';
           return (
-            <div className="rate-limit-card" key={rl.source}>
-              <div className="rate-limit-header">
-                <span className="rate-limit-source">{rl.source}</span>
-                <span className="rate-limit-counter">
-                  {rl.limit ? `${rl.used}/${rl.limit}` : `${rl.used} calls`}
-                </span>
+            <div className="crawl-year-row" key={cat.category}>
+              <span className="crawl-year-label" style={{ width: '80px', textAlign: 'left' }}>
+                <span className={`source-tag ${catKey}`}>{CATEGORY_KR[catKey] || cat.category}</span>
+              </span>
+              <div className="crawl-year-bar-container">
+                <div className={`pipeline-bar-fill source-${catKey}`} style={{ width: `${(cat.count / maxCatCount * 100)}%` }} />
               </div>
-              <div className="rate-limit-bar">
-                <div
-                  className={`rate-limit-fill ${level}`}
-                  style={{ width: `${rl.limit ? pct : 100}%` }}
-                />
-              </div>
+              <span className="crawl-year-count">{cat.count.toLocaleString()}</span>
             </div>
           );
         })}
       </div>
-    </>
+      <h3 className="section-title" style={{ marginTop: '32px' }}>소스별 분류율</h3>
+      <div className="admin-table-wrapper">
+        <table className="admin-table">
+          <thead><tr><th>Source</th><th>전체</th><th>분류완료</th><th>분류율</th><th>Progress</th></tr></thead>
+          <tbody>{clsStats.source_classification.map(s => (
+            <tr key={s.data_source}>
+              <td><SourceTag source={s.data_source || 'unknown'} /></td><td>{s.total.toLocaleString()}</td><td>{s.classified.toLocaleString()}</td><td>{s.classification_rate}%</td>
+              <td style={{ width: '30%' }}><div className="rate-limit-bar" style={{ height: 6 }}><div className={`rate-limit-fill ${s.classification_rate > 80 ? 'safe' : 'warning'}`} style={{ width: `${s.classification_rate}%` }} /></div></td>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    </div>
   );
 };
 
@@ -1938,6 +1918,11 @@ export const AdminPanel: React.FC = () => {
     { id: 'trigger', label: 'Manual Trigger', icon: '⚡' },
   ];
 
+  const handleNavigateToPipeline = (filter: string) => {
+    localStorage.setItem('pipelineArticleFilter', filter);
+    setActiveTab('pipeline');
+  };
+
   return (
     <div className="admin-container">
       <div className="admin-header">
@@ -1961,7 +1946,7 @@ export const AdminPanel: React.FC = () => {
         ))}
       </div>
 
-      {activeTab === 'overview' && <OverviewSection />}
+      {activeTab === 'overview' && <OverviewSection onNavigateToPipeline={handleNavigateToPipeline} />}
       {activeTab === 'pipeline' && <React.Suspense fallback={<div>Loading...</div>}><PipelineSection /></React.Suspense>}
       {activeTab === 'crawl' && <CrawlCenterSection />}
       {activeTab === 'logs' && <LogsSection />}

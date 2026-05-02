@@ -30,12 +30,12 @@ type PipelineTab = 'stats' | 'articles' | 'jobs';
 const PAGE_SIZE = 30;
 
 const PipelineSectionV2: React.FC = () => {
-  const [subTab, setSubTab] = useState<PipelineTab>('stats');
+  const [subTab, setSubTab] = useState<PipelineTab>('articles');
 
   const [clsStats, setClsStats] = useState<ClassificationStats | null>(null);
   const [articles, setArticles] = useState<PipelineArticle[]>([]);
   const [articlesTotal, setArticlesTotal] = useState(0);
-  const [articleFilter, setArticleFilter] = useState('all');
+  const [articleFilter, setArticleFilter] = useState(() => localStorage.getItem('pipelineArticleFilter') || 'all');
   const [articleKeyword, setArticleKeyword] = useState('');
   const [articlePage, setArticlePage] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -134,12 +134,25 @@ const PipelineSectionV2: React.FC = () => {
       await loadArticles(); await loadStats();
     } catch { showToast('보관 처리에 실패했습니다.', 'err'); }
   };
-  const goToArticles = (filter: string) => { setSubTab('articles'); handleFilterChange(filter); };
   const toggleSelect = (id: string) => setSelectedIds(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const toggleSelectAll = () => selectedIds.size === articles.length ? setSelectedIds(new Set()) : setSelectedIds(new Set(articles.map(a => a.id)));
-  const handleFilterChange = async (f: string) => { setArticleFilter(f); setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(f, 0, articleKeyword); };
+  const handleFilterChange = async (f: string) => { localStorage.setItem('pipelineArticleFilter', f); setArticleFilter(f); setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(f, 0, articleKeyword); };
   const handlePageChange = async (p: number) => { setArticlePage(p); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, p, articleKeyword); };
   const handleSearchSubmit = async () => { setArticlePage(0); setSelectedIds(new Set()); setExpandedArticleId(null); await loadArticles(articleFilter, 0, articleKeyword); };
+
+  useEffect(() => {
+    // When subTab becomes articles, pick up any filter passed via localStorage
+    if (subTab === 'articles') {
+      const storedFilter = localStorage.getItem('pipelineArticleFilter');
+      if (storedFilter && storedFilter !== articleFilter) {
+        setArticleFilter(storedFilter);
+        setArticlePage(0);
+        setSelectedIds(new Set());
+        setExpandedArticleId(null);
+        loadArticles(storedFilter, 0, articleKeyword);
+      }
+    }
+  }, [subTab]);
 
   const handleRecoverSubmit = async () => {
     if (!recoverArticleId || !recoverText.trim()) return;
@@ -164,8 +177,6 @@ const PipelineSectionV2: React.FC = () => {
     </div>
   );
 
-  const maxCatCount = clsStats ? Math.max(1, ...clsStats.category_distribution.map(c => c.count)) : 1;
-
   return (
     <>
       {/* Toast */}
@@ -185,7 +196,6 @@ const PipelineSectionV2: React.FC = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <div className="data-tabs" style={{ margin: 0 }}>
           {([
-            { id: 'stats' as PipelineTab, label: '📊 현황', badge: '' },
             { id: 'articles' as PipelineTab, label: '📝 기사 관리', badge: clsStats ? `${clsStats.total.toLocaleString()}` : '' },
             { id: 'jobs' as PipelineTab, label: '⚙️ 작업 이력', badge: jobs.length ? `${jobs.length}` : '' },
           ]).map(t => (
@@ -203,65 +213,7 @@ const PipelineSectionV2: React.FC = () => {
         </button>
       </div>
 
-      {/* ═══ TAB 1: 현황 ═══ */}
-      {subTab === 'stats' && clsStats && (
-        <div className="crawl-control-panel">
-          <div className="crawl-control-header">
-            <div className="crawl-status-indicator">
-              <span className="crawl-status-text">파이프라인 통계</span>
-            </div>
-          </div>
-          <div className="overview-grid">
-            {[
-              { label: '전체 기사', value: clsStats.total, color: '', filter: 'all' },
-              { label: '유효 분류 완료', value: clsStats.classified, color: 'var(--color-success)', filter: 'classified' },
-              { label: '관련성 없음 (스킵)', value: clsStats.irrelevant, color: '#888', filter: 'irrelevant' },
-              { label: '미분류', value: clsStats.unclassified, color: clsStats.unclassified > 0 ? 'var(--color-warning)' : '', filter: 'pending' },
-              { label: '분류 에러', value: clsStats.failed, color: clsStats.failed > 0 ? 'var(--color-danger)' : '', filter: 'failed', border: clsStats.failed > 0 },
-            ].map((c, i) => (
-              <div key={i} className="overview-card" onClick={() => goToArticles(c.filter)} style={{ cursor: 'pointer', transition: 'transform 0.15s', ...(c.border ? { borderLeft: '4px solid var(--color-danger)' } : {}) }} title={`클릭하여 ${c.label} 기사 목록 보기`}>
-                <div className="overview-card-label">{c.label}</div>
-                <div className="overview-card-value" style={c.color ? { color: c.color } : {}}>{c.value.toLocaleString()}</div>
-                <div style={{ fontSize: '0.75em', color: '#666', marginTop: 4 }}>클릭하여 목록 보기 →</div>
-              </div>
-            ))}
-          </div>
-          <div className="pipeline-progress-section">
-            <div className="pipeline-progress-header"><span>전체 분류 진행률</span><span>{clsStats.classification_rate}%</span></div>
-            <div className="rate-limit-bar" style={{ height: 10 }}>
-              <div className={`rate-limit-fill ${clsStats.classification_rate > 80 ? 'safe' : clsStats.classification_rate > 50 ? 'warning' : 'danger'}`} style={{ width: `${clsStats.classification_rate}%` }} />
-            </div>
-          </div>
-          <h3 className="section-title" style={{ marginTop: '32px' }}>카테고리별 분류 분포</h3>
-          <div className="crawl-yearly-chart">
-            {clsStats.category_distribution.map(cat => (
-              <div className="crawl-year-row" key={cat.category}>
-                <span className="crawl-year-label" style={{ width: '80px', textAlign: 'left' }}>
-                  <span className={`source-tag ${cat.category}`}>{CATEGORY_KR[cat.category] || cat.category}</span>
-                </span>
-                <div className="crawl-year-bar-container">
-                  <div className={`crawl-year-bar-segment source-${cat.category === 'newsapi' ? 'news' : cat.category === 'gnews' ? 'gdelt' : 'nyt'}`} style={{ width: `${(cat.count / maxCatCount * 100)}%` }} />
-                </div>
-                <span className="crawl-year-count">{cat.count.toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-          <h3 className="section-title" style={{ marginTop: '32px' }}>소스별 분류율</h3>
-          <div className="admin-table-wrapper">
-            <table className="admin-table">
-              <thead><tr><th>Source</th><th>전체</th><th>분류완료</th><th>분류율</th><th>Progress</th></tr></thead>
-              <tbody>{clsStats.source_classification.map(s => (
-                <tr key={s.data_source}>
-                  <td><SourceTag source={s.data_source || 'unknown'} /></td><td>{s.total.toLocaleString()}</td><td>{s.classified.toLocaleString()}</td><td>{s.classification_rate}%</td>
-                  <td style={{ width: '30%' }}><div className="rate-limit-bar" style={{ height: 6 }}><div className={`rate-limit-fill ${s.classification_rate > 80 ? 'safe' : 'warning'}`} style={{ width: `${s.classification_rate}%` }} /></div></td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ═══ TAB 2: 기사 관리 ═══ */}
+      {/* ═══ TAB 1: 기사 관리 ═══ */}
       {subTab === 'articles' && (
         <div className="crawl-control-panel">
           <div className="filters-bar" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px' }}>

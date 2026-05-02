@@ -11,6 +11,7 @@ from app.core.database import Database
 from app.models.base import get_session_factory
 from pydantic import BaseModel
 from app.services.scheduler import CollectionScheduler
+from app.services.rate_limiter import RateLimiter
 from app.schemas.admin import (
     OverviewResponse, TableStat,
     CollectionLogsResponse, CollectionLog,
