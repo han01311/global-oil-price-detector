@@ -1036,7 +1036,12 @@ async def get_pipeline_articles(
 
         if keyword:
             kw = f"%{keyword}%"
-            conditions.append(or_(NA.title.ilike(kw), NA.description.ilike(kw)))
+            conditions.append(or_(
+                NA.title.ilike(kw), 
+                NA.description.ilike(kw),
+                NA.classification_result['translated_title'].astext.ilike(kw),
+                NA.classification_result['impact_summary'].astext.ilike(kw)
+            ))
 
         for cond in conditions:
             query = query.where(cond)
