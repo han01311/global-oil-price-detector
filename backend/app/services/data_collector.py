@@ -230,7 +230,7 @@ class NYTCollector(BaseCollector):
         api_key = api_key or settings.NYT_API_KEY
         super().__init__(api_key, "https://api.nytimes.com/svc/search/v2")
 
-    async def get_latest_news(self) -> List[Dict[str, Any]]:
+    async def get_latest_news(self, start_date: str | None = None, end_date: str | None = None) -> List[Dict[str, Any]]:
         if not self.api_key:
             return []
         
@@ -239,6 +239,11 @@ class NYTCollector(BaseCollector):
             "sort": "newest",
             "api-key": self.api_key
         }
+        
+        if start_date:
+            params["begin_date"] = start_date.replace("-", "")
+        if end_date:
+            params["end_date"] = end_date.replace("-", "")
         
         try:
             data = await self._fetch_api("/articlesearch.json", params, "nyt_news", rate_limit_source="nyt")
@@ -253,7 +258,7 @@ class GuardianCollector(BaseCollector):
         api_key = api_key or settings.GUARDIAN_API_KEY
         super().__init__(api_key, "https://content.guardianapis.com")
 
-    async def get_latest_news(self) -> List[Dict[str, Any]]:
+    async def get_latest_news(self, start_date: str | None = None, end_date: str | None = None) -> List[Dict[str, Any]]:
         if not self.api_key:
             return []
         
@@ -263,6 +268,11 @@ class GuardianCollector(BaseCollector):
             "show-fields": "trailText",
             "api-key": self.api_key
         }
+        
+        if start_date:
+            params["from-date"] = start_date
+        if end_date:
+            params["to-date"] = end_date
         
         try:
             data = await self._fetch_api("/search", params, "guardian_news", rate_limit_source="guardian")
@@ -406,9 +416,9 @@ class DataCollector:
             }
         return {}
 
-    async def collect_news(self) -> List[Dict[str, Any]]:
-        nyt_task = self.nyt.get_latest_news()
-        guardian_task = self.guardian.get_latest_news()
+    async def collect_news(self, start_date: str | None = None, end_date: str | None = None) -> List[Dict[str, Any]]:
+        nyt_task = self.nyt.get_latest_news(start_date, end_date)
+        guardian_task = self.guardian.get_latest_news(start_date, end_date)
         
         nyt_articles, guardian_articles = await asyncio.gather(nyt_task, guardian_task)
         

@@ -128,7 +128,7 @@ async def collect_fred_macro():
     )
 
 
-async def collect_all_news():
+async def collect_all_news(start_date: str | None = None, end_date: str | None = None):
     """뉴스 수집 (NewsAPI + GNews + GDELT) → AI 분류 → 일일 브리핑 자동 생성"""
     from app.services.data_collector import DataCollector
     from app.services.news_classifier import NewsClassifier
@@ -137,6 +137,7 @@ async def collect_all_news():
     articles = await _log_collection(
         "news", "news",
         collector.collect_news,
+        start_date=start_date, end_date=end_date
     )
     
     # 수집 완료 후 AI 분류 진행 (await로 완료 대기)

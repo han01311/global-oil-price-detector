@@ -1701,3 +1701,49 @@ tr.expanded {
   from { transform: translateX(-50%) translateY(20px); opacity: 0; }
   to { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
+
+/* ══════════════════════════════════════════════
+   Gap Recovery (서비스 점검)
+   ══════════════════════════════════════════════ */
+
+.recovery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+}
+
+.recovery-card {
+  position: relative;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
+  padding: 18px;
+  transition: all 0.2s ease;
+}
+
+.recovery-card:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.recovery-card.selected {
+  border-color: rgba(0, 212, 255, 0.4);
+  background: rgba(0, 212, 255, 0.04);
+  box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.15);
+}
+
+.recovery-card.gap {
+  border-left: 3px solid #ffb84d;
+}
+
+.recovery-card.empty {
+  border-left: 3px solid #ef4444;
+}
+
+.recovery-card.ok {
+  border-left: 3px solid #22c55e;
+}
+
+.recovery-card.error {
+  border-left: 3px solid #ef4444;
+}
+

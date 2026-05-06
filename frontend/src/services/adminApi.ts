@@ -564,3 +564,57 @@ export interface CrawlArticleDetail {
 export async function fetchCrawlLogArticles(logId: number): Promise<CrawlArticleDetail[]> {
   return apiFetch(`/api/admin/crawl/history/${logId}/articles`);
 }
+
+// --- Gap Recovery (서비스 점검) ---
+
+export interface DailyStatusItem {
+  date: string;
+  status: 'ok' | 'missing' | 'pending';
+}
+
+export interface RecoveryDiagnosisItem {
+  id: string;
+  label: string;
+  icon: string;
+  frequency: 'daily' | 'weekday' | 'weekly';
+  latest_date: string | null;
+  total_records: number;
+  status: 'ok' | 'warning' | 'gap' | 'empty' | 'error';
+  coverage_pct: number;
+  total_expected: number;
+  total_ok: number;
+  total_missing: number;
+  missing_dates: string[];
+  daily_status: DailyStatusItem[];
+  error?: string;
+}
+
+export interface RecoverySourceStatus {
+  status: 'pending' | 'running' | 'success' | 'error' | 'skipped';
+  message: string;
+  records: number;
+}
+
+export interface RecoveryStatus {
+  is_running: boolean;
+  started_at: string | null;
+  sources: Record<string, RecoverySourceStatus>;
+  completed_at: string | null;
+  recent_logs?: string[];
+}
+
+export async function fetchRecoveryDiagnosis(): Promise<RecoveryDiagnosisItem[]> {
+  return apiFetch('/api/admin/recovery/diagnose');
+}
+
+export async function runRecovery(sourceIds: string[]): Promise<{ status: string; message: string }> {
+  return apiFetch('/api/admin/recovery/run', {
+    method: 'POST',
+    body: JSON.stringify({ source_ids: sourceIds }),
+  });
+}
+
+export async function fetchRecoveryStatus(): Promise<RecoveryStatus> {
+  return apiFetch('/api/admin/recovery/status');
+}
+

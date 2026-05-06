@@ -27,6 +27,9 @@ import {
   deleteCrawlArticles,
   recrawlArticles,
   fetchClassificationStats,
+  fetchRecoveryDiagnosis,
+  runRecovery,
+  fetchRecoveryStatus,
 } from '../../services/adminApi';
 import type {
   CollectionLog,
@@ -38,6 +41,7 @@ import type {
   CrawlHistoryItem, SourceHealthItem, IntegrityReport, CrawlArticleDetail,
   YearCoverageItem, CrawlSearchArticle,
   ClassificationStats,
+  RecoveryDiagnosisItem, RecoveryStatus, DailyStatusItem,
 } from '../../services/adminApi';
 import './AdminPanel.css';
 
@@ -268,6 +272,9 @@ const LogsSection: React.FC = () => {
           <option value="error">Error</option>
           <option value="rate_limited">Rate Limited</option>
         </select>
+        <button className="action-btn small" onClick={() => loadLogs()} style={{ marginLeft: 'auto', padding: '6px 12px' }}>
+          🔄 새로고침
+        </button>
       </div>
 
       <div className="admin-table-wrapper">
@@ -564,8 +571,8 @@ const CrawlCenterSection: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('crawlSubTab', subTab);
   }, [subTab]);
-  const [bottomTab, setBottomTab] = useState<'history' | 'health' | 'integrity' | 'schema'>(() => {
-    return (localStorage.getItem('crawlBottomTab') as 'history' | 'health' | 'integrity' | 'schema') || 'history';
+  const [bottomTab, setBottomTab] = useState<'recovery' | 'history' | 'health' | 'integrity' | 'schema'>(() => {
+    return (localStorage.getItem('crawlBottomTab') as 'recovery' | 'history' | 'health' | 'integrity' | 'schema') || 'history';
   });
 
   useEffect(() => {
@@ -1352,6 +1359,9 @@ const CrawlCenterSection: React.FC = () => {
           <button className={`data-tab ${bottomTab === 'schema' ? 'active' : ''}`} onClick={() => setBottomTab('schema')}>
             📊 데이터 스키마
           </button>
+          <button className={`data-tab ${bottomTab === 'recovery' ? 'active' : ''}`} onClick={() => setBottomTab('recovery')}>
+            🚀 서비스 점검
+          </button>
         </div>
       </div>
 
@@ -1917,7 +1927,351 @@ const CrawlCenterSection: React.FC = () => {
           </div>
         </div>
       )}
+
+      {bottomTab === 'recovery' && (
+        <RecoverySubTab showToast={showToast} />
+      )}
     </>
+  );
+};
+
+// ═══════════════════════════════════════════════
+// Recovery Sub-Tab (서비스 점검)
+// ═══════════════════════════════════════════════
+
+const RecoverySubTab: React.FC<{ showToast: (msg: string, type: 'ok' | 'err') => void }> = ({ showToast }) => {
+  const [diagnosis, setDiagnosis] = useState<RecoveryDiagnosisItem[]>([]);
+  const [recoveryStatus, setRecoveryStatus] = useState<RecoveryStatus | null>(null);
+  const [selectedSources, setSelectedSources] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const loadDiagnosis = useCallback(async () => {
+    try {
+      const [diag, status] = await Promise.all([
+        fetchRecoveryDiagnosis(),
+        fetchRecoveryStatus(),
+      ]);
+      setDiagnosis(diag);
+      setRecoveryStatus(status);
+      // Auto-select sources with gaps
+      if (!status.is_running) {
+        const gapIds = new Set(diag.filter(d => d.status === 'gap' || d.status === 'warning' || d.status === 'empty').map(d => d.id));
+        setSelectedSources(gapIds);
+      }
+    } catch (e) {
+      console.error('Failed to load diagnosis:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadDiagnosis(); }, [loadDiagnosis]);
+
+  // Poll recovery status when running
+  useEffect(() => {
+    if (recoveryStatus?.is_running) {
+      pollRef.current = setInterval(async () => {
+        try {
+          const status = await fetchRecoveryStatus();
+          setRecoveryStatus(status);
+          if (!status.is_running) {
+            // Recovery finished — refresh diagnosis
+            clearInterval(pollRef.current!);
+            pollRef.current = null;
+            loadDiagnosis();
+          }
+        } catch { /* silent */ }
+      }, 2000);
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [recoveryStatus?.is_running, loadDiagnosis]);
+
+  const handleToggleSource = (id: string) => {
+    setSelectedSources(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedSources.size === diagnosis.length) {
+      setSelectedSources(new Set());
+    } else {
+      setSelectedSources(new Set(diagnosis.map(d => d.id)));
+    }
+  };
+
+  const handleRunRecovery = async () => {
+    if (selectedSources.size === 0) {
+      showToast('복구할 소스를 선택하세요.', 'err');
+      return;
+    }
+    setActionLoading(true);
+    try {
+      const res = await runRecovery(Array.from(selectedSources));
+      showToast(res.message, res.status === 'error' ? 'err' : 'ok');
+      // Immediately poll status
+      const status = await fetchRecoveryStatus();
+      setRecoveryStatus(status);
+    } catch (e) {
+      showToast(String(e), 'err');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    const map: Record<string, { bg: string; color: string; text: string }> = {
+      ok: { bg: 'rgba(34, 197, 94, 0.12)', color: '#22c55e', text: '✓ 정상' },
+      warning: { bg: 'rgba(255, 184, 77, 0.12)', color: '#ffb84d', text: '⚠ 일부 누락' },
+      gap: { bg: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', text: '✕ 다수 누락' },
+      empty: { bg: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', text: '✕ 데이터 없음' },
+      error: { bg: 'rgba(239, 68, 68, 0.12)', color: '#ef4444', text: '✕ 오류' },
+      pending: { bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.5)', text: '⏳ 대기' },
+      running: { bg: 'rgba(0, 212, 255, 0.12)', color: '#00d4ff', text: '⚙ 실행 중' },
+      success: { bg: 'rgba(34, 197, 94, 0.12)', color: '#22c55e', text: '✓ 완료' },
+      skipped: { bg: 'rgba(255,255,255,0.06)', color: 'rgba(255,255,255,0.4)', text: '— 건너뜀' },
+    };
+    const s = map[status] || map.error;
+    return (
+      <span style={{ display: 'inline-block', padding: '3px 10px', borderRadius: 6, fontSize: 12, fontWeight: 600, background: s.bg, color: s.color, border: `1px solid ${s.color}30` }}>
+        {s.text}
+      </span>
+    );
+  };
+
+  const isRunning = recoveryStatus?.is_running || false;
+  const gapCount = diagnosis.filter(d => d.status === 'gap' || d.status === 'warning' || d.status === 'empty').length;
+
+  return (
+    <div className="crawl-control-panel">
+      <div className="crawl-control-header">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 16 }}>🔍</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#e4e8ef' }}>서비스 점검 (Gap Recovery)</div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>시스템 중단으로 누락된 데이터를 감지하고 복구합니다</div>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            className="trigger-btn"
+            style={{ padding: '6px 14px', fontSize: 12, opacity: loading ? 0.5 : 1 }}
+            onClick={() => { setLoading(true); loadDiagnosis(); }}
+            disabled={loading}
+          >
+            🔄 재진단
+          </button>
+        </div>
+      </div>
+
+      {/* Summary Banner */}
+      {!loading && (
+        <div className="recovery-summary" style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '14px 20px', margin: '16px 0',
+          background: gapCount > 0 ? 'rgba(255, 184, 77, 0.06)' : 'rgba(34, 197, 94, 0.06)',
+          border: `1px solid ${gapCount > 0 ? 'rgba(255, 184, 77, 0.2)' : 'rgba(34, 197, 94, 0.2)'}`,
+          borderRadius: 10,
+        }}>
+          <div>
+            <span style={{ fontSize: 20, marginRight: 10 }}>{gapCount > 0 ? '⚠️' : '✅'}</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: gapCount > 0 ? '#ffb84d' : '#22c55e' }}>
+              {gapCount > 0 ? `${gapCount}개 소스에서 데이터 누락이 감지되었습니다` : '모든 데이터 소스가 정상입니다'}
+            </span>
+          </div>
+          {gapCount > 0 && !isRunning && (
+            <button
+              className="trigger-btn"
+              style={{ padding: '8px 20px', fontSize: 13, fontWeight: 600, background: 'rgba(0, 212, 255, 0.15)', color: '#00d4ff', border: '1px solid rgba(0, 212, 255, 0.3)' }}
+              onClick={handleRunRecovery}
+              disabled={actionLoading || selectedSources.size === 0}
+            >
+              {actionLoading ? '복구 시작 중...' : `🚀 선택한 ${selectedSources.size}개 소스 복구`}
+            </button>
+          )}
+          {isRunning && (
+            <span style={{ fontSize: 13, color: '#00d4ff', fontWeight: 600 }}>
+              <span className="scheduler-status-dot running" style={{ display: 'inline-block', width: 8, height: 8, marginRight: 6 }} />
+              복구 진행 중...
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Select All */}
+      {!loading && !isRunning && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8, paddingRight: 4 }}>
+          <button
+            onClick={handleSelectAll}
+            style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            {selectedSources.size === diagnosis.length ? '전체 해제' : '전체 선택'}
+          </button>
+        </div>
+      )}
+
+      {/* Unrecoverable Gaps Notice */}
+      {!loading && (
+        <div style={{ marginBottom: 16, fontSize: 12, color: 'rgba(255,255,255,0.4)', background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderRadius: 8, display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+          <span>ℹ️</span>
+          <div style={{ lineHeight: 1.5 }}>
+            <b>안내:</b> 일부 누락 데이터는 소스 제공처의 <b>휴장일(주말/공휴일)</b>이거나 아직 발표되지 않은 주간/월간 리포트일 수 있습니다.<br/>
+            API에 데이터가 존재하지 않는 경우 복구를 실행해도 수집률이 100%가 되지 않는 것이 정상입니다. (복구 완료 후 수집된 건수가 0건일 경우)
+          </div>
+        </div>
+      )}
+
+      {/* Diagnosis Cards */}
+      <div className="recovery-grid">
+        {loading ? (
+          [...Array(5)].map((_, i) => (
+            <div key={i} className="recovery-card">
+              <div className="admin-skeleton" style={{ width: '40%', height: 14, marginBottom: 8 }} />
+              <div className="admin-skeleton" style={{ width: '70%', height: 24, marginBottom: 8 }} />
+              <div className="admin-skeleton" style={{ width: '50%', height: 12 }} />
+            </div>
+          ))
+        ) : diagnosis.map(item => {
+          const isSelected = selectedSources.has(item.id);
+          const sourceStatus = recoveryStatus?.sources?.[item.id];
+
+          return (
+            <div
+              key={item.id}
+              className={`recovery-card ${item.status} ${isSelected && !isRunning ? 'selected' : ''}`}
+              onClick={() => !isRunning && handleToggleSource(item.id)}
+              style={{ cursor: isRunning ? 'default' : 'pointer' }}
+            >
+              {/* Checkbox */}
+              {!isRunning && (
+                <div style={{ position: 'absolute', top: 10, right: 10 }}>
+                  <div style={{
+                    width: 18, height: 18, borderRadius: 4,
+                    border: `2px solid ${isSelected ? '#00d4ff' : 'rgba(255,255,255,0.2)'}`,
+                    background: isSelected ? 'rgba(0, 212, 255, 0.2)' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.15s',
+                  }}>
+                    {isSelected && <span style={{ color: '#00d4ff', fontSize: 12, fontWeight: 700 }}>✓</span>}
+                  </div>
+                </div>
+              )}
+
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <span style={{ fontSize: 20 }}>{item.icon}</span>
+                <span style={{ fontSize: 13, fontWeight: 600, color: '#e4e8ef' }}>{item.label}</span>
+              </div>
+
+              {/* Status Badge */}
+              <div style={{ marginBottom: 10 }}>
+                {sourceStatus ? getStatusBadge(sourceStatus.status) : getStatusBadge(item.status)}
+              </div>
+
+              {/* Coverage + Details */}
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.8 }}>
+                <div>수집률: <span style={{ color: item.coverage_pct >= 90 ? '#22c55e' : item.coverage_pct >= 70 ? '#ffb84d' : '#ef4444', fontWeight: 700 }}>
+                  {item.coverage_pct}%
+                </span>
+                  <span style={{ fontSize: 10, marginLeft: 4 }}>({item.total_ok}/{item.total_expected}일)</span>
+                </div>
+                <div>마지막 수집: <span style={{ color: item.status !== 'ok' ? '#ffb84d' : '#e4e8ef' }}>{item.latest_date || '없음'}</span></div>
+                {item.total_missing > 0 && (
+                  <div style={{ color: '#ef4444' }}>누락: {item.total_missing}일</div>
+                )}
+              </div>
+
+              {/* Daily Heatmap (last 30 days) */}
+              {item.daily_status.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', marginBottom: 4 }}>최근 30일 수집 현황</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                    {item.daily_status.map((d, i) => (
+                      <div key={i} title={`${d.date}: ${d.status === 'ok' ? '수집됨' : d.status === 'pending' ? '대기' : '누락'}`}
+                        style={{ width: 8, height: 8, borderRadius: 2,
+                          background: d.status === 'ok' ? '#22c55e' : d.status === 'pending' ? 'rgba(255,255,255,0.15)' : '#ef4444',
+                        }} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Recovery Progress */}
+              {sourceStatus && (
+                <div style={{ marginTop: 10, padding: '8px 10px', borderRadius: 6, background: 'rgba(0,0,0,0.15)', fontSize: 11 }}>
+                  {sourceStatus.status === 'running' && (
+                    <div style={{ color: '#00d4ff' }}>
+                      <span className="scheduler-status-dot running" style={{ display: 'inline-block', width: 6, height: 6, marginRight: 6 }} />
+                      {sourceStatus.message}
+                    </div>
+                  )}
+                  {sourceStatus.status === 'success' && (
+                    <div style={{ color: '#22c55e' }}>✓ {sourceStatus.message}</div>
+                  )}
+                  {sourceStatus.status === 'error' && (
+                    <div style={{ color: '#ef4444' }} title={sourceStatus.message}>✕ {sourceStatus.message.slice(0, 80)}{sourceStatus.message.length > 80 ? '…' : ''}</div>
+                  )}
+                  {sourceStatus.status === 'pending' && (
+                    <div style={{ color: 'rgba(255,255,255,0.4)' }}>⏳ 대기 중</div>
+                  )}
+                  {sourceStatus.records > 0 && (
+                    <div style={{ color: 'rgba(255,255,255,0.5)', marginTop: 4 }}>{sourceStatus.records.toLocaleString()}건 복구됨</div>
+                  )}
+                </div>
+              )}
+
+              {/* Error message */}
+              {item.error && (
+                <div style={{ marginTop: 6, fontSize: 10, color: '#ef4444' }} title={item.error}>
+                  ⚠ {item.error.slice(0, 100)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Completed Banner */}
+      {recoveryStatus?.completed_at && !isRunning && (
+        <div style={{
+          marginTop: 16, padding: '12px 20px', borderRadius: 10,
+          background: 'rgba(34, 197, 94, 0.06)', border: '1px solid rgba(34, 197, 94, 0.2)',
+          fontSize: 13, color: '#22c55e', fontWeight: 500,
+        }}>
+          ✅ 마지막 복구 완료: {new Date(recoveryStatus.completed_at + 'Z').toLocaleString('ko-KR')}
+        </div>
+      )}
+
+      {/* Live Log Console for Recovery */}
+      {recoveryStatus?.recent_logs && recoveryStatus.recent_logs.length > 0 && (
+        <div className="crawl-live-console" style={{ marginTop: 24 }}>
+          <div className="console-header">
+            <span>🖥️ 라이브 복구 로그</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>{recoveryStatus.recent_logs.length}줄</span>
+          </div>
+          <div className="console-body">
+            {recoveryStatus.recent_logs.map((line, i) => (
+              <div key={i} className={`log-line ${line.includes('ERROR') || line.includes('error') ? 'error' : ''}`}>{line}</div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Recovery Logs */}
+      <div style={{ marginTop: 40, borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+          <span style={{ fontSize: 18 }}>📋</span>
+          <h3 style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>수집 로그 기록</h3>
+        </div>
+        <LogsSection />
+      </div>
+    </div>
   );
 };
 

@@ -1246,3 +1246,34 @@ async def retry_integrity(req: RetryRequest):
     # 현재는 단순히 hold 상태를 풀거나, 로직이 필요하지만
     # 일단은 endpoint만 열어둠
     return {"status": "success", "message": "재수집이 스케줄 큐에 등록되었습니다. (mock)"}
+
+
+# ──────────────────────────────────────────────
+# Gap Recovery (서비스 점검)
+# ──────────────────────────────────────────────
+
+@router.get("/recovery/diagnose")
+async def recovery_diagnose():
+    """각 데이터 소스별 gap 상태를 진단한다."""
+    from app.services.gap_recovery import diagnose
+    return await diagnose()
+
+
+class RecoveryRunRequest(BaseModel):
+    source_ids: list[str]
+
+@router.post("/recovery/run")
+async def recovery_run(req: RecoveryRunRequest):
+    """선택한 소스들에 대해 누락 기간 데이터를 복구한다."""
+    from app.services.gap_recovery import run_recovery
+    if not req.source_ids:
+        raise HTTPException(400, "복구할 소스가 선택되지 않았습니다.")
+    return await run_recovery(req.source_ids)
+
+
+@router.get("/recovery/status")
+async def recovery_status():
+    """복구 진행 상태를 반환한다."""
+    from app.services.gap_recovery import get_recovery_status
+    return get_recovery_status()
+
