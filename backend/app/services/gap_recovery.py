@@ -66,7 +66,7 @@ SOURCE_DEFS = [
         "label": "뉴스 (News)",
         "icon": "📰",
         "table": "news_articles",
-        "date_col": "collected_at",
+        "date_col": "published_at",
         "frequency": "daily",  # 매일 수집 기대
         "check_days": 30,
         "lag_days": 1,
@@ -135,11 +135,11 @@ async def diagnose() -> List[Dict]:
                 start_date = today - timedelta(days=check_days)
                 start_str = start_date.isoformat()
 
-                if date_col == "collected_at":
+                if date_col in ("collected_at", "published_at"):
                     q = text(f"""
                         SELECT DISTINCT SUBSTRING({date_col}, 1, 10) as d
                         FROM {table}
-                        WHERE {date_col} >= :start
+                        WHERE SUBSTRING({date_col}, 1, 10) >= :start
                         ORDER BY d
                     """)
                 else:
@@ -198,8 +198,8 @@ async def diagnose() -> List[Dict]:
                         missing_dates.append(label)
 
                 # 4) 최신 날짜, 총 레코드 수
-                if date_col == "collected_at":
-                    latest_q = text(f"SELECT MAX({date_col}::date) FROM {table}")
+                if date_col in ("collected_at", "published_at"):
+                    latest_q = text(f"SELECT MAX(SUBSTRING({date_col}, 1, 10)) FROM {table}")
                 else:
                     latest_q = text(f"SELECT MAX({date_col}) FROM {table}")
 
@@ -367,15 +367,49 @@ async def _execute_recovery(source_ids: List[str]):
                 _recovery_log(f"[{sid}] 완료: {count}건 데이터 수집됨")
 
             elif sid == "news":
-                start = today - timedelta(days=10)
-                _recovery_state["sources"][sid]["message"] = f"과거 10일치 뉴스 수집 + AI 분류 진행 중..."
-                await collect_all_news(start.isoformat(), today.isoformat())
-                _recovery_state["sources"][sid] = {
-                    "status": "success",
-                    "message": "과거 10일치 뉴스 수집 및 AI 분류 완료",
-                    "records": 0,
-                }
-                _recovery_log(f"[{sid}] 완료: 과거 10일치 뉴스 복구 처리됨")
+                start = today - timedelta(days=30)
+                _recovery_state["sources"][sid]["message"] = f"과거 30일치 뉴스 수집 + AI 분류 진행 중..."
+                _recovery_log(f"[{sid}] 기간: {start.isoformat()} ~ {today.isoformat()}")
+                
+                news_result = await collect_all_news(start.isoformat(), today.isoformat())
+                
+                # 상세 결과 추출
+                if isinstance(news_result, dict):
+                    nyt_fetched = news_result.get("nyt_fetched", 0)
+                    guardian_fetched = news_result.get("guardian_fetched", 0)
+                    total_fetched = news_result.get("total_fetched", 0)
+                    new_count = news_result.get("new_count", 0)
+                    dup_count = news_result.get("duplicate_count", 0)
+                    classified = news_result.get("classified_count", 0)
+                else:
+                    total_fetched = nyt_fetched = guardian_fetched = new_count = dup_count = classified = 0
+                
+                _recovery_log(f"[{sid}] API 응답: NYT {nyt_fetched}건, Guardian {guardian_fetched}건 (총 {total_fetched}건)")
+                
+                if total_fetched == 0:
+                    # API에서 아무것도 못 가져옴 → 실패
+                    _recovery_state["sources"][sid] = {
+                        "status": "error",
+                        "message": f"API에서 뉴스를 가져오지 못했습니다 (NYT {nyt_fetched}건, Guardian {guardian_fetched}건). API 키 또는 네트워크를 확인하세요.",
+                        "records": 0,
+                    }
+                    _recovery_log(f"[{sid}] FAIL: API에서 데이터를 가져오지 못함")
+                elif new_count == 0:
+                    # API에서 가져왔지만 전부 이미 DB에 있는 중복
+                    _recovery_state["sources"][sid] = {
+                        "status": "warning",
+                        "message": f"API에서 {total_fetched}건 수신했으나 모두 기존 데이터와 중복 (신규 0건). 누락 기간의 뉴스가 API에 없을 수 있습니다.",
+                        "records": 0,
+                    }
+                    _recovery_log(f"[{sid}] 경고: {total_fetched}건 수신했으나 전부 중복 — 신규 데이터 없음")
+                else:
+                    # 신규 데이터 수집 성공
+                    _recovery_state["sources"][sid] = {
+                        "status": "success",
+                        "message": f"신규 {new_count}건 수집 완료 (NYT {nyt_fetched}, Guardian {guardian_fetched}, 중복 {dup_count}건 제외, AI 분류 {classified}건)",
+                        "records": new_count,
+                    }
+                    _recovery_log(f"[{sid}] 성공: 신규 {new_count}건 수집, AI 분류 {classified}건 완료")
 
             else:
                 _recovery_state["sources"][sid] = {

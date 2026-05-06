@@ -62,19 +62,26 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => (
   </span>
 );
 
+const parseUTCString = (iso: string | null): Date | null => {
+  if (!iso) return null;
+  const isoWithZ = /Z|[+-]\d{2}:\d{2}$/i.test(iso) ? iso : `${iso}Z`;
+  return new Date(isoWithZ);
+};
+
 const formatDate = (iso: string | null): string => {
-  if (!iso) return '—';
+  const d = parseUTCString(iso);
+  if (!d) return '—';
   try {
-    const d = new Date(iso);
     return d.toLocaleString('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
   } catch {
-    return iso;
+    return iso!;
   }
 };
 
 const getTimeUntil = (iso: string | null, nowMs: number): string => {
-  if (!iso) return '';
-  const diffMs = new Date(iso).getTime() - nowMs;
+  const d = parseUTCString(iso);
+  if (!d) return '';
+  const diffMs = d.getTime() - nowMs;
   if (diffMs <= 0) return '곧 실행됨';
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
   const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
@@ -1337,7 +1344,7 @@ const CrawlCenterSection: React.FC = () => {
           )}
 
           {/* Completion Banner */}
-          {!status?.is_running && status?.collected && status.collected > 0 && status?.elapsed_seconds > 0 && (
+          {!status?.is_running && (status?.collected ?? 0) > 0 && (status?.elapsed_seconds ?? 0) > 0 && (
             <div className="crawl-complete-banner">
               ✅ 크롤링 완료! 총 {status.collected.toLocaleString()}건 수집 (NYT {status.nyt_collected}, Guardian {status.guardian_collected}) — {status.elapsed_seconds}초 소요
             </div>
@@ -1382,7 +1389,8 @@ const CrawlCenterSection: React.FC = () => {
               <tbody>
                 {health.map(h => {
                   const errorRate = h.total_runs ? ((h.error_runs || 0) / h.total_runs) * 100 : 0;
-                  const daysDiff = h.newest_article ? (new Date().getTime() - new Date(h.newest_article).getTime()) / (1000 * 3600 * 24) : Infinity;
+                  const d = parseUTCString(h.newest_article);
+                  const daysDiff = d ? (new Date().getTime() - d.getTime()) / (1000 * 3600 * 24) : Infinity;
 
                   let isStale = false;
                   let isInactive = false;
@@ -1513,8 +1521,8 @@ const CrawlCenterSection: React.FC = () => {
                 <tbody>
                   {searchResults.items.map(a => {
                     const isNew = !viewedArticles.has(a.id) && (
-                      (a.is_classified === 0 && a.collected_at && (new Date().getTime() - new Date(a.collected_at).getTime() < 24 * 60 * 60 * 1000)) ||
-                      (a.is_classified === 1 && a.ai_classified_at && (new Date().getTime() - new Date(a.ai_classified_at).getTime() < 24 * 60 * 60 * 1000))
+                      (a.is_classified === 0 && a.collected_at && (new Date().getTime() - parseUTCString(a.collected_at)!.getTime() < 24 * 60 * 60 * 1000)) ||
+                      (a.is_classified === 1 && a.ai_classified_at && (new Date().getTime() - parseUTCString(a.ai_classified_at)!.getTime() < 24 * 60 * 60 * 1000))
                     );
                     return (
                       <React.Fragment key={a.id}>
@@ -2214,8 +2222,11 @@ const RecoverySubTab: React.FC<{ showToast: (msg: string, type: 'ok' | 'err') =>
                   {sourceStatus.status === 'success' && (
                     <div style={{ color: '#22c55e' }}>✓ {sourceStatus.message}</div>
                   )}
+                  {sourceStatus.status === 'warning' && (
+                    <div style={{ color: '#ffb84d' }}>⚠ {sourceStatus.message}</div>
+                  )}
                   {sourceStatus.status === 'error' && (
-                    <div style={{ color: '#ef4444' }} title={sourceStatus.message}>✕ {sourceStatus.message.slice(0, 80)}{sourceStatus.message.length > 80 ? '…' : ''}</div>
+                    <div style={{ color: '#ef4444' }}>✕ {sourceStatus.message}</div>
                   )}
                   {sourceStatus.status === 'pending' && (
                     <div style={{ color: 'rgba(255,255,255,0.4)' }}>⏳ 대기 중</div>
@@ -2244,7 +2255,7 @@ const RecoverySubTab: React.FC<{ showToast: (msg: string, type: 'ok' | 'err') =>
           background: 'rgba(34, 197, 94, 0.06)', border: '1px solid rgba(34, 197, 94, 0.2)',
           fontSize: 13, color: '#22c55e', fontWeight: 500,
         }}>
-          ✅ 마지막 복구 완료: {new Date(recoveryStatus.completed_at + 'Z').toLocaleString('ko-KR')}
+          ✅ 마지막 복구 완료: {parseUTCString(recoveryStatus.completed_at)?.toLocaleString('ko-KR')}
         </div>
       )}
 

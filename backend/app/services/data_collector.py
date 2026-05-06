@@ -240,17 +240,30 @@ class NYTCollector(BaseCollector):
             "api-key": self.api_key
         }
         
+        max_pages = 1
         if start_date:
             params["begin_date"] = start_date.replace("-", "")
+            max_pages = 5  # 과거 데이터 복구 시 최대 5페이지(50건) 조회
         if end_date:
             params["end_date"] = end_date.replace("-", "")
         
-        try:
-            data = await self._fetch_api("/articlesearch.json", params, "nyt_news", rate_limit_source="nyt")
-            return data.get("response", {}).get("docs", [])
-        except Exception as e:
-            logger.error(f"NYT fetch failed: {e}")
-            return []
+        all_docs = []
+        for page in range(max_pages):
+            params["page"] = page
+            try:
+                data = await self._fetch_api("/articlesearch.json", params, "nyt_news", rate_limit_source="nyt")
+                docs = data.get("response", {}).get("docs", [])
+                if not docs:
+                    break
+                all_docs.extend(docs)
+                
+                if page < max_pages - 1:
+                    await asyncio.sleep(12)  # NYT Rate Limit: 5 req/min (12sec delay)
+            except Exception as e:
+                logger.error(f"NYT fetch failed on page {page}: {e}")
+                break
+                
+        return all_docs
 
 class GuardianCollector(BaseCollector):
     """The Guardian Open Platform API 수집기"""
@@ -269,17 +282,30 @@ class GuardianCollector(BaseCollector):
             "api-key": self.api_key
         }
         
+        max_pages = 1
         if start_date:
             params["from-date"] = start_date
+            max_pages = 5  # 과거 데이터 복구 시 최대 5페이지(50건) 조회
         if end_date:
             params["to-date"] = end_date
         
-        try:
-            data = await self._fetch_api("/search", params, "guardian_news", rate_limit_source="guardian")
-            return data.get("response", {}).get("results", [])
-        except Exception as e:
-            logger.error(f"Guardian fetch failed: {e}")
-            return []
+        all_results = []
+        for page in range(1, max_pages + 1):
+            params["page"] = page
+            try:
+                data = await self._fetch_api("/search", params, "guardian_news", rate_limit_source="guardian")
+                results = data.get("response", {}).get("results", [])
+                if not results:
+                    break
+                all_results.extend(results)
+                
+                if page < max_pages:
+                    await asyncio.sleep(1) # Guardian is more generous, 1sec is enough
+            except Exception as e:
+                logger.error(f"Guardian fetch failed on page {page}: {e}")
+                break
+                
+        return all_results
 
 
 class DataCollector:
@@ -416,11 +442,14 @@ class DataCollector:
             }
         return {}
 
-    async def collect_news(self, start_date: str | None = None, end_date: str | None = None) -> List[Dict[str, Any]]:
+    async def collect_news(self, start_date: str | None = None, end_date: str | None = None) -> Dict[str, Any]:
+        """뉴스 수집 → DB 저장 → 상세 결과 반환"""
         nyt_task = self.nyt.get_latest_news(start_date, end_date)
         guardian_task = self.guardian.get_latest_news(start_date, end_date)
         
         nyt_articles, guardian_articles = await asyncio.gather(nyt_task, guardian_task)
+        nyt_raw_count = len(nyt_articles or [])
+        guardian_raw_count = len(guardian_articles or [])
         
         all_articles = []
         seen_urls = set()
@@ -441,13 +470,23 @@ class DataCollector:
                     all_articles.append(normalized)
                     seen_urls.add(link)
 
-        # SQLite에 저장
+        # DB 저장
         if all_articles:
             await self.db.upsert_news_articles(all_articles)
         
-        # 새롭게 DB에 인서트된 기사만 필터링하여 반환
+        # 상세 결과 집계
         new_articles = [a for a in all_articles if a.get('_is_new')]
-        return new_articles
+        duplicate_count = len(all_articles) - len(new_articles)
+
+        return {
+            "new_articles": new_articles,
+            "nyt_fetched": nyt_raw_count,
+            "guardian_fetched": guardian_raw_count,
+            "total_fetched": nyt_raw_count + guardian_raw_count,
+            "total_normalized": len(all_articles),
+            "new_count": len(new_articles),
+            "duplicate_count": duplicate_count,
+        }
 
     async def collect_all(self, start_date: str, end_date: str) -> Dict:
         prices, macro, news = await asyncio.gather(

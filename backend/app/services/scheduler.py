@@ -39,7 +39,9 @@ async def _log_collection(source: str, task_type: str, func, *args, **kwargs):
 
         # 결과에서 레코드 수 추출
         records_count = 0
-        if hasattr(result, '__len__'):
+        if isinstance(result, dict) and "new_count" in result:
+            records_count = result["new_count"]
+        elif hasattr(result, '__len__'):
             records_count = len(result)
         elif hasattr(result, 'prices'):
             records_count = len(result.prices)
@@ -47,12 +49,12 @@ async def _log_collection(source: str, task_type: str, func, *args, **kwargs):
             records_count = len(result.indicators)
 
         log_entry.update({
-            "status": "success",
+            "status": "success" if records_count > 0 else "no_data",
             "records_count": records_count,
             "completed_at": completed_at.isoformat(),
             "duration_ms": duration_ms,
         })
-        logger.info(f"[Scheduler] {source}/{task_type}: 성공 ({records_count}건, {duration_ms}ms)")
+        logger.info(f"[Scheduler] {source}/{task_type}: {'성공' if records_count > 0 else '데이터 없음'} ({records_count}건, {duration_ms}ms)")
 
     except Exception as e:
         completed_at = datetime.utcnow()
@@ -129,23 +131,32 @@ async def collect_fred_macro():
 
 
 async def collect_all_news(start_date: str | None = None, end_date: str | None = None):
-    """뉴스 수집 (NewsAPI + GNews + GDELT) → AI 분류 → 일일 브리핑 자동 생성"""
+    """뉴스 수집 (NewsAPI + GNews + GDELT) → AI 분류 → 일일 브리핑 자동 생성
+    
+    Returns dict with collection details for gap_recovery logging.
+    """
     from app.services.data_collector import DataCollector
     from app.services.news_classifier import NewsClassifier
     
     collector = DataCollector()
-    articles = await _log_collection(
+    result = await _log_collection(
         "news", "news",
         collector.collect_news,
         start_date=start_date, end_date=end_date
     )
     
+    # result는 이제 dict: { new_articles, nyt_fetched, guardian_fetched, ... }
+    if not isinstance(result, dict):
+        result = {"new_articles": result if result else [], "total_fetched": 0, "new_count": 0, "duplicate_count": 0, "nyt_fetched": 0, "guardian_fetched": 0}
+    
+    new_articles = result.get("new_articles", [])
+    
     # 수집 완료 후 AI 분류 진행 (await로 완료 대기)
     classified_articles = []
-    if articles:
+    if new_articles:
         classifier = NewsClassifier()
         try:
-            classified_articles = await classifier.classify_batch(articles)
+            classified_articles = await classifier.classify_batch(new_articles)
             logger.info(f"[Scheduler] 뉴스 AI 분류 완료: {len(classified_articles)}건")
         except Exception as e:
             logger.error(f"[Scheduler] 뉴스 AI 분류 실패: {e}")
@@ -155,6 +166,10 @@ async def collect_all_news(start_date: str | None = None, end_date: str | None =
         asyncio.create_task(_generate_daily_briefing_after_classification(classified_articles))
     else:
         logger.info("[Scheduler] 분류된 뉴스 0건 — 일일 브리핑 생성 스킵")
+    
+    # 상세 결과를 반환하여 gap_recovery에서 활용 가능
+    result["classified_count"] = len(classified_articles)
+    return result
 
 
 async def _generate_daily_briefing_after_classification(classified_articles):

@@ -590,7 +590,7 @@ export interface RecoveryDiagnosisItem {
 }
 
 export interface RecoverySourceStatus {
-  status: 'pending' | 'running' | 'success' | 'error' | 'skipped';
+  status: 'pending' | 'running' | 'success' | 'warning' | 'error' | 'skipped' | 'no_data';
   message: string;
   records: number;
 }
