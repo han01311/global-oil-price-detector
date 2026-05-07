@@ -16,7 +16,13 @@
 - 오피넷(과거 유가), EIA(수급/재고), FRED(거시경제) 데이터를 시계열 머신러닝 모델(XGBoost)에 학습
 - **두바이유, 브렌트유, WTI 각각에 대한 독립 모델**(6개: 3유종 × 2시계)을 학습하여 유종별 **7일 / 30일 단기 전망** 제공
 
-#### F1-b. 정성적 보정 (News Premium/Discount) — 유종별 독립 보정
+#### F1-b. 수급 기반 펀더멘탈 분석 (Method B)
+- EIA 재고/생산량, FRED 거시지표, 계절성 등 실물 시장 데이터를 5대 독립 시그널로 분해
+  - 재고 변화(수급 균형 대리 지표), 생산량 추세, 계절 패턴, 평균 회귀(Ornstein-Uhlenbeck), 달러 역상관
+- 각 시그널의 신뢰도에 비례하여 가중 합산 → 유종별 7일 전망 산출
+- Method A와 독립적으로 실행되며, 대시보드에서 두 결과를 나란히 비교 표시
+
+#### F1-c. 정성적 보정 (News Premium/Discount) — 유종별 독립 보정
 - 벡터 DB(ChromaDB)에 적재된 뉴스 요인 분석 결과(지정학, 공급 리스크 등)를 기반으로
 - 현재 이슈가 **각 유종(두바이유, 브렌트유, WTI)에 미칠 상승/하락 압력(%)**을 개별적으로 산출
 - 예: 호르무즈 해협 이슈 → 두바이유 +4%, 브렌트유 +2%, WTI +1%
@@ -25,7 +31,7 @@
 
 ### F2. AI 스마트 필터 및 다차원 요인 분류기
 
-- 글로벌 뉴스 중 유가 영향 기사만 자동 선별 (Gemma 4 기반 relevance scoring)
+- 글로벌 뉴스 중 유가 영향 기사만 자동 선별 (Gemma 4 기반, Ollama 로컬 호스팅 / Gemini API Fallback)
 - 근본 원인을 6대 카테고리로 분류:
   - `geopolitics` (지정학: 전쟁, 제재, 외교)
   - `supply` (공급: OPEC 감산, 셰일, 시추)
@@ -101,19 +107,16 @@ B2B 분석가들이 사용하는 대시보드는 정보 밀도가 높으면서�
 
 | 소스 | 제공 데이터 | 접근 방식 | 비용 |
 |------|-------------|-----------|------|
-| **EIA API v2** | WTI/Brent 일별 현물가, 미국 원유 재고(주간), 생산량, 수출입 | REST API (무료 키 발급) | 무료 |
-| **FRED API** | 연방기금금리(`FEDFUNDS`), 미국 달러 인덱스(`DTWEXBGS`), CPI, 산업생산지수 | REST API (무료 키 발급) | 무료 |
-| **오피넷 API** | 국내 유종별 평균 유가, 지역별 가격 | REST API (인증키 신청) | 무료 |
-| **World Bank API** | 월별 원자재 가격(Pink Sheet), 글로벌 GDP | REST API (키 불필요) | 무료 |
-| **Baker Hughes** | 주간 글로벌 시추 리그 수 (Rig Count) | 엑셀 다운로드 → 파싱 | 무료 |
+| **오피넷 (한국석유공사)** | Dubai/Brent/WTI 일별 현물가 (USD) | 웹 스크래핑 (POST form-data → BeautifulSoup) | 무료 |
+| **EIA API v2** | 미국 원유 재고(주간), 생산량 | REST API (무료 키 발급) | 무료 |
+| **FRED API** | 연방기금금리(`FEDFUNDS`), 미국 달러 인덱스(`DTWEXBGS`) | REST API (무료 키 발급) | 무료 |
 
 ### 정성 데이터 (Qualitative / News)
 
 | 소스 | 제공 데이터 | 접근 방식 | 비용 |
 |------|-------------|-----------|------|
-| **GDELT Project** | 1979년~ 글로벌 이벤트 DB, 지정학 이벤트 분류(CAMEO 코드), 톤/감성 | BigQuery 또는 REST API | 무료 (BQ 프리티어) |
-| **NewsAPI.org** | 실시간 글로벌 뉴스 헤드라인 + 메타데이터 | REST API | 무료 (100회/일) |
-| **GNews API** | 실시간 뉴스 헤드라인 (NewsAPI 대체/보완) | REST API | 무료 (100회/일) |
+| **New York Times** | 원유 관련 영문 뉴스 기사 (Article Search API) | REST API | 무료 (500회/일) |
+| **The Guardian** | 원유 관련 영문 뉴스 기사 (Open Platform API) | REST API | 무료 (5,000회/일) |
 
 ### 파생 데이터 (Derived / Computed)
 
@@ -126,24 +129,31 @@ B2B 분석가들이 사용하는 대시보드는 정보 밀도가 높으면서�
 
 ---
 
-## 추정 엔진 로직 (상세)
+## 예측 엔진 로직 (상세)
 
 ```
-[Phase 1: Baseline]
-  EIA(유가/재고) + FRED(금리/달러) + Baker Hughes(리그수)
-  → Feature Engineering (이동평균, 변동률, 래깅)
-  → XGBoost 학습/예측
+[Method A: AI Quant Baseline]
+  오피넷(유가) + EIA(재고/생산) + FRED(금리/달러)
+  → Feature Engineering (이동평균, 변동률, 변동성, 유종 간 스프레드)
+  → XGBoost 학습/예측 (6개 모델: 3유종 × 2시계)
   → Baseline Forecast (7일/30일)
 
-[Phase 2: News Adjustment]
-  NewsAPI/GDELT → Gemma 4 요인 분류 → Impact Score 산출
+[Method B: 펀더멘탈 분석]
+  EIA(재고/생산) + FRED(달러 인덱스) + 계절성 + 평균 회귀
+  → 5대 시그널 독립 산출
+  → 신뢰도 기반 가중 합산
+  → 유종별 7일 전망
+
+[News Adjustment]
+  NYT/Guardian → Gemma 4 요인 분류 → Impact Score 산출
   → ChromaDB에서 유사 과거 사례 검색
   → 과거 사례의 실제 유가 변동률 참조
-  → News Premium/Discount (%) 산출
+  → 유종별 News Premium/Discount (%) 산출
 
-[Phase 3: Final Estimate]
-  Final Price = Baseline × (1 + News Adjustment%)
+[Final Estimate]
+  Final Price = Method A Baseline × (1 + News Adjustment%)
   Confidence Band = ± (모델 RMSE + 뉴스 불확실성)
+  + Method B 전망을 별도 칼럼으로 병행 표시
 ```
 
 ---
