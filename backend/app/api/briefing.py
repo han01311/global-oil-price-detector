@@ -44,7 +44,7 @@ async def generate_briefing() -> Briefing:
         price_data = await _fetch_crude_price_data(db)
 
         # 2. 예측 파이프라인 실행
-        forecast_result, relevant_articles, _ = await _run_forecast_pipeline()
+        forecast_result, relevant_articles, _, _ = await _run_forecast_pipeline()
         
         # 3. 인메모리 기사 없으면 ChromaDB에서 로드
         if not relevant_articles:

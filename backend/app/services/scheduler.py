@@ -186,7 +186,7 @@ async def _generate_daily_briefing_after_classification(classified_articles):
         price_data = await _fetch_crude_price_data(db)
 
         # 2. 예측 파이프라인 실행 (key_factors 등에 필요한 forecast 데이터)
-        forecast_result, _, _ = await _run_forecast_pipeline()
+        forecast_result, _, _, _ = await _run_forecast_pipeline()
 
         # 3. 분류된 기사를 dict로 변환
         articles_as_dicts = []
