@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     """애플리케이션 설정"""
 
     # 프로젝트 기본 정보
-    PROJECT_NAME: str = "Petro-AX"
+    PROJECT_NAME: str = "OilLens"
     VERSION: str = "0.2.0"
     DEBUG: bool = True
     APP_ENV: str = "development"

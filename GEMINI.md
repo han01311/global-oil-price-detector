@@ -1,4 +1,4 @@
-# 프로젝트: Petro-AX (글로벌 유가 추정 대시보드)
+# 프로젝트: OilLens (글로벌 유가 추정 대시보드)
 
 ## 기술 스택
 - Frontend: React + TypeScript (Vite)

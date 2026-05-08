@@ -1,4 +1,4 @@
-# Petro-AX XGBoost 모델 피처 목록
+# OilLens XGBoost 모델 피처 목록
 
 이 문서는 `FeatureEngineer` 서비스에서 생성되는 머신러닝 피처를 설명합니다.
 

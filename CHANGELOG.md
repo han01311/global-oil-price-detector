@@ -4,6 +4,8 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 따릅니다.
 
 ## [Unreleased]
+- docs: 프로젝트 공식 명칭 Petro-AX → OilLens 통일 (GEMINI.md, PRD.md, UI_GUIDE.md, FEATURES.md, config.py)
+- docs: OilLens 아키텍처 다이어그램 재생성 — 현재 서비스/컴포넌트 구조 반영
 - docs: 서비스 아키텍처 다이어그램 재생성 (`docs/architecture_diagram.png`)
 - docs: 피그마 스타일 아키텍처 다이어그램 추가 (`docs/architecture_diagram_figma.png`)
 - fix: 수동 브리핑 재생성 API(`POST /api/briefing/generate`) 및 스케줄러 자동 생성 시 발생하는 500 에러(언패킹 버그) 통합 수정
