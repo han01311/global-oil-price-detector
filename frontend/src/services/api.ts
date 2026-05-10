@@ -134,3 +134,43 @@ export async function fetchNewsByRange(startDate: string, endDate: string): Prom
   return apiFetch(`/api/news/by-range?start_date=${startDate}&end_date=${endDate}`);
 }
 
+// --- 공공데이터 APIs (data.go.kr) ---
+export interface ExchangeRateData {
+  date: string;
+  krw_usd: number;
+  ttb: number | null;
+  tts: number | null;
+  cur_unit: string;
+  cur_nm: string;
+  source: string;
+}
+
+export interface ImportConcentrationData {
+  year: number;
+  hhi: number;
+  risk_level: 'high' | 'medium' | 'low';
+  top_countries: Array<{
+    country: string;
+    share_pct: number;
+    volume: number;
+    value: number | null;
+    unit_price: number | null;
+  }>;
+  total_volume: number;
+  country_count: number;
+  source: string;
+}
+
+export async function fetchExchangeRate(): Promise<ExchangeRateData> {
+  return apiFetch("/api/public-data/exchange-rate");
+}
+
+export async function fetchImportConcentration(year?: number): Promise<ImportConcentrationData> {
+  const params = year ? `?year=${year}` : '';
+  return apiFetch(`/api/public-data/import-concentration${params}`);
+}
+
+export async function fetchPublicDataSources(): Promise<{ public_data_sources: any[]; total_count: number }> {
+  return apiFetch("/api/public-data/data-sources");
+}
+

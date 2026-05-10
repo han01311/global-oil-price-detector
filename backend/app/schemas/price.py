@@ -26,6 +26,7 @@ class MacroIndicator(BaseModel):
     date: str
     fed_rate: Optional[float] = None
     dollar_index: Optional[float] = None
+    krw_usd: Optional[float] = None       # 원/달러 매매기준율 (공공데이터)
     cpi: Optional[float] = None
     industrial_prod: Optional[float] = None
     yield_spread: Optional[float] = None

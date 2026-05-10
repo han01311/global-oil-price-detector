@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.database import Database
 from app.services.scheduler import CollectionScheduler
-from app.api import prices, news, forecast, briefing, admin
+from app.api import prices, news, forecast, briefing, admin, public_data
 
 
 @asynccontextmanager
@@ -56,6 +56,7 @@ app.include_router(news.router)
 app.include_router(forecast.router)
 app.include_router(briefing.router)
 app.include_router(admin.router)
+app.include_router(public_data.router)
 
 @app.get("/api/health")
 async def health_check():

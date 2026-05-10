@@ -17,5 +17,6 @@ class MacroIndicator(Base):
     date: Mapped[str] = mapped_column(String(20), nullable=False)
     fed_rate: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     dollar_index: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    krw_usd: Mapped[Optional[float]] = mapped_column(Float, nullable=True)  # 원/달러 매매기준율 (공공데이터)
     source: Mapped[str] = mapped_column(String(50), default="fred")
     collected_at: Mapped[str] = mapped_column(Text, nullable=False)

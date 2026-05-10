@@ -130,6 +130,16 @@ async def collect_fred_macro():
     )
 
 
+async def collect_exchange_rate():
+    """한국수출입은행 환율 수집 (공공데이터 data.go.kr)"""
+    from app.services.data_collector import DataCollector
+    collector = DataCollector()
+    await _log_collection(
+        "koreaexim", "exchange_rate",
+        collector.collect_exchange_rate,
+    )
+
+
 async def collect_all_news(start_date: str | None = None, end_date: str | None = None):
     """뉴스 수집 (NewsAPI + GNews + GDELT) → AI 분류 → 일일 브리핑 자동 생성
     
@@ -343,6 +353,16 @@ class CollectionScheduler:
         )
 
         self._scheduler.start()
+
+        # 환율 수집 — 24시간마다 (영업일에만 갱신)
+        self._scheduler.add_job(
+            collect_exchange_rate,
+            IntervalTrigger(hours=24),
+            id="koreaexim_exchange_rate",
+            name="한국수출입은행 환율 수집 (공공데이터)",
+            **job_kwargs,
+        )
+
         self._is_running = True
         logger.info(f"[Scheduler] 시작됨 (수집 주기: {interval_hours}시간)")
 
@@ -379,6 +399,7 @@ class CollectionScheduler:
             "eia_production": collect_eia_production,
             "fred_macro": collect_fred_macro,
             "news": collect_all_news,
+            "koreaexim_exchange_rate": collect_exchange_rate,
         }
 
         func = job_map.get(source)

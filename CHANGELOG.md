@@ -9,6 +9,13 @@
 - docs: 서비스 아키텍처 다이어그램 재생성 (`docs/architecture_diagram.png`)
 - docs: 피그마 스타일 아키텍처 다이어그램 추가 (`docs/architecture_diagram_figma.png`)
 - fix: 수동 브리핑 재생성 API(`POST /api/briefing/generate`) 및 스케줄러 자동 생성 시 발생하는 500 에러(언패킹 버그) 통합 수정
+- feat: 한국수출입은행 환율 API 연동 — 원/달러 매매기준율 자동 수집 (공공데이터 data.go.kr)
+- feat: 한국석유공사 원유수입 국가별 CSV 적재 — 수입 집중도(HHI) 분석 서비스
+- feat: 한국석유공사 세계 원유 수출입 물량 CSV 적재 — 글로벌 교역 흐름 분석
+- feat: 공공데이터 전용 API 라우터 (`/api/public-data/`) — 환율, 수입집중도, 데이터소스 메타
+- feat: 대시보드 USD/KRW 통화 토글 — 원화 기준 유가 실시간 표시
+- feat: 예측 모델 피처 확장 — krw_usd, krw_usd_change_5d 거시경제 피처 추가
+- feat: 펀더멘탈 예측 달러 시그널에 원/달러 환율 보조 정보 추가
 
 ## [0.2.0] - 2026-05-07
 

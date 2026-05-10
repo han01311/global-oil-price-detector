@@ -23,6 +23,8 @@ from app.models.macro_indicator import MacroIndicator as MacroIndicatorModel
 from app.models.news_article import NewsArticle as NewsArticleModel
 from app.models.collection_log import CollectionLog as CollectionLogModel
 from app.models.rate_limit_counter import RateLimitCounter as RateLimitCounterModel
+from app.models.oil_import import OilImport as OilImportModel
+from app.models.world_oil_trade import WorldOilTrade as WorldOilTradeModel
 
 logger = logging.getLogger(__name__)
 
@@ -256,6 +258,7 @@ class Database:
                         date=row["date"],
                         fed_rate=row.get("fed_rate"),
                         dollar_index=row.get("dollar_index"),
+                        krw_usd=row.get("krw_usd"),
                         source=row.get("source", "fred"),
                         collected_at=now,
                     )
@@ -264,6 +267,7 @@ class Database:
                         set_={
                             "fed_rate": stmt.excluded.fed_rate,
                             "dollar_index": stmt.excluded.dollar_index,
+                            "krw_usd": stmt.excluded.krw_usd,
                             "collected_at": stmt.excluded.collected_at,
                         },
                     )

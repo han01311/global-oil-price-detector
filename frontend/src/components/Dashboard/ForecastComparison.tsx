@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom';
 import { Card } from '../common/Card';
 import { Skeleton } from '../common/Skeleton';
 import { EmptyState } from '../common/EmptyState';
-import { fetchDualForecast, fetchPriceHistory } from '../../services/api';
+import { fetchDualForecast, fetchPriceHistory, fetchExchangeRate, type ExchangeRateData } from '../../services/api';
 import type { DualForecastResult } from '../../types/forecast';
 import type { OilPrice } from '../../types/price';
 import './ForecastComparison.css';
@@ -301,6 +301,8 @@ export const ForecastComparison: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [infoModal, setInfoModal] = useState<'A' | 'B' | null>(null);
+  const [currency, setCurrency] = useState<'USD' | 'KRW'>('USD');
+  const [exchangeRate, setExchangeRate] = useState<ExchangeRateData | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -329,14 +331,43 @@ export const ForecastComparison: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
+  // 환율 로드 (공공데이터)
+  useEffect(() => {
+    let cancelled = false;
+    fetchExchangeRate()
+      .then(data => { if (!cancelled && data?.krw_usd) setExchangeRate(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   const methodACrudes = dualData?.method_a?.forecasts_by_crude || {};
   const methodBCrudes = dualData?.method_b?.forecasts_by_crude || {};
   const generatedAt = dualData?.generated_at || '';
   const dataAsOf = dualData?.data_as_of || '';
   // 기준일: 실제 유가 데이터의 마지막 날짜 (data_as_of) 사용
   const baseDateLabel = dataAsOf ? fmtDateShort(dataAsOf) : (generatedAt ? fmtDateShort(generatedAt) : '');
-  // 전망일: 데이터 기준일 + 7일
   const targetDateLabel = dataAsOf ? fmtTarget(dataAsOf) : (generatedAt ? fmtTarget(generatedAt) : '');
+
+  const rate = exchangeRate?.krw_usd ?? 0;
+  const isKRW = currency === 'KRW' && rate > 0;
+
+  function fmtPrice(p: number | undefined): string {
+    if (p === undefined || isNaN(p)) return '—';
+    if (isKRW) return `₩${(p * rate).toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`;
+    return `$${p.toFixed(2)}`;
+  }
+
+  function fmtChange(from: number, to: number) {
+    const diff = to - from;
+    const pct = (diff / from) * 100;
+    const displayDiff = isKRW ? (diff * rate) : diff;
+    const prefix = isKRW ? '₩' : '$';
+    return {
+      pct: `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`,
+      diff: `${diff >= 0 ? '+' : ''}${prefix}${Math.abs(displayDiff).toLocaleString('ko-KR', { maximumFractionDigits: isKRW ? 0 : 2 })}`,
+      isUp: diff >= 0,
+    };
+  }
 
   if (error) {
     return (
@@ -367,6 +398,21 @@ export const ForecastComparison: React.FC = () => {
   return (
     <>
       <Card title="Crude Oil Price Forecast" className="forecast-card sync-top-card">
+        {/* 통화 토글 */}
+        {rate > 0 && (
+          <div className="fc-currency-toggle">
+            <div className="currency-toggle">
+              <button className={`toggle-btn ${currency === 'USD' ? 'active' : ''}`} onClick={() => setCurrency('USD')}>USD ($)</button>
+              <button className={`toggle-btn ${currency === 'KRW' ? 'active' : ''}`} onClick={() => setCurrency('KRW')}>KRW (₩)</button>
+            </div>
+            {isKRW && exchangeRate && (
+              <span className="exchange-rate-badge" title={`기준일: ${exchangeRate.date}`}>
+                1 USD = ₩{rate.toLocaleString('ko-KR')}
+                <span className="rate-source">한국수출입은행</span>
+              </span>
+            )}
+          </div>
+        )}
         <div className="fc-table">
           {/* ── Header ── */}
           <div className="fc-row fc-row-header">
@@ -396,10 +442,10 @@ export const ForecastComparison: React.FC = () => {
             const mA = methodACrudes[crude];
             const mB = methodBCrudes[crude];
             const currentPrice = mA?.current_price ?? mB?.current_price;
-            const chgA = mA && currentPrice ? formatChange(currentPrice, mA.estimated_7d) : null;
-            const chgB = mB && currentPrice ? formatChange(currentPrice, mB.estimated_7d) : null;
+            const chgA = mA && currentPrice ? fmtChange(currentPrice, mA.estimated_7d) : null;
+            const chgB = mB && currentPrice ? fmtChange(currentPrice, mB.estimated_7d) : null;
             const prevPrice = prevPrices ? (prevPrices as any)[crude] as number | null : null;
-            const dayChg = currentPrice && prevPrice ? formatChange(prevPrice, currentPrice) : null;
+            const dayChg = currentPrice && prevPrice ? fmtChange(prevPrice, currentPrice) : null;
 
             return (
               <div key={crude} className="fc-row">
@@ -410,7 +456,7 @@ export const ForecastComparison: React.FC = () => {
                     ? <Skeleton height="20px" width="70px" />
                     : <>
                         <span className={`fc-val-current ${dayChg ? (dayChg.isUp ? 'bull' : 'bear') : ''}`}>
-                          {formatPrice(currentPrice)}
+                          {fmtPrice(currentPrice)}
                         </span>
                         {dayChg && (
                           <span className={`fc-val-badge ${dayChg.isUp ? 'bull' : 'bear'}`}>
@@ -427,7 +473,7 @@ export const ForecastComparison: React.FC = () => {
                     ? <Skeleton height="20px" width="70px" />
                     : <>
                         <span className={`fc-val-forecast ${chgA?.isUp ? 'bull' : 'bear'}`}>
-                          {formatPrice(mA.estimated_7d)}
+                          {fmtPrice(mA.estimated_7d)}
                         </span>
                         {chgA && (
                           <span className={`fc-val-badge ${chgA.isUp ? 'bull' : 'bear'}`}>
@@ -444,7 +490,7 @@ export const ForecastComparison: React.FC = () => {
                     ? <Skeleton height="20px" width="70px" />
                     : <>
                         <span className={`fc-val-forecast ${chgB?.isUp ? 'bull' : 'bear'}`}>
-                          {formatPrice(mB.estimated_7d)}
+                          {fmtPrice(mB.estimated_7d)}
                         </span>
                         {chgB && (
                           <span className={`fc-val-badge ${chgB.isUp ? 'bull' : 'bear'}`}>

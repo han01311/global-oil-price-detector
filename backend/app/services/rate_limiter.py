@@ -71,6 +71,11 @@ POLICIES: dict[str, RateLimitPolicy] = {
         max_requests_per_day=5000,
         min_interval_seconds=1.0,
     ),
+    "koreaexim": RateLimitPolicy(
+        name="koreaexim",
+        max_requests_per_day=1000,
+        min_interval_seconds=1.0,
+    ),
 }
 
 

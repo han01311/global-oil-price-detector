@@ -392,6 +392,17 @@ class FundamentalForecastEngine:
                 f"역사적 상관계수: {correlation:.2f} → 추정 반영"
             )
 
+        # 원/달러 환율 보조 정보 (공공데이터)
+        if "krw_usd" in macro_df.columns:
+            krw = macro_df["krw_usd"].dropna()
+            if len(krw) >= 2:
+                krw_latest = krw.iloc[-1]
+                if len(krw) >= 7 and krw.iloc[-7] != 0:
+                    krw_change = (krw.iloc[-1] - krw.iloc[-7]) / krw.iloc[-7]
+                    result["detail"] += f" | 원/달러: {krw_latest:,.0f}원 ({krw_change*100:+.1f}%)"
+                else:
+                    result["detail"] += f" | 원/달러: {krw_latest:,.0f}원"
+
         return result
 
     # ──────────────────────────────────────────────

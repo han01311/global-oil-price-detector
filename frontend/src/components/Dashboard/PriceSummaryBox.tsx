@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import type { OilPrice } from '../../types/price';
 import type { ForecastResult } from '../../types/forecast';
+import { fetchExchangeRate, type ExchangeRateData } from '../../services/api';
 import './PriceSummaryBox.css';
 
 interface PriceSummaryBoxProps {
@@ -10,9 +11,51 @@ interface PriceSummaryBoxProps {
 }
 
 export const PriceSummaryBox: React.FC<PriceSummaryBoxProps> = ({ latestPrice, forecast, loading }) => {
+  const [currency, setCurrency] = useState<'USD' | 'KRW'>('USD');
+  const [exchangeRate, setExchangeRate] = useState<ExchangeRateData | null>(null);
+  const [rateLoading, setRateLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadRate = async () => {
+      setRateLoading(true);
+      try {
+        const data = await fetchExchangeRate();
+        if (!cancelled && data?.krw_usd) {
+          setExchangeRate(data);
+        }
+      } catch (err) {
+        console.error('[PriceSummaryBox] Exchange rate fetch error:', err);
+      } finally {
+        if (!cancelled) setRateLoading(false);
+      }
+    };
+    loadRate();
+    return () => { cancelled = true; };
+  }, []);
+
   if (loading || !latestPrice || !forecast) {
     return null;
   }
+
+  const rate = exchangeRate?.krw_usd ?? 0;
+  const isKRW = currency === 'KRW' && rate > 0;
+
+  const formatPrice = (usdPrice: number) => {
+    if (isKRW) {
+      const krwPrice = usdPrice * rate;
+      return `₩${krwPrice.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`;
+    }
+    return `$${usdPrice.toFixed(2)}`;
+  };
+
+  const formatChange = (changeVal: number) => {
+    if (isKRW) {
+      const krwChange = changeVal * rate;
+      return `${krwChange >= 0 ? '+' : ''}${krwChange.toLocaleString('ko-KR', { maximumFractionDigits: 0 })}`;
+    }
+    return `${changeVal >= 0 ? '+' : ''}${changeVal.toFixed(2)}`;
+  };
 
   const crudes = [
     { id: 'dubai', label: 'Dubai', price: latestPrice.dubai, forecast: forecast.forecasts_by_crude?.dubai },
@@ -22,6 +65,32 @@ export const PriceSummaryBox: React.FC<PriceSummaryBoxProps> = ({ latestPrice, f
 
   return (
     <div className="price-summary-container">
+      {/* USD / KRW 토글 */}
+      {rate > 0 && (
+        <div className="currency-toggle-wrapper">
+          <div className="currency-toggle">
+            <button
+              className={`toggle-btn ${currency === 'USD' ? 'active' : ''}`}
+              onClick={() => setCurrency('USD')}
+            >
+              USD ($)
+            </button>
+            <button
+              className={`toggle-btn ${currency === 'KRW' ? 'active' : ''}`}
+              onClick={() => setCurrency('KRW')}
+            >
+              KRW (₩)
+            </button>
+          </div>
+          {isKRW && exchangeRate && (
+            <span className="exchange-rate-badge" title={`기준일: ${exchangeRate.date}`}>
+              1 USD = ₩{rate.toLocaleString('ko-KR')}
+              <span className="rate-source">한국수출입은행</span>
+            </span>
+          )}
+        </div>
+      )}
+
       {crudes.map(crude => {
         if (crude.price === undefined || crude.price === null || !crude.forecast) return null;
         
@@ -38,7 +107,7 @@ export const PriceSummaryBox: React.FC<PriceSummaryBoxProps> = ({ latestPrice, f
             <div className="summary-body">
               <div className="summary-current">
                 <span className="summary-label">현재가</span>
-                <span className="summary-value">${crude.price.toFixed(2)}</span>
+                <span className="summary-value">{formatPrice(crude.price)}</span>
               </div>
               <div className="summary-arrow">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -49,10 +118,10 @@ export const PriceSummaryBox: React.FC<PriceSummaryBoxProps> = ({ latestPrice, f
               <div className="summary-forecast">
                 <span className="summary-label">7일 전망치</span>
                 <span className={`summary-value ${isUp ? 'bull' : 'bear'}`}>
-                  ${predictedPrice.toFixed(2)}
+                  {formatPrice(predictedPrice)}
                 </span>
                 <span className={`summary-pct ${isUp ? 'bull' : 'bear'}`}>
-                  {isUp ? '+' : ''}{changeVal.toFixed(2)} ({changePct.toFixed(2)}%)
+                  {formatChange(changeVal)} ({changePct.toFixed(2)}%)
                 </span>
               </div>
             </div>

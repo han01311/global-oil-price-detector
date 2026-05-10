@@ -86,8 +86,16 @@ class FeatureEngineer:
         else:
             features["yield_spread"] = 0.0
 
+        # 6-1. 원/달러 환율 (공공데이터 data.go.kr)
+        if "krw_usd" in df.columns:
+            features["krw_usd"] = df["krw_usd"].ffill().fillna(0.0)
+            features["krw_usd_change_5d"] = features["krw_usd"].pct_change(5)
+        else:
+            features["krw_usd"] = 0.0
+            features["krw_usd_change_5d"] = 0.0
+
         # 7. 래깅 피처 (미래 정보 누출 방지)
-        for col in ["fed_rate", "dollar_index"]:
+        for col in ["fed_rate", "dollar_index", "krw_usd"]:
             if col in features.columns:
                 features[f"{col}_lag5"] = features[col].shift(5)
 

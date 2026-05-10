@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     NYT_API_KEY: Optional[str] = None
     GUARDIAN_API_KEY: Optional[str] = None
 
+    # 공공데이터 API 키 (data.go.kr)
+    KOREAEXIM_API_KEY: Optional[str] = None  # 한국수출입은행 환율 API
+
     # 스케줄러
     SCHEDULER_ENABLED: bool = True
     COLLECTION_INTERVAL_HOURS: int = 6

@@ -15,6 +15,7 @@ from app.core.database import Database
 from app.schemas.price import PriceHistory, OilPrice, MacroHistory, MacroIndicator
 from app.services.rate_limiter import RateLimiter, with_backoff
 from app.services.opinet_collector import OpinetCollector
+from app.services.exchange_rate_collector import ExchangeRateCollector
 
 logging.basicConfig(level=settings.LOG_LEVEL)
 logger = logging.getLogger(__name__)
@@ -315,6 +316,7 @@ class DataCollector:
         self.nyt = NYTCollector()
         self.guardian = GuardianCollector()
         self.opinet = OpinetCollector()
+        self.exchange_rate = ExchangeRateCollector() if settings.KOREAEXIM_API_KEY else None
         self.db = Database()
 
     def _forward_fill_prices(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -488,13 +490,27 @@ class DataCollector:
             "duplicate_count": duplicate_count,
         }
 
+    async def collect_exchange_rate(self) -> Dict:
+        """원/달러 환율 수집 (한국수출입은행 공공데이터)"""
+        if not self.exchange_rate:
+            return {"status": "skipped", "reason": "KOREAEXIM_API_KEY not set"}
+        result = await self.exchange_rate.collect_and_store()
+        return result or {"status": "no_data"}
+
     async def collect_all(self, start_date: str, end_date: str) -> Dict:
-        prices, macro, news = await asyncio.gather(
+        tasks = [
             self.collect_prices(start_date, end_date),
             self.collect_macro_data(start_date, end_date),
-            self.collect_news()
-        )
-        return {"prices": prices, "macro": macro, "news": news}
+            self.collect_news(),
+        ]
+        if self.exchange_rate:
+            tasks.append(self.collect_exchange_rate())
+
+        results = await asyncio.gather(*tasks)
+        result_dict = {"prices": results[0], "macro": results[1], "news": results[2]}
+        if len(results) > 3:
+            result_dict["exchange_rate"] = results[3]
+        return result_dict
 
     async def collect_latest_prices(self) -> PriceHistory | None:
         end_date = date.today()
