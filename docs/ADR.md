@@ -110,3 +110,26 @@ MVP 속도 최우선. 무료/오픈 데이터 소스 우선 활용. 작동하는
 **구현**: Singleton 패턴(`CollectionScheduler`). 서버 시작 시 DB 최신 데이터 확인 → 누락 시 즉시 수집. 런타임 중 스케줄 간격 동적 변경(1~24시간) 지원. 각 작업 결과는 `collection_logs` 테이블에 기록.
 **트레이드오프**: 단일 프로세스 내 스케줄러이므로 서버 재시작 시 상태 소실. Celery/Redis 도입은 MVP 이후 과제.
 
+### ADR-019: 한국 공공데이터(data.go.kr) 통합 — 환율 + KNOC 석유 통계
+**결정**: 한국수출입은행 환율 API(실시간)와 한국석유공사 원유수입/세계교역 CSV(파일)를 통합하여 국내 시장 관점의 분석력을 강화.
+**이유**:
+  - 한국 B2B 사용자에게 원화(KRW) 기준 유가 전환이 필수적이며, 환율 변동 자체가 국내 원유 수입 비용에 직접 영향.
+  - KNOC 원유수입 국가별 데이터로 수입 집중도(HHI) 산출이 가능하며, 이는 지정학적 리스크의 정량 지표로 활용 가능.
+  - 세계 원유 수출입 물량 매트릭스로 글로벌 교역 흐름 패턴 분석 기반 마련.
+**구현**:
+  - `exchange_rate_collector.py`: 한국수출입은행 Open API 호출, JSON 캐시 + Fallback(주말/공휴일 대응)
+  - `import_concentration.py`: OilImport 테이블에서 국가별 점유율 → HHI 산출
+  - `load_public_data.py`: EUC-KR 인코딩 CSV → PostgreSQL upsert (oil_imports, world_oil_trades)
+  - Rate Limit: `koreaexim` 정책 (1,000회/일, 1초 간격)
+  - 스케줄러: 24시간 주기 환율 자동 수집 Job 추가
+**트레이드오프**: 주말/공휴일에는 환율 API가 빈 응답을 반환하므로 Fallback 캐시 의존. CSV 데이터는 수동 갱신 필요(연 1회 데이터 업데이트).
+
+### ADR-020: 대시보드 USD/KRW 통화 토글 — 프론트엔드 환율 변환
+**결정**: 유가 예측 테이블(`ForecastComparison`)에 USD/KRW 통화 토글을 추가하여 실시간 원화 환산 표시.
+**이유**: 한국 에너지/제조업 사용자가 원화 기준으로 원유 수입 비용을 즉시 파악할 수 있어야 함. 환율 변동이 국내 유가에 미치는 복합 효과를 직관적으로 확인 가능.
+**구현**:
+  - 프론트엔드에서 `/api/public-data/exchange-rate` 호출 → 환율 데이터 로드
+  - `currency` state (USD/KRW)에 따라 `fmtPrice()`, `fmtChange()` 포맷 함수가 동적 변환
+  - 환율 배지(`1 USD = ₩1,450.8 한국수출입은행`)로 기준 환율 및 출처 명시
+  - 환율 로드 실패 시 KRW 토글 버튼 자체를 숨김 (Graceful Degradation)
+**트레이드오프**: 원화 환산은 현재 단순 곱연산이므로 선물/현물 스프레드나 국내 정유사 마진은 미반영. 향후 국내 주유소가격 연동 시 정밀화 가능.

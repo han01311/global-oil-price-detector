@@ -28,6 +28,7 @@ global-oil-price-detector/
 │   │   │   ├── news.py          # 뉴스 분류/검색 엔드포인트
 │   │   │   ├── forecast.py      # 예측 엔진 엔드포인트
 │   │   │   ├── briefing.py      # AI 브리핑 엔드포인트
+│   │   │   ├── public_data.py   # 공공데이터 API (환율, 수입집중도, 데이터소스)
 │   │   │   └── admin.py         # 관리자 API (모니터링, 파이프라인, 크롤링, Gap Recovery)
 │   │   ├── core/                # 설정, 보안, 미들웨어, 글로벌 에러 래퍼
 │   │   │   ├── config.py        # 환경변수, API 키 관리
@@ -37,7 +38,9 @@ global-oil-price-detector/
 │   │   │   ├── news_article.py  # 뉴스 기사 테이블
 │   │   │   ├── oil_inventory.py # 재고 테이블
 │   │   │   ├── oil_production.py# 생산량 테이블
-│   │   │   ├── macro_indicator.py# 거시경제 지표 테이블
+│   │   │   ├── macro_indicator.py# 거시경제 지표 테이블 (krw_usd 포함)
+│   │   │   ├── oil_import.py    # 한국석유공사 원유수입 국가별 테이블
+│   │   │   ├── world_oil_trade.py# 한국석유공사 세계 원유 수출입 물량 테이블
 │   │   │   ├── collection_log.py# 수집 이력 로그 테이블
 │   │   │   ├── pipeline_job.py  # 파이프라인 작업 이력 테이블
 │   │   │   └── rate_limit_counter.py # API Rate Limit 카운터 테이블
@@ -58,13 +61,16 @@ global-oil-price-detector/
 │   │   │   ├── scheduler.py            # APScheduler 데이터 수집 자동화 스케줄러
 │   │   │   ├── gap_recovery.py         # 데이터 누락 진단 및 자동 복구 서비스
 │   │   │   ├── rate_limiter.py         # API별 Rate Limit 중앙 관리 + Exponential Backoff
+│   │   │   ├── exchange_rate_collector.py # 한국수출입은행 환율 API 수집기 (data.go.kr)
+│   │   │   ├── import_concentration.py  # 수입 집중도(HHI) 분석 서비스 (KNOC 공공데이터)
 │   │   │   ├── archive_crawler.py      # 과거 뉴스 아카이브 크롤러 (OilPrice.com)
 │   │   │   └── historical_loader.py    # ChromaDB 시드 데이터 로더 (주요 유가 사건 30건)
 │   │   ├── utils/               # 유틸리티
 │   │   │   └── price_utils.py   # 유가 변동률 계산 유틸
 │   │   └── main.py              # FastAPI 앱 인스턴스 + Lifespan 관리
 │   ├── data/                    # 로컬 데이터 캐시 (Fallback 스토리지)
-│   │   ├── raw/                 # 원시 API 응답 캐시 (일별 JSON)
+│   │   ├── raw/                 # 원시 API 응답 캐시 (일별 JSON + 환율 캐시)
+│   │   ├── public/              # 공공데이터 CSV 원본 (KNOC 원유수입, 세계 수출입 물량)
 │   │   └── processed/           # 전처리된 데이터
 │   │       └── briefings/       # 일일 브리핑 캐시 (날짜별 JSON)
 │   ├── ml/                      # ML 모델 아티팩트
@@ -73,6 +79,7 @@ global-oil-price-detector/
 │   │   ├── run_ollama_classification.py   # Ollama(Gemma 4) 뉴스 일괄 분류
 │   │   ├── run_gemini_classification.py   # Gemini API 뉴스 일괄 분류 (클라우드 Fallback)
 │   │   ├── crawl_history.py               # 과거 뉴스 대량 크롤링 (NYT + Guardian)
+│   │   ├── load_public_data.py            # data.go.kr CSV → PostgreSQL 적재 (KNOC 원유수입/세계교역)
 │   │   ├── backfill_*.py                  # 데이터 보정 스크립트들
 │   │   └── migrate_sqlite_to_pg.py        # SQLite → PostgreSQL 마이그레이션
 │   └── tests/                   # pytest 테스트
@@ -99,18 +106,17 @@ global-oil-price-detector/
 │  ┌──────────────────────────────────────────────────────────────┐  │
 │  │ CORS Middleware │ Exception Handler (글로벌 에러 래퍼)       │  │
 │  └───────────────────────┬──────────────────────────────────────┘  │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────┐ ┌────────────┐ │
-│  │ prices   │ │  news    │ │ forecast │ │brief- │ │   admin    │ │
-│  │  .py     │ │  .py     │ │   .py    │ │ing.py │ │    .py     │ │
-│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └──┬────┘ └──────┬─────┘ │
-│       │            │            │           │             │       │
-│  ┌────▼────────────▼────────────▼───────────▼─────────────▼────┐  │
+│  │ prices   │ │  news    │ │ forecast │ │brief- │ │ public │ │   admin    │ │
+│  │  .py     │ │  .py     │ │   .py    │ │ing.py │ │_data.py│ │    .py     │ │
+│  └────┬─────┘ └────┬─────┘ └────┬─────┘ └──┬────┘ └──┬────┘ └──────┬─────┘ │
+│       │            │            │           │         │             │       │
+│  ┌────▼────────────▼────────────▼───────────▼─────────▼─────────────▼────┐  │
 │  │                     Service Layer                            │  │
 │  │ data_collector     │ news_classifier     │ forecast_engine   │  │
 │  │ opinet_collector   │ briefing_generator  │ fundamental_fore. │  │
 │  │ feature_engineering│ market_memory       │ scheduler         │  │
 │  │ rate_limiter       │ gap_recovery        │ archive_crawler   │  │
-│  │ historical_loader                                            │  │
+│  │ historical_loader  │ exchange_rate_coll. │ import_concentr.  │  │
 │  └───┬──────────┬───────────┬──────────┬──────────┬────────┬───┘  │
 │      │          │           │          │          │        │      │
 └──────┼──────────┼───────────┼──────────┼──────────┼────────┼──────┘
@@ -138,6 +144,7 @@ global-oil-price-detector/
   - FRED: 무제한 (2.0초 간격)
   - NYT: 500회/일 (12.5초 간격, 분당 5회 제한)
   - Guardian: 5,000회/일 (1초 간격)
+  - **한국수출입은행**: 1,000회/일 (1초 간격) — 공공데이터 포털 API 키 사용
   - 카운터는 PostgreSQL의 `rate_limit_counters` 테이블에 일별 기록됩니다.
 - **Fail-over**: 장애나 Rate Limit 발생 시 즉시 오류 처리하지 않고, 백엔드 로컬의 최신 캐시(`backend/data/raw/`) 데이터를 자동으로 로드해 제공합니다. (Stale Data Serving 전략)
 - **Exponential Backoff**: API 실패 시, `with_backoff()` 래퍼를 통해 재요청 주기를 지수적으로 증가시키며 재시도합니다. HTTP 429/500/502/503/504 에러를 자동 감지합니다.
@@ -175,7 +182,7 @@ global-oil-price-detector/
 
 ### ML 모델: XGBoost
 - **용도**: AI Quant 가격 예측 (Method A) — 유종별 독립 모델 6개 (7일/30일 × 3유종)
-- **피처**: `feature_engineering.py`가 생성하는 시계열 피처 (이동평균, 변동률, 변동성, 유종 간 스프레드, 거시경제 지표)
+- **피처**: `feature_engineering.py`가 생성하는 시계열 피처 (이동평균, 변동률, 변동성, 유종 간 스프레드, 거시경제 지표, **KRW/USD 환율 및 환율 5일 변화율**)
 - **저장**: `backend/ml/models/*.joblib`
 
 ---
@@ -210,6 +217,21 @@ global-oil-price-detector/
          → 유종별 독립 전망 리포트 (일별 캐시 저장)
                                                   ↓
 [표시] React Dashboard ← REST API ← FastAPI Route
+       (USD/KRW 통화 토글: 한국수출입은행 환율 API 연동)
+```
+
+### 공공데이터 (data.go.kr) 통합 흐름
+```
+[CSV] 한국석유공사 원유수입 국가별 / 세계 원유 수출입 물량 (EUC-KR)
+       → scripts/load_public_data.py → PostgreSQL (oil_imports / world_oil_trades)
+
+[API] 한국수출입은행 환율 API (일별 매매기준율)
+       → exchange_rate_collector → data/raw/ (JSON 캐시) + PostgreSQL (macro_indicators.krw_usd)
+       → feature_engineering (krw_usd 피처) → XGBoost 학습
+       → fundamental_forecast (달러 시그널 보조)
+       → Frontend 환율 토글 (USD ↔ KRW 실시간 변환)
+
+[분석] oil_imports → import_concentration (HHI 산출) → /api/public-data/import-concentration
 ```
 
 ## 자동화 파이프라인 (Scheduler)
@@ -220,6 +242,7 @@ APScheduler (AsyncIOScheduler, 기본 6시간 주기)
 ├── eia_inventory  → EIA 재고 데이터 API
 ├── eia_production → EIA 생산량 데이터 API
 ├── fred_macro     → FRED 거시경제 지표 API (최소 12시간 주기)
+├── koreaexim_fx   → 한국수출입은행 환율 API (24시간 주기, 공공데이터 data.go.kr)
 └── news_collect   → NYT + Guardian 뉴스 수집
                      → AI 분류 (news_classifier)
                      → 일일 브리핑 자동 생성 (briefing_generator)
@@ -282,3 +305,5 @@ Admin 패널은 4개 섹션으로 구성:
 | FRED (미국 연준) | 금리, 달러 인덱스 | 무제한 (합리적 사용) |
 | NYT (뉴욕타임스) | 원유 관련 뉴스 | 500회/일 |
 | The Guardian | 원유 관련 뉴스 | 5,000회/일 |
+| 한국수출입은행 (data.go.kr) | KRW/USD 매매기준율 (일별) | 1,000회/일 |
+| 한국석유공사 KNOC (data.go.kr) | 원유수입 국가별 / 세계 수출입 물량 (CSV) | 파일 다운로드 |
