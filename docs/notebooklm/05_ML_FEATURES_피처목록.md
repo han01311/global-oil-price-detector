@@ -26,7 +26,9 @@
 - `fed_rate`: 미국 연방기금금리 (월별 데이터를 ffill하여 일별로 변환)
 - `dollar_index`: 미국 달러 인덱스
 - `yield_spread`: 미국 장단기 국채 금리차 (10년물 - 2년물)
+- `krw_usd`: KRW/USD 원-달러 매매기준율 (한국수출입은행 공공데이터 API, 일별)
 - `{macro_feature}_lag5`: 거시경제 지표의 5일 전 래깅 값. 정보 반영 시차를 고려.
+- `krw_usd_change_5d`: KRW/USD 환율의 5일 전 대비 변동률 (%). 환율 모멘텀 지표.
 
 ## 6. 타겟 변수 (Target Variables)
 
