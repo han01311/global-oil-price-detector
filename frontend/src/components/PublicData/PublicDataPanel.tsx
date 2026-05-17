@@ -226,14 +226,6 @@ export const PublicDataPanel: React.FC = () => {
                 <span className="pdp-stat-value">{iStats.countries.length}</span>
                 <span className="pdp-stat-label">수입 대상국</span>
               </div>
-              {tStats && (
-                <Tooltip content="해당 지역 산유국들의 전 세계 교역 물량 합계 (백만 톤)">
-                  <div className="pdp-stat">
-                    <span className="pdp-stat-value">{tStats.totalVolume.toFixed(0)}</span>
-                    <span className="pdp-stat-label">세계 교역(백만톤)</span>
-                  </div>
-                </Tooltip>
-              )}
             </div>
           )}
         </div>
