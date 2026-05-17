@@ -187,6 +187,13 @@
   font-size: 13px;
 }
 
+.pdp-col-subtitle {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
 /* ── Bar rows (import countries) ── */
 .pdp-bar-row {
   display: grid;
@@ -223,6 +230,45 @@
   font-variant-numeric: tabular-nums;
   color: var(--color-text-secondary);
   font-size: 11px;
+}
+
+/* ── Bar rows dual (import: % + volume) ── */
+.pdp-bar-row-dual {
+  display: grid;
+  grid-template-columns: 80px 1fr 36px 56px;
+  gap: 4px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.pdp-bar-pct {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.pdp-bar-vol {
+  text-align: right;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-muted);
+  font-size: 10px;
+}
+
+.pdp-bar-vol small {
+  font-size: 8px;
+  font-weight: 400;
+  margin-left: 1px;
+}
+
+/* ── Stat unit (헤더 물량 단위) ── */
+.pdp-stat-unit {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: 1px;
 }
 
 /* ── Flow rows (trade) ── */

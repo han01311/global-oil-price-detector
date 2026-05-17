@@ -7,6 +7,7 @@
 - refactor: PublicDataPanel을 유종별 공급 구조(Supply Structure) 뷰로 재설계 — Dubai/Brent/WTI 탭에서 한국 수입처+세계 교역 흐름을 유종과 연결하여 표시
 - feat: 유종별 수입 집중도(HHI) 산출 — 각 벤치마크 지역 내 국가 점유율을 재계산하여 Dubai/WTI 개별 HHI + 하단 비교 테이블 표시
 - refactor: 유종별 HHI 제거 → 전체 수입 집중도(HHI) 하단 고정 + 게이지 바 + "HHI란?" 해석 문단 추가
+- refactor: Supply Structure 전면 보완 — 수입물량(만배럴) 병기, 혼동 유발 세계교역 헤더 숫자 제거, 칼럼 제목·부제목 맥락 리프레이밍
 - feat: 세계 원유 수출입 물량 API 엔드포인트 추가 (`GET /api/public-data/world-oil-trade`)
 - feat: HHI 트렌드 API 엔드포인트 추가 (`GET /api/public-data/import-concentration/trend`)
 - docs: NotebookLM 05_ML_FEATURES 전면 재작성 — 유종별 독립 피처, 크로스 스프레드, 래깅 피처, 피처 총 수 테이블 반영

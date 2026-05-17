@@ -203,6 +203,13 @@ export const PublicDataPanel: React.FC = () => {
     const maxImportVol = iStats?.countries[0]?.volume ?? 1;
     const maxTradeVol = tStats?.flows[0]?.volume_mt ?? 1;
 
+    // 천배럴 → 읽기 좋은 단위로 변환
+    const fmtVol = (thousandBarrels: number) => {
+      const manBarrels = thousandBarrels / 10; // 천배럴 → 만배럴
+      if (manBarrels >= 10000) return `${(manBarrels / 10000).toFixed(1)}억`;
+      return `${Math.round(manBarrels).toLocaleString()}만`;
+    };
+
     return (
       <div className="pdp-content">
         {/* ── 유종별 요약 헤더 ── */}
@@ -220,6 +227,12 @@ export const PublicDataPanel: React.FC = () => {
                     {iStats.totalPct.toFixed(1)}%
                   </span>
                   <span className="pdp-stat-label">한국 수입 중 비중</span>
+                </div>
+              </Tooltip>
+              <Tooltip content={`이 지역에서 한국이 연간 수입한 원유 총량 (${fmtVol(iStats.totalVolume)}배럴)`}>
+                <div className="pdp-stat">
+                  <span className="pdp-stat-value">{fmtVol(iStats.totalVolume)}<small className="pdp-stat-unit">배럴</small></span>
+                  <span className="pdp-stat-label">총 수입량</span>
                 </div>
               </Tooltip>
               <div className="pdp-stat">
@@ -251,11 +264,14 @@ export const PublicDataPanel: React.FC = () => {
           <div className="pdp-col">
             <div className="pdp-col-title">
               <span className="pdp-col-icon">🇰🇷</span>
-              한국 수입 ({hhi && !('error' in hhi) ? `${hhi.year}년` : ''})
+              한국이 수입하는 국가 ({hhi && !('error' in hhi) ? `${hhi.year}년` : ''})
+            </div>
+            <div className="pdp-col-subtitle">
+              국가별 수입 비중과 물량
             </div>
             {iStats && iStats.countries.length > 0 ? (
               iStats.countries.slice(0, 6).map((c, i) => (
-                <div key={c.country} className="pdp-bar-row slide-up" style={{ animationDelay: `${i * 0.04}s` }}>
+                <div key={c.country} className="pdp-bar-row-dual slide-up" style={{ animationDelay: `${i * 0.04}s` }}>
                   <span className="pdp-bar-label">{c.country}</span>
                   <div className="pdp-bar-track">
                     <div
@@ -266,7 +282,8 @@ export const PublicDataPanel: React.FC = () => {
                       }}
                     />
                   </div>
-                  <span className="pdp-bar-value">{c.share_pct}%</span>
+                  <span className="pdp-bar-pct">{c.share_pct}%</span>
+                  <span className="pdp-bar-vol">{fmtVol(c.volume)}<small>배럴</small></span>
                 </div>
               ))
             ) : (
@@ -276,11 +293,14 @@ export const PublicDataPanel: React.FC = () => {
             )}
           </div>
 
-          {/* 세계 교역 흐름 */}
+          {/* 이 지역 원유의 주요 수출처 */}
           <div className="pdp-col">
             <div className="pdp-col-title">
               <span className="pdp-col-icon">🌍</span>
-              세계 교역 흐름 ({trade && !('error' in trade) ? `${trade.data_year}년` : ''})
+              이 지역의 원유는 어디로? ({trade && !('error' in trade) ? `${trade.data_year}년` : ''})
+            </div>
+            <div className="pdp-col-subtitle">
+              같은 원유를 사는 다른 나라들 — 수요 경쟁이 가격에 영향
             </div>
             {tStats && tStats.flows.length > 0 ? (
               tStats.flows.slice(0, 6).map((f, i) => (
