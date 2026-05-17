@@ -1,0 +1,522 @@
+/* ═══════════════════════════════════════════════
+   PublicDataPanel — 유종별 공급 구조 시각화
+   ═══════════════════════════════════════════════ */
+
+.pdp-card {
+  min-height: 0;
+}
+
+/* ── Tabs (유종 3탭) ── */
+.pdp-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pdp-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pdp-tab:hover {
+  color: var(--color-text-secondary);
+}
+
+.pdp-tab.active {
+  color: var(--color-text-primary);
+}
+
+.pdp-tab-label {
+  transition: color 0.15s ease;
+}
+
+.pdp-tab-pct {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Skeleton ── */
+.pdp-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ── Content ── */
+.pdp-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Crude summary header ── */
+.pdp-crude-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pdp-crude-badge {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 12px;
+  border-left: 3px solid;
+  background: var(--color-bg);
+  border-radius: 0 4px 4px 0;
+}
+
+.pdp-crude-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pdp-crude-subtitle {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.pdp-stat-group {
+  display: flex;
+  gap: 16px;
+}
+
+.pdp-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pdp-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.pdp-stat-label {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+/* ── Price context (유가 연관 설명) ── */
+.pdp-price-context {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-body);
+  padding: 8px 12px;
+  background: var(--color-bg);
+  border-radius: 4px;
+  border-left: 2px solid var(--color-primary);
+}
+
+/* ── Risk note ── */
+.pdp-risk-note {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border-radius: 4px;
+  border-left: 2px solid var(--color-text-muted);
+}
+
+/* ── Empty context (수입 없을 때 설명) ── */
+.pdp-empty-context {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  padding: 16px 12px;
+  text-align: center;
+  background: var(--color-bg);
+  border-radius: 4px;
+}
+
+/* ── Small unit text ── */
+.pdp-bar-value small {
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+  margin-left: 1px;
+}
+
+/* ── Two-column layout ── */
+.pdp-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.pdp-col {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.pdp-col-title {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+
+.pdp-col-icon {
+  font-size: 13px;
+}
+
+/* ── Bar rows (import countries) ── */
+.pdp-bar-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 38px;
+  gap: 6px;
+  align-items: center;
+  font-size: 11px;
+}
+
+.pdp-bar-label {
+  color: var(--color-text-body);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pdp-bar-track {
+  height: 6px;
+  background: var(--color-border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.pdp-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.5s ease-out;
+  opacity: 0.7;
+}
+
+.pdp-bar-value {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+/* ── Flow rows (trade) ── */
+.pdp-flow-row {
+  display: grid;
+  grid-template-columns: 58px 14px 58px 1fr 38px;
+  gap: 3px;
+  align-items: center;
+  font-size: 11px;
+  padding: 2px 0;
+}
+
+.pdp-flow-from {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-body);
+}
+
+.pdp-flow-arrow {
+  color: var(--color-text-muted);
+  text-align: center;
+  font-size: 10px;
+}
+
+.pdp-flow-to {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-text-body);
+}
+
+.pdp-empty-note {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  padding: 12px 0;
+  text-align: center;
+}
+
+/* ── HHI Section (탭 밖 고정 영역) ── */
+.pdp-hhi-section {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pdp-hhi-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pdp-hhi-section-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  cursor: help;
+}
+
+.pdp-hhi-year {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.pdp-hhi-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pdp-hhi-value-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.pdp-hhi-big-value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.pdp-hhi-big-risk {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.pdp-hhi-gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--color-text-muted);
+  margin-top: 1px;
+}
+
+/* ── HHI Gauge (3-zone bar) — shared ── */
+.pdp-hhi-gauge-track {
+  flex: 1;
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  min-width: 120px;
+}
+
+.pdp-hhi-gauge-zone {
+  height: 100%;
+}
+
+.pdp-hhi-gauge-zone.low {
+  flex: 3;
+  background: var(--color-bull);
+  opacity: 0.35;
+}
+
+.pdp-hhi-gauge-zone.medium {
+  flex: 2;
+  background: var(--color-warning);
+  opacity: 0.35;
+}
+
+.pdp-hhi-gauge-zone.high {
+  flex: 5;
+  background: var(--color-bear);
+  opacity: 0.35;
+}
+
+.pdp-hhi-gauge-needle {
+  position: absolute;
+  top: -2px;
+  width: 3px;
+  height: 12px;
+  background: var(--color-text-primary);
+  border-radius: 2px;
+  transform: translateX(-50%);
+  transition: left 0.6s ease-out;
+  box-shadow: 0 0 4px rgba(0,0,0,0.5);
+}
+
+.pdp-hhi-explanation {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+/* ── HHI Description (설명 문단) ── */
+.pdp-hhi-desc {
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.pdp-hhi-desc-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0 0 6px 0;
+}
+
+.pdp-hhi-desc p {
+  font-size: 11px;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  margin: 0 0 4px 0;
+}
+
+.pdp-hhi-desc p:last-child {
+  margin-bottom: 0;
+}
+
+.pdp-hhi-desc strong {
+  color: var(--color-text-primary);
+}
+
+/* ── Per-Crude HHI (탭 내부) ── */
+.pdp-crude-hhi {
+  padding: 10px 12px;
+  background: var(--color-bg);
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pdp-crude-hhi-header {
+  display: flex;
+  align-items: center;
+}
+
+.pdp-crude-hhi-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  cursor: help;
+}
+
+.pdp-crude-hhi-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pdp-crude-hhi-value {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.pdp-crude-hhi-risk {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.pdp-crude-hhi-note {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+}
+
+.pdp-crude-hhi-note strong {
+  color: var(--color-text-primary);
+}
+
+/* ── HHI Comparison (하단 비교 테이블) ── */
+.pdp-hhi-compare {
+  display: flex;
+  gap: 2px;
+}
+
+.pdp-hhi-compare-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  background: var(--color-bg);
+  border-radius: 4px;
+}
+
+.pdp-hhi-compare-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.pdp-hhi-compare-value {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pdp-hhi-compare-risk {
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* ── Source ── */
+.pdp-source {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-top: 8px;
+  text-align: right;
+}
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .pdp-two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .pdp-crude-summary {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .pdp-hhi-compare {
+    flex-wrap: wrap;
+  }
+
+  .pdp-hhi-compare-item {
+    min-width: 70px;
+  }
+}
+

@@ -2,6 +2,7 @@
 
 - 환율 조회 (한국수출입은행)
 - 수입 집중도(HHI) 조회 (한국석유공사)
+- 세계 원유 수출입 물량 조회 (한국석유공사)
 - 활용 공공데이터 목록 (대회 심사용 메타데이터)
 """
 from __future__ import annotations
@@ -10,10 +11,13 @@ import logging
 from typing import Optional
 
 from fastapi import APIRouter, Query
+from sqlalchemy import select, func
 
 from app.core.config import settings
 from app.services.exchange_rate_collector import ExchangeRateCollector
 from app.services.import_concentration import ImportConcentrationService
+from app.models.base import get_session_factory
+from app.models.world_oil_trade import WorldOilTrade
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +54,102 @@ async def get_import_concentration_trend(start_year: int = Query(2010, descripti
     """연도별 수입 집중도(HHI) 추이"""
     service = ImportConcentrationService()
     return await service.get_yearly_trend(start_year=start_year)
+
+
+@router.get("/world-oil-trade")
+async def get_world_oil_trade(
+    data_year: Optional[int] = Query(None, description="데이터 연도"),
+    exporter: Optional[str] = Query(None, description="수출국 필터"),
+    importer: Optional[str] = Query(None, description="수입국 필터"),
+    top_n: int = Query(10, description="상위 N개 교역 흐름"),
+):
+    """세계 원유 수출입 물량 조회
+
+    한국석유공사(KNOC) 공공데이터 기반 글로벌 원유 교역 매트릭스.
+    21개 수출국 × 15개 수입국 물량(백만 톤).
+    """
+    session_factory = get_session_factory()
+    async with session_factory() as session:
+        # 데이터 연도 확인
+        if data_year is None:
+            result = await session.execute(select(func.max(WorldOilTrade.data_year)))
+            data_year = result.scalar()
+            if data_year is None:
+                return {"error": "세계 교역 데이터가 없습니다. CSV 적재를 먼저 실행하세요."}
+
+        # 기본 쿼리
+        stmt = (
+            select(WorldOilTrade)
+            .where(WorldOilTrade.data_year == data_year)
+            .where(WorldOilTrade.volume_mt.isnot(None))
+            .where(WorldOilTrade.volume_mt > 0)
+        )
+        if exporter:
+            stmt = stmt.where(WorldOilTrade.exporter == exporter)
+        if importer:
+            stmt = stmt.where(WorldOilTrade.importer == importer)
+
+        stmt = stmt.order_by(WorldOilTrade.volume_mt.desc())
+        result = await session.execute(stmt)
+        rows = result.scalars().all()
+
+        # 수출국별 총 수출량
+        exporter_stmt = (
+            select(
+                WorldOilTrade.exporter,
+                func.sum(WorldOilTrade.volume_mt).label("total_volume"),
+            )
+            .where(WorldOilTrade.data_year == data_year)
+            .where(WorldOilTrade.volume_mt > 0)
+            .group_by(WorldOilTrade.exporter)
+            .order_by(func.sum(WorldOilTrade.volume_mt).desc())
+        )
+        exporter_result = await session.execute(exporter_stmt)
+        exporter_totals = [
+            {"exporter": r.exporter, "total_volume_mt": round(r.total_volume, 1)}
+            for r in exporter_result.all()
+        ]
+
+        # 수입국별 총 수입량
+        importer_stmt = (
+            select(
+                WorldOilTrade.importer,
+                func.sum(WorldOilTrade.volume_mt).label("total_volume"),
+            )
+            .where(WorldOilTrade.data_year == data_year)
+            .where(WorldOilTrade.volume_mt > 0)
+            .group_by(WorldOilTrade.importer)
+            .order_by(func.sum(WorldOilTrade.volume_mt).desc())
+        )
+        importer_result = await session.execute(importer_stmt)
+        importer_totals = [
+            {"importer": r.importer, "total_volume_mt": round(r.total_volume, 1)}
+            for r in importer_result.all()
+        ]
+
+        # 상위 N개 교역 흐름
+        top_flows = [
+            {
+                "exporter": r.exporter,
+                "importer": r.importer,
+                "volume_mt": round(r.volume_mt, 1),
+            }
+            for r in rows[:top_n]
+        ]
+
+        # 전체 교역량
+        total_volume = sum(r.volume_mt for r in rows if r.volume_mt)
+
+        return {
+            "data_year": data_year,
+            "total_volume_mt": round(total_volume, 1),
+            "exporter_count": len(exporter_totals),
+            "importer_count": len(importer_totals),
+            "top_flows": top_flows,
+            "exporters": exporter_totals,
+            "importers": importer_totals,
+            "source": "knoc_public",
+        }
 
 
 @router.get("/data-sources")
@@ -90,7 +190,7 @@ async def get_public_data_sources():
                 "url": "https://www.data.go.kr/data/15054611/fileData.do",
                 "data_format": "CSV (EUC-KR)",
                 "update_cycle": "연 1회",
-                "usage": "글로벌 원유 교역 흐름 분석 → 수급 시그널 보강",
+                "usage": "글로벌 원유 교역 흐름 분석 → 수급 구조 시각화",
                 "integrated": True,
             },
         ],

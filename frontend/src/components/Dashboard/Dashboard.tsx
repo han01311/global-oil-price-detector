@@ -4,6 +4,7 @@ import { PriceChart } from '../PriceChart/PriceChart';
 import { FactorGauge } from '../FactorGauge/FactorGauge';
 import { AIBriefing } from '../Briefing/AIBriefing';
 import { NewsExplorer } from '../NewsExplorer/NewsExplorer';
+import { PublicDataPanel } from '../PublicData/PublicDataPanel';
 import { useDashboardData } from '../../hooks/useDashboardData';
 import { ErrorBoundary } from '../common/ErrorBoundary';
 import { ForecastComparison } from './ForecastComparison';
@@ -73,7 +74,13 @@ export const Dashboard: React.FC = () => {
         </ErrorBoundary>
       </div>
 
-      <footer className="dashboard-news fade-in" style={{ animationDelay: '0.2s' }}>
+      <div className="dashboard-publicdata fade-in" style={{ animationDelay: '0.25s' }}>
+        <ErrorBoundary moduleName="Public Data Analysis">
+          <PublicDataPanel />
+        </ErrorBoundary>
+      </div>
+
+      <footer className="dashboard-news fade-in" style={{ animationDelay: '0.3s' }}>
         <ErrorBoundary moduleName="News Explorer">
           <NewsExplorer />
         </ErrorBoundary>

@@ -174,3 +174,41 @@ export async function fetchPublicDataSources(): Promise<{ public_data_sources: a
   return apiFetch("/api/public-data/data-sources");
 }
 
+// --- World Oil Trade APIs ---
+export interface WorldOilTradeData {
+  data_year: number;
+  total_volume_mt: number;
+  exporter_count: number;
+  importer_count: number;
+  top_flows: Array<{
+    exporter: string;
+    importer: string;
+    volume_mt: number;
+  }>;
+  exporters: Array<{
+    exporter: string;
+    total_volume_mt: number;
+  }>;
+  importers: Array<{
+    importer: string;
+    total_volume_mt: number;
+  }>;
+  source: string;
+}
+
+export interface HHITrendItem {
+  year: number;
+  hhi: number;
+  risk_level: 'high' | 'medium' | 'low';
+  top_country: string | null;
+  top_share_pct: number | null;
+}
+
+export async function fetchWorldOilTrade(topN: number = 10): Promise<WorldOilTradeData> {
+  return apiFetch(`/api/public-data/world-oil-trade?top_n=${topN}`);
+}
+
+export async function fetchHHITrend(startYear: number = 2010): Promise<HHITrendItem[]> {
+  return apiFetch(`/api/public-data/import-concentration/trend?start_year=${startYear}`);
+}
+
