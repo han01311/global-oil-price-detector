@@ -4,6 +4,9 @@
 형식은 [Keep a Changelog](https://keepachangelog.com/ko/1.0.0/)를 따릅니다.
 
 ## [Unreleased]
+- docs: NotebookLM 05_ML_FEATURES 전면 재작성 — 유종별 독립 피처, 크로스 스프레드, 래깅 피처, 피처 총 수 테이블 반영
+- docs: NotebookLM 01_PRD + docs/PRD.md 엣지 케이스 테이블 뉴스 소스 명칭 수정 (NewsAPI/GNews → NYT/Guardian)
+- docs: NotebookLM 08_기술구현_상세 파일 크기/서비스 설명 실제 코드베이스와 동기화 + 헬스체크 엔드포인트 보충
 
 ## [0.3.0] - 2026-05-10
 
